@@ -17,8 +17,8 @@ CREATE TABLE zones(
 
 CREATE TABLE access_events(
     id SERIAL PRIMARY KEY,
-    user_id REFERENCES users(id),
-    zone_id REFERENCES zones(id),
+    user_id INT REFERENCES users(id),
+    zone_id INT REFERENCES zones(id),
     action VARCHAR(10) NOT NULL,
     status VARCHAR(10) NOT NULL,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
