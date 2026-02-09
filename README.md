@@ -181,4 +181,8 @@ bcrypt
 
 standard database/sql package
 
+install JWT
+Login Endpoint + JWT
+go get github.com/golang-jwt/jwt/v5
+
 
