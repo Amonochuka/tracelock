@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"tracelock/internal/auth"
 
 	"github.com/go-chi/chi/v5"
@@ -46,6 +47,16 @@ func New(db *sql.DB) http.Handler {
 
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("user regsitered succesfully"))
+	})
+
+	//test JWT middleware
+	r.Group(func(r chi.Router) {
+		r.Use((auth.JWTMiddleware))
+
+		r.Get("/protected", func(w http.ResponseWriter, r *http.Request) {
+			user := auth.GetUserClaims(r)
+			w.Write([]byte("Hello user ID" + strconv.Itoa(user.UserID) + "role"))
+		})
 	})
 
 	return r

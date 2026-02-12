@@ -186,3 +186,35 @@ Login Endpoint + JWT
 go get github.com/golang-jwt/jwt/v5
 
 
+JWT = JSON Web Token
+
+That’s the full name.
+
+Break it down simply:
+
+✅ JSON
+
+Because the data inside the token is a JSON object.
+
+Example payload (conceptually):
+
+{
+  "sub": 12,
+  "role": "admin"
+}
+
+✅ Web
+
+Because it’s designed to be used over HTTP / web APIs.
+
+✅ Token
+
+Because it is a small string that represents:
+
+“this user is authenticated”
+
+and is sent with every request.
+
+So:
+
+JSON Web Token = a signed JSON object used as an authentication token for web APIs.
