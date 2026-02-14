@@ -4,11 +4,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"tracelock/internal/auth"
 	"tracelock/internal/db"
 	"tracelock/internal/httpapi"
 )
 
 func main() {
+	auth.InitJWT()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

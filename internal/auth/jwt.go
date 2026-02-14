@@ -1,6 +1,9 @@
 package auth
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 var jwtSecret []byte
 
@@ -12,4 +15,5 @@ func InitJWT() {
 	}
 
 	jwtSecret = []byte(secret)
+	fmt.Println("JWT initialized succesfully")
 }
