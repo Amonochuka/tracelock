@@ -21,6 +21,12 @@ HTTP server:
 
 net/http + chi already handles concurrent requests safely
 
+At your stage, no mutexes or special concurrency code needed
+
+Database + Go’s HTTP server concurrency is enough
+
+For massive scale, the key is stateless design, DB consistency, and load balancing
+
 # TraceLock – Backend (Go + PostgreSQL)
 
 TraceLock is a backend service for tracking access events and zone activity in real time.  
