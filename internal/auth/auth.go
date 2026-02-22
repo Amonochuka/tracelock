@@ -7,6 +7,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+
+//how does this struct fit in ?
 type User struct {
 	ID           int
 	Name         string

@@ -49,6 +49,8 @@ func New(db *sql.DB) http.Handler {
 		w.Write([]byte("user regsitered succesfully"))
 	})
 
+	//login route
+	
 	//test JWT middleware
 	r.Group(func(r chi.Router) {
 		r.Use((auth.JWTMiddleware))
