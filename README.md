@@ -1,3 +1,26 @@
+
+Do you need goroutines, mutexes for tracelock?
+
+Most likely: NO, at least for phase 1-2
+
+Why:
+
+Database access is already safe:
+
+PostgreSQL handles multiple connections itself
+
+Each HTTP request gets its own DB transaction
+
+JWT / login / register:
+
+Each request is independent
+
+No shared in-memory state needing locks
+
+HTTP server:
+
+net/http + chi already handles concurrent requests safely
+
 # TraceLock – Backend (Go + PostgreSQL)
 
 TraceLock is a backend service for tracking access events and zone activity in real time.  
