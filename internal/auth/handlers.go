@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+
+	
 )
 
 // same email andp password in DB ?
@@ -72,5 +74,31 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "user created successfully",
 		})
+	}
+}
+
+func MeHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		UserClaims, ok := r.Context().Value(UserContextKey).(*UserClaims)
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return 
+		}
+		uuid := UserClaims.UserID
+
+		var user struct {
+			ID    int    `json:"id"`
+			Name  string `json:"name"`
+			Email string `json:"email"`
+			Role  string `json:"role"`
+		}
+
+		err := db.QueryRow(`SELECT id, name, email, 
+		role FROM users WHERE id =$1`, uuid,).Scan(&user.ID, &user.Name, &user.Email, &user.Role)
+		if err != nil {
+			http.Error(w, "user not found", http.StatusNotFound)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(user)
 	}
 }

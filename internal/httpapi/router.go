@@ -34,5 +34,9 @@ func New(db *sql.DB) http.Handler {
 		})
 	})
 
+	r.Get("/testjwt", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("JWT made successfully"))
+	})
+
 	return r
 }
