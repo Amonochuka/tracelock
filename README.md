@@ -247,3 +247,51 @@ and is sent with every request.
 So:
 
 JSON Web Token = a signed JSON object used as an authentication token for web APIs.
+
+
+# Tracelock
+
+**Tracelock** is a production-ready Go backend project implementing secure authentication with JWT and PostgreSQL. The goal is to build a minimal yet professional backend service demonstrating user authentication, JWT middleware, and protected routes.
+
+---
+
+## Features Implemented
+
+- PostgreSQL database setup with proper user privileges
+- User registration (`/register`) with password hashing using bcrypt
+- User login (`/login`) generating JWT tokens
+- JWT middleware validating tokens and storing user info in request context
+- Protected endpoint `/testjwt` to test JWT validation
+- Protected endpoint `/me` returning the authenticated user’s data
+- Environment-based configuration for DB credentials and JWT secret
+
+---
+
+## How JWT Works in Tracelock
+
+- JWT tokens include the `sub` claim (user ID), `exp` (expiry), and `iat` (issued at)
+- Tokens are signed using HMAC with a secret stored in the environment
+- JWT middleware extracts `sub` from token claims and stores it in context for handlers
+- Handlers retrieve the user ID safely via:
+
+```go
+userClaims, ok := r.Context().Value(UserContextKey).(*UserClaims)
+Challenges & Lessons Learned
+
+Environment variables
+
+JWT secret and DB credentials must be set in the environment.
+
+Common pitfall: variables only live in the current shell unless exported in ~/.bashrc.
+
+JWT token type casting
+
+sub from JWT claims is decoded as float64. Type assertion needed to convert to int.
+
+Database permissions
+
+PostgreSQL requires granting privileges to the user (GRANT ALL PRIVILEGES ON ALL TABLES…) — creating tables as postgres alone is insufficient.
+
+Context-based user info
+
+Storing a struct in context (UserClaims) is the professional way to pass authenticated user info to handlers.

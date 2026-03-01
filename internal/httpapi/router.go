@@ -32,10 +32,13 @@ func New(db *sql.DB) http.Handler {
 			user := auth.GetUserClaims(r)
 			w.Write([]byte("Hello user ID" + strconv.Itoa(user.UserID) + "role"))
 		})
-	})
+		r.Get("/testjwt", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("JWT middleware works!"))
+		})
+		r.Get("/me", auth.MeHandler(db))
 
-	r.Get("/testjwt", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("JWT made successfully"))
+
+
 	})
 
 	return r
