@@ -35,9 +35,12 @@ func New(db *sql.DB) http.Handler {
 		r.Get("/testjwt", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("JWT middleware works!"))
 		})
+
 		r.Get("/me", auth.MeHandler(db))
 
-
+		r.With(auth.RequireRole("admin")).Get("/admin/ping", (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("admin ok"))
+		})))
 
 	})
 

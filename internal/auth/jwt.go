@@ -3,12 +3,14 @@ package auth
 import (
 	"fmt"
 	"os"
+	
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 var jwtSecret []byte
+var u User
 
 // load it from the environment
 func InitJWT() {
@@ -24,6 +26,7 @@ func InitJWT() {
 func GenerateToken(userID int) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": userID,
+		"role": u.Role,
 		"exp": time.Now().Add(time.Hour * 24).Unix(),
 		"iat": time.Now().Unix(),
 	}

@@ -49,15 +49,15 @@ func JWTMiddleware(next http.Handler) http.Handler {
 		}
 
 		userID, ok := claims["sub"].(float64)
-		//role, ok2 := claims["role"].(string)
-		if !ok /*||!ok2*/ {
+		role, ok2 := claims["role"].(string)
+		if !ok || !ok2 {
 			http.Error(w, "invlaid token payload", http.StatusUnauthorized)
 			return
 		}
 
 		ctx := context.WithValue(r.Context(), UserContextKey, &UserClaims{
 			UserID: int(userID),
-			//Role:   role,
+			Role:   role,
 		})
 		next.ServeHTTP(w, r.WithContext(ctx))
 

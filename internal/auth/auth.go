@@ -17,6 +17,7 @@ type User struct {
 	Role         string
 }
 
+
 // register a new user
 func Register(db *sql.DB, name, email, password string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
