@@ -30,16 +30,16 @@ func New(db *sql.DB) http.Handler {
 
 		r.Get("/protected", func(w http.ResponseWriter, r *http.Request) {
 			user := auth.GetUserClaims(r)
-			w.Write([]byte("Hello user ID" + strconv.Itoa(user.UserID) + "role"))
+			w.Write([]byte("Hello user ID: " + strconv.Itoa(user.UserID) + " your role is: " + user.Role + "\n"))
 		})
 		r.Get("/testjwt", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("JWT middleware works!"))
+			w.Write([]byte("JWT middleware works!" + "\n"))
 		})
 
 		r.Get("/me", auth.MeHandler(db))
 
 		r.With(auth.RequireRole("admin")).Get("/admin/ping", (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("admin ok"))
+			w.Write([]byte("admin ok" + "\n"))
 		})))
 
 	})
