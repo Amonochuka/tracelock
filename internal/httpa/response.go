@@ -1,4 +1,5 @@
-package httpa
+
+//add JSON request validation and standardized error responses
 
 import (
 	"encoding/json"
