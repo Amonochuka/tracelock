@@ -606,3 +606,5 @@ Never place real secrets in README, even for a portfolio project.
 * JWT string → encoded header + encoded payload + signature
 * `jwt.Parse` → verifies signature and extracts payload
 * `token.Claims` → your decoded claims
+
+Role-Based Access Control,
