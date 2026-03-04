@@ -32,7 +32,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		token, err := GenerateToken(user.ID)
+		token, err := GenerateToken(user)
 		if err != nil {
 			http.Error(w, "could not generate token", http.StatusInternalServerError)
 			return

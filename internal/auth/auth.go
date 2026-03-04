@@ -7,16 +7,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-
-//how does this struct fit in ?
+// how does this struct fit in ?
 type User struct {
 	ID           int
 	Name         string
 	Email        string
 	PasswordHash string
 	Role         string
+	CreatedAt    string
 }
-
 
 // register a new user
 func Register(db *sql.DB, name, email, password string) error {

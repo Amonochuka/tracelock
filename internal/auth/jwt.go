@@ -10,7 +10,6 @@ import (
 )
 
 var jwtSecret []byte
-var u User
 
 // load it from the environment
 func InitJWT() {
@@ -23,10 +22,10 @@ func InitJWT() {
 	fmt.Println("JWT initialized succesfully")
 }
 
-func GenerateToken(userID int) (string, error) {
+func GenerateToken(user *User) (string, error) {
 	claims := jwt.MapClaims{
-		"sub": userID,
-		"role": u.Role,
+		"sub": user.ID,
+		"role": user.Role,
 		"exp": time.Now().Add(time.Hour * 24).Unix(),
 		"iat": time.Now().Unix(),
 	}
