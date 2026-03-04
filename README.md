@@ -197,6 +197,7 @@ Why both TABLES and SEQUENCES are needed
 PostgreSQL uses sequences for SERIAL / auto-increment columns.
 
 Without permissions on sequences, inserts may fail even if table permissions exist.
+psql -U tracelock_user -d tracelock -h 127.0.0.1,  to prompt password in DB, to avoid sudo masking
 
 🛠 Tech Stack
 
