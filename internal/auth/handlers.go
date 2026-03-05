@@ -79,26 +79,17 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 
 func MeHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		UserClaims, ok := r.Context().Value(UserContextKey).(*UserClaims)
+		userID, ok := r.Context().Value(UserContextKey).(int)
 		if !ok {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			httpa.WriteError(w, http.StatusUnauthorized, "unauthorized access!")
 			return
 		}
-		uuid := UserClaims.UserID
 
-		var user struct {
-			ID    int    `json:"id"`
-			Name  string `json:"name"`
-			Email string `json:"email"`
-			Role  string `json:"role"`
-		}
-
-		err := db.QueryRow(`SELECT id, name, email, 
-		role FROM users WHERE id =$1`, uuid).Scan(&user.ID, &user.Name, &user.Email, &user.Role)
+		user, err := VerifyUser(db, userID)
 		if err != nil {
-			http.Error(w, "user not found", http.StatusNotFound)
+			httpa.WriteError(w, http.StatusInternalServerError, "could not fetch user")
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(user)
+
+		httpa.WriteJSON(w, http.StatusOK, user)
 	}
 }
