@@ -3,25 +3,51 @@ package auth
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
 	"tracelock/internal/httpa"
 )
 
-type registerRequest struct {
+type RegisterRequest struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type loginRequest struct {
+type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+// validation methods for registering and logins
+func (r *RegisterRequest) Validate() error {
+	if len(r.Name) < 2 {
+		return errors.New("name must be atleast two charcaters")
+	}
+	if !strings.Contains(r.Email, "@") {
+		return errors.New("invalid email")
+	}
+	if len(r.Password) < 8 {
+		return errors.New("password must be atleast 8 characters")
+	}
+	return nil
+}
+
+func (l *LoginRequest) Validate() error {
+	if !strings.Contains(l.Email, "@") {
+		return errors.New("invalid error")
+	}
+	if len(l.Password) < 8 {
+		return errors.New("password must be atleast 8 characters")
+	}
+	return nil
 }
 
 // same email and password in DB ?
 func LoginHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req loginRequest
+		var req LoginRequest
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&req); err != nil {
@@ -29,7 +55,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if req.Email == "" || req.Password == "" {
+		if err := req.Validate(); err != nil {
 			httpa.WriteError(w, http.StatusBadRequest, "must provide name and email")
 			return
 		}
@@ -54,7 +80,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 
 func RegisterHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req registerRequest
+		var req RegisterRequest
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&req); err != nil {
@@ -62,7 +88,7 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if req.Name == "" || req.Email == "" || req.Password == "" {
+		if err := req.Validate(); err != nil {
 			httpa.WriteError(w, http.StatusBadRequest, "all fields are required")
 			return
 		}
