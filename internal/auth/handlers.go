@@ -18,7 +18,7 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
-// same email andp password in DB ?
+// same email and password in DB ?
 func LoginHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req loginRequest

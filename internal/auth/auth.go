@@ -35,7 +35,8 @@ func Register(db *sql.DB, name, email, password string) error {
 	return nil
 }
 
-// Authenticate user(tobe used for verifying logins)
+// Authenticate user(tobe used for verifying logins
+
 func Authenticate(db *sql.DB, email, password string) (*User, error) {
 	user := &User{}
 	row := db.QueryRow("SELECT id, name, email, password_hash, role FROM users WHERE email=$1", email)
@@ -46,6 +47,15 @@ func Authenticate(db *sql.DB, email, password string) (*User, error) {
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return nil, errors.New("invalid password")
+	}
+	return user, nil
+}
+
+func VerifyUser(db *sql.DB, ID int) (*User, error) {
+	user := &User{}
+	err := db.QueryRow("SELECT id, name, FROM users WHERE id = $1", ID).Scan(&user.ID, &user.Name)
+	if err != nil {
+		return nil, err
 	}
 	return user, nil
 }
