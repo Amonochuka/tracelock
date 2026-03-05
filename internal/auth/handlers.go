@@ -7,8 +7,13 @@ import (
 	"tracelock/internal/httpa"
 )
 
-type requestRegister struct {
+type registerRequest struct {
 	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type loginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
@@ -16,44 +21,40 @@ type requestRegister struct {
 // same email andp password in DB ?
 func LoginHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var request struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
-		}
-
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			http.Error(w, "inavlid request body", http.StatusBadRequest)
+		var req loginRequest
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&req); err != nil {
+			httpa.WriteError(w, http.StatusBadRequest, "invalid json")
 			return
 		}
 
-		if request.Email == "" || request.Password == "" {
-			http.Error(w, "must provide name and email", http.StatusBadRequest)
+		if req.Email == "" || req.Password == "" {
+			httpa.WriteError(w, http.StatusBadRequest, "must provide name and email")
 			return
 		}
 
-		user, err := Authenticate(db, request.Email, request.Password)
+		user, err := Authenticate(db, req.Email, req.Password)
 		if err != nil {
-			http.Error(w, "invalid credentials", http.StatusUnauthorized)
+			httpa.WriteError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
 
 		token, err := GenerateToken(user)
 		if err != nil {
-			http.Error(w, "could not generate token", http.StatusInternalServerError)
+			httpa.WriteError(w, http.StatusInternalServerError, "could not generate")
 			return
 		}
 
-		resp := map[string]any{
+		httpa.WriteJSON(w, http.StatusOK, map[string]string{
 			"token": token,
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		})
 	}
 }
 
 func RegisterHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req requestRegister
+		var req registerRequest
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&req); err != nil {
