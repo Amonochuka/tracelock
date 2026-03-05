@@ -94,3 +94,57 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO tracelock_user;
 - JWT sub type → float64 needs int conversion
 
 - Global variables → do not use for per-request JWT claims
+
+## PostgreSQL Gotcha You Encountered
+ 1. The Problem;
+
+When you first tried running your app with tracelock_user, you got an error:
+
+pq: permission denied for table users
+
+This happened because:
+
+The tables were created as the postgres superuser.
+Your app connects as tracelock_user, a regular DB user.
+
+GRANTs on the database itself do not automatically give table/sequence permissions.
+So even though tracelock_user could connect to the database, it could not read or write to tables.
+
+2. How it happened in practice
+```
+CREATE TABLE users(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+Executed as postgres superuser
+
+tracelock_user tried to access users → got permission denied
+
+3. The Fix
+
+Run as postgres and grant table and sequence permissions to tracelock_user:
+
+sudo -u postgres psql
+\c tracelock
+
+Then run:
+```
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO tracelock_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO tracelock_user;
+```
+
+After this, tracelock_user could read/write tables and your app worked.
+
+4. Developer Notes
+
+ - This is one of the most common PostgreSQL gotchas when creating an app user.
+
+ - Database-level access ≠ table-level access. Always explicitly grant privileges on tables and sequences.
+
+ - In production, you usually create a limited-permission DB user and run migrations as a superuser or admin user.
