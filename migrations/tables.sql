@@ -1,4 +1,4 @@
-CREATE TABLE users(
+CREATE TABLE IF NOT EXISTS users(
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE users(
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE zones(
+CREATE TABLE IF NOT EXISTS zones(
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
@@ -15,7 +15,7 @@ CREATE TABLE zones(
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE access_events(
+CREATE TABLE IF NOT EXISTS access_events(
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id),
     zone_id INT REFERENCES zones(id),
@@ -26,7 +26,7 @@ CREATE TABLE access_events(
     previous_hash VARCHAR(64)
 );
 
-CREATE TABLE active_sessions (
+CREATE TABLE IF NOT EXISTS active_sessions (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id),
     zone_id INT REFERENCES zones(id),
