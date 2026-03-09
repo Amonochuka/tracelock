@@ -33,7 +33,7 @@ func Load() *Config {
 func mustEnv(key string) string {
 	val := os.Getenv(key)
 	if val == "" {
-		log.Fatal("&s environment variable required")
+		log.Fatalf("%s environment variable required", key)
 	}
 	return val
 }
