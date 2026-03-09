@@ -45,7 +45,7 @@ func (l *LoginRequest) Validate() error {
 }
 
 // same email and password in DB ?
-func LoginHandler(db *sql.DB) http.HandlerFunc {
+func LoginHandler(db *sql.DB, j *JWTService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req LoginRequest
 		dec := json.NewDecoder(r.Body)
@@ -66,7 +66,7 @@ func LoginHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		token, err := GenerateToken(user)
+		token, err := j.GenerateToken(user)
 		if err != nil {
 			httpa.WriteError(w, http.StatusInternalServerError, "could not generate")
 			return

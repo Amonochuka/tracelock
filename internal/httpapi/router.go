@@ -11,6 +11,7 @@ import (
 )
 
 func New(db *sql.DB) http.Handler {
+	jwtservice := auth.NewJWTService(os.Getenv("JWT_SECRET"))
 	r := chi.NewRouter()
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -23,11 +24,10 @@ func New(db *sql.DB) http.Handler {
 	r.Post("/register", auth.RegisterHandler(db))
 
 	//login route
-	r.Post("/login", auth.LoginHandler(db))
+	r.Post("/login", auth.LoginHandler(db, jwtservice))
 
 	//test JWT middleware
 
-	jwtservice := auth.NewJWTService(os.Getenv("JWT_SECRET"))
 	r.Group(func(r chi.Router) {
 		r.Use(auth.JWTMiddleware(jwtservice))
 
