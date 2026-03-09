@@ -3,6 +3,7 @@ package httpapi
 import (
 	"database/sql"
 	"net/http"
+	"os"
 	"strconv"
 	"tracelock/internal/auth"
 
@@ -25,8 +26,10 @@ func New(db *sql.DB) http.Handler {
 	r.Post("/login", auth.LoginHandler(db))
 
 	//test JWT middleware
+
+	jwtservice := auth.NewJWTService(os.Getenv("JWT_SECRET"))
 	r.Group(func(r chi.Router) {
-		r.Use((auth.JWTMiddleware))
+		r.Use(auth.JWTMiddleware(jwtservice))
 
 		r.Get("/protected", func(w http.ResponseWriter, r *http.Request) {
 			user := auth.GetUserClaims(r)
