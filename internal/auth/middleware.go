@@ -5,8 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"strings"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type contextKey string
@@ -21,47 +19,37 @@ type UserClaims struct {
 	Role   string
 }
 
-func JWTMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			http.Error(w, "missing or invalid token authorization header", http.StatusUnauthorized)
-			return
-		}
-
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-
-		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (any, error) {
-			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, ErrTokenInvalidMethod
+func JWTMiddleware(j *JWTService) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+				http.Error(w, "missing or invalid token authorization header", http.StatusUnauthorized)
+				return
 			}
-			return jwtSecret, nil
+
+			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+			claims, err := j.VerifyToken(tokenString)
+			if err != nil {
+				http.Error(w, "invalid token", http.StatusUnauthorized)
+				return
+			}
+
+			userID, ok := claims["sub"].(float64)
+			role, ok2 := claims["role"].(string)
+			if !ok || !ok2 {
+				http.Error(w, "invalid token payload", http.StatusUnauthorized)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), UserContextKey, &UserClaims{
+				UserID: int(userID),
+				Role:   role,
+			})
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
-		if err != nil || !token.Valid {
-			http.Error(w, "invalid token", http.StatusUnauthorized)
-			return
-		}
-
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			http.Error(w, "invalid token claims", http.StatusUnauthorized)
-			return
-		}
-
-		userID, ok := claims["sub"].(float64)
-		role, ok2 := claims["role"].(string)
-		if !ok || !ok2 {
-			http.Error(w, "invlaid token payload", http.StatusUnauthorized)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), UserContextKey, &UserClaims{
-			UserID: int(userID),
-			Role:   role,
-		})
-		next.ServeHTTP(w, r.WithContext(ctx))
-
-	})
+	}
 }
 
 // add helper to get claims from context

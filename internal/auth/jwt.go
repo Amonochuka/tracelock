@@ -32,3 +32,21 @@ func (j *JWTService) GenerateToken(user *User) (string, error) {
 	}
 	return tokenString, nil
 }
+
+func (j *JWTService) VerifyToken(tokenString string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (any, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, ErrTokenInvalidMethod
+		}
+		return j.secret, nil
+	})
+	if err != nil || !token.Valid {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, err
+	}
+	return claims, nil
+}
