@@ -3,24 +3,22 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"os"
+	"tracelock/internal/config"
 
 	_ "github.com/lib/pq"
 )
 
-func Open() (*sql.DB, error) {
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	pass := os.Getenv("DB_PASSWORD")
-	name := os.Getenv("DB_NAME")
-
-	//data source name
+func Open(cfg *config.Config) (*sql.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, pass, name,
+		cfg.DBHost,
+		cfg.DBPort,
+		cfg.DBUser,
+		cfg.DBPassword,
+		cfg.DBName,
 	)
 
+	//data source name
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, err
@@ -30,10 +28,9 @@ func Open() (*sql.DB, error) {
 		return nil, err
 	}
 
-	if err := runMigrations(db); err != nil{
+	if err := runMigrations(db); err != nil {
 		return nil, err
 	}
-	
 
 	return db, nil
 }
