@@ -105,15 +105,16 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 
 func MeHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := r.Context().Value(UserContextKey).(int)
-		if !ok {
+		claims := GetUserClaims(r)
+		if claims == nil {
 			httpa.WriteError(w, http.StatusUnauthorized, "unauthorized access!")
 			return
 		}
 
-		user, err := VerifyUser(db, userID)
+		user, err := VerifyUser(db, claims.UserID)
 		if err != nil {
 			httpa.WriteError(w, http.StatusInternalServerError, "could not fetch user")
+			return
 		}
 
 		httpa.WriteJSON(w, http.StatusOK, user)
