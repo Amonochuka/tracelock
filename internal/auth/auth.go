@@ -53,7 +53,7 @@ func Authenticate(db *sql.DB, email, password string) (*User, error) {
 
 func VerifyUser(db *sql.DB, ID int) (*User, error) {
 	user := &User{}
-	err := db.QueryRow("SELECT id, name, email, role FROM users WHERE id = $1", ID).Scan(&user.ID, &user.Name, &user.Email, &user.Role)
+	err := db.QueryRow("SELECT id, name, email, role, created_at FROM users WHERE id = $1", ID).Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
