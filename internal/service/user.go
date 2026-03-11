@@ -2,6 +2,7 @@ package service
 
 import (
 	"tracelock/internal/auth"
+	"tracelock/internal/models"
 )
 
 type UserService struct {
@@ -16,10 +17,10 @@ func (s *UserService) Register(name, email, password string) error {
 	return s.auth.Register(name, email, password)
 }
 
-func (s *UserService) Authenticate(email, password string) (*auth.User, error) {
+func (s *UserService) Authenticate(email, password string) (*models.User, error) {
 	return s.auth.Authenticate(email, password)
 }
 
-func (s *UserService) VerifyUser(ID int) (*auth.User, error) {
+func (s *UserService) VerifyUser(ID int) (*models.User, error) {
 	return s.auth.VerifyUser(ID)
 }

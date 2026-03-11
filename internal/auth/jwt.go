@@ -2,6 +2,7 @@ package auth
 
 import (
 	"time"
+	"tracelock/internal/models"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -14,7 +15,7 @@ func NewJWTService(secret string) *JWTService {
 	return &JWTService{secret: []byte(secret)}
 }
 
-func (j *JWTService) GenerateToken(user *User) (string, error) {
+func (j *JWTService) GenerateToken(user *models.User) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":  user.ID,
 		"role": user.Role,
