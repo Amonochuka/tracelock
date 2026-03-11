@@ -1,12 +1,12 @@
 package auth
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
 	"tracelock/internal/httpa"
+	"tracelock/internal/service"
 )
 
 type RegisterRequest struct {
@@ -45,7 +45,7 @@ func (l *LoginRequest) Validate() error {
 }
 
 // same email and password in DB ?
-func LoginHandler(db *sql.DB, j *JWTService) http.HandlerFunc {
+func LoginHandler(s *service.UserService, j *JWTService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req LoginRequest
 		dec := json.NewDecoder(r.Body)
@@ -60,7 +60,7 @@ func LoginHandler(db *sql.DB, j *JWTService) http.HandlerFunc {
 			return
 		}
 
-		user, err := Authenticate(db, req.Email, req.Password)
+		user, err := s.Authenticate(req.Email, req.Password)
 		if err != nil {
 			httpa.WriteError(w, http.StatusUnauthorized, "invalid credentials")
 			return
@@ -78,7 +78,7 @@ func LoginHandler(db *sql.DB, j *JWTService) http.HandlerFunc {
 	}
 }
 
-func RegisterHandler(db *sql.DB) http.HandlerFunc {
+func RegisterHandler(s *service.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req RegisterRequest
 		dec := json.NewDecoder(r.Body)
@@ -93,7 +93,7 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := Register(db, req.Name, req.Email, req.Password); err != nil {
+		if err := s.Register(req.Name, req.Email, req.Password); err != nil {
 			httpa.WriteError(w, http.StatusInternalServerError, "could not register user: "+err.Error())
 			return
 		}
@@ -103,7 +103,7 @@ func RegisterHandler(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func MeHandler(db *sql.DB) http.HandlerFunc {
+func MeHandler(s *service.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		claims := GetUserClaims(r)
 		if claims == nil {
@@ -111,7 +111,7 @@ func MeHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		user, err := VerifyUser(db, claims.UserID)
+		user, err := s.VerifyUser(claims.UserID)
 		if err != nil {
 			httpa.WriteError(w, http.StatusInternalServerError, "could not fetch user")
 			return
