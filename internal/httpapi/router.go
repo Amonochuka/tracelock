@@ -12,8 +12,9 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func New(s *service.UserService) http.Handler {
+func New(db *sql.DB) http.Handler {
 	jwtservice := auth.NewJWTService(os.Getenv("JWT_SECRET"))
+	s := &service.UserService{}
 	r := chi.NewRouter()
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +27,7 @@ func New(s *service.UserService) http.Handler {
 	r.Post("/register", handlers.RegisterHandler(s))
 
 	//login route
-	r.Post("/login", handlers.LoginHandler(jwtservice))
+	r.Post("/login", handlers.LoginHandler(s, jwtservice))
 
 	//test JWT middleware
 
@@ -41,7 +42,7 @@ func New(s *service.UserService) http.Handler {
 			w.Write([]byte("JWT middleware works!" + "\n"))
 		})
 
-		r.Get("/me", handlers.MeHandler())
+		r.Get("/me", handlers.MeHandler(s))
 
 		r.With(auth.RequireRole("admin")).Get("/admin/ping", (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("admin ok" + "\n"))
