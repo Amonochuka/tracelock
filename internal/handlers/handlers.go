@@ -1,10 +1,11 @@
-package auth
+package handlers
 
 import (
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
+	"tracelock/internal/auth"
 	"tracelock/internal/httpa"
 	"tracelock/internal/service"
 )
@@ -45,7 +46,7 @@ func (l *LoginRequest) Validate() error {
 }
 
 // same email and password in DB ?
-func LoginHandler(s *service.UserService, j *JWTService) http.HandlerFunc {
+func LoginHandler(s *service.UserService, j *auth.JWTService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req LoginRequest
 		dec := json.NewDecoder(r.Body)
@@ -105,7 +106,7 @@ func RegisterHandler(s *service.UserService) http.HandlerFunc {
 
 func MeHandler(s *service.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		claims := GetUserClaims(r)
+		claims := auth.GetUserClaims(r)
 		if claims == nil {
 			httpa.WriteError(w, http.StatusUnauthorized, "unauthorized access!")
 			return

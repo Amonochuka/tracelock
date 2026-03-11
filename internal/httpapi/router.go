@@ -6,11 +6,13 @@ import (
 	"os"
 	"strconv"
 	"tracelock/internal/auth"
+	"tracelock/internal/handlers"
+	"tracelock/internal/service"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func New(db *sql.DB) http.Handler {
+func New(s *service.UserService) http.Handler {
 	jwtservice := auth.NewJWTService(os.Getenv("JWT_SECRET"))
 	r := chi.NewRouter()
 
@@ -21,10 +23,10 @@ func New(db *sql.DB) http.Handler {
 	})
 
 	//regsiter endpoint
-	r.Post("/register", auth.RegisterHandler(db))
+	r.Post("/register", handlers.RegisterHandler(s))
 
 	//login route
-	r.Post("/login", auth.LoginHandler(db, jwtservice))
+	r.Post("/login", handlers.LoginHandler(jwtservice))
 
 	//test JWT middleware
 
@@ -39,7 +41,7 @@ func New(db *sql.DB) http.Handler {
 			w.Write([]byte("JWT middleware works!" + "\n"))
 		})
 
-		r.Get("/me", auth.MeHandler(db))
+		r.Get("/me", handlers.MeHandler())
 
 		r.With(auth.RequireRole("admin")).Get("/admin/ping", (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("admin ok" + "\n"))

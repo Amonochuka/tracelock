@@ -8,7 +8,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-
 type UserAuth struct {
 	db *sql.DB
 }
