@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strings"
 )
@@ -10,8 +9,6 @@ import (
 type contextKey string
 
 const UserContextKey = contextKey("user")
-
-var ErrTokenInvalidMethod = errors.New("invalid jwt signing method")
 
 // struct to define users and their roles within
 type UserClaims struct {

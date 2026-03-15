@@ -1,9 +1,7 @@
 package httpapi
 
 import (
-	"database/sql"
 	"net/http"
-	"os"
 	"strconv"
 	"tracelock/internal/auth"
 	"tracelock/internal/handlers"
@@ -12,9 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func New(db *sql.DB) http.Handler {
-	jwtservice := auth.NewJWTService(os.Getenv("JWT_SECRET"))
-	s := &service.UserService{}
+func New(s *service.UserService, jwtservice *auth.JWTService) http.Handler {
 	r := chi.NewRouter()
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
