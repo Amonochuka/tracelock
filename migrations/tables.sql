@@ -33,3 +33,9 @@ CREATE TABLE IF NOT EXISTS active_sessions (
     entered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+INSERT INTO zones(name, description, max_capacity) VALUES
+('Lobby', 'Main lobby', 50),
+('Server Room', 'Restricted area', 5),
+('Gym', 'Employee gym', 20),
+('Boardroom', 'Meeting room', 20)
+ON CONFLICT DO NOTHING;
