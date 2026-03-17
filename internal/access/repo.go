@@ -14,9 +14,9 @@ func NewZoneRepo(db *sql.DB) *ZoneRepo {
 	return &ZoneRepo{db: db}
 }
 
-func (z *ZoneRepo) GetMaximumCapacity(ZoneID int) (int, error) {
+func (z *ZoneRepo) GetMaximumCapacity(zoneID int) (int, error) {
 	var capacity int
-	err := z.db.QueryRow("SELECT max_capacity FROM zones WHERE id = $1", ZoneID).Scan(&capacity)
+	err := z.db.QueryRow("SELECT max_capacity FROM zones WHERE id = $1", zoneID).Scan(&capacity)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.New("zone not found")
@@ -36,4 +36,17 @@ func (z *ZoneRepo) CreateEvent(userID, zoneID int, action, status, hash, previou
 		return fmt.Errorf("CreateEvent insert failed: %w", err)
 	}
 	return nil
+}
+
+func (z *ZoneRepo) GetLastHash(zoneID int) (string, error) {
+	var hash string
+	err := z.db.QueryRow(`SELECT hash FROM access_events WHERE zone_id = $1
+	ORDER BY timestamp DESC LIMIT 1`, zoneID).Scan(&hash)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	return hash, nil
 }
