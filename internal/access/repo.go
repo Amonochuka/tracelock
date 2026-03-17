@@ -16,3 +16,4 @@ GetLastEventHash
 GetLastEventHash
 CountActiveUsers
 CreateSession
+DeleteSession
