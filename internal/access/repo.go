@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 type ZoneRepo struct {
@@ -58,24 +59,36 @@ func (z *ZoneRepo) CreateSession(userID, zoneID int) error {
 	`, userID, zoneID)
 
 	if err != nil {
-		return fmt.Errorf("CreateEvent insert failed: %w", err)
+		//detecte duplicate
+		if strings.Contains(err.Error(), "duplicate key") {
+			return errors.New("user already in the zone")
+		}
+		return fmt.Errorf("CreateSession insert failed: %w", err)
 	}
 	return nil
 }
 
 func (z *ZoneRepo) DeleteSession(userID, zoneID int) error {
-	_, err := z.db.Exec(`
+	res, err := z.db.Exec(`
 		DELETE FROM active_sessions WHERE user_id = $1 AND zone_id = $2`, userID, zoneID)
 
 	if err != nil {
-		return fmt.Errorf("CreateEvent insert failed: %w", err)
+		return fmt.Errorf("Delete session failed: %w", err)
 	}
+	rows, err := res.RowsAffected()
+	if rows == 0 {
+		return errors.New("no active session found")
+	}
+
 	return nil
 }
 
 func (z *ZoneRepo) CountActiveUsers(zoneID int) (int, error) {
 	var count int
 	err := z.db.QueryRow(`SELECT COUNT(*) FROM active_sessions WHERE zone_id = $1`, zoneID).Scan(&count)
-	return count, err
+	if err != nil {
+		return 0, fmt.Errorf("count active users failed: %w", err)
+	}
+	return count, nil
 
 }
