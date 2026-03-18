@@ -33,5 +33,4 @@ func (s *ZoneService) EnterZone(userID, zoneID int) error {
 	previous_hash, _ := s.repo.GetLastHash(zoneID)
 	hash := GenerateHash(userID, zoneID, previous_hash)
 	return s.repo.CreateEvent(userID, zoneID, "enter", "success", hash, previous_hash)
-
 }
