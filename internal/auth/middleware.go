@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -56,4 +57,13 @@ func GetUserClaims(r *http.Request) *UserClaims {
 		return nil
 	}
 	return claims
+}
+
+//add helper to get userID from context
+func GetUserIDFromContext(ctx context.Context)(int, error){
+	claims, ok := ctx.Value(UserContextKey).(*UserClaims)
+	if !ok || claims == nil{
+		return 0, fmt.Errorf("user not found")
+	}
+	return claims.UserID, nil
 }
