@@ -50,3 +50,32 @@ func (z *ZoneRepo) GetLastHash(zoneID int) (string, error) {
 	}
 	return hash, nil
 }
+
+func (z *ZoneRepo) CreateSession(userID, zoneID int) error {
+	_, err := z.db.Exec(`
+		INSERT INTO active_sessions (user_id, zone_id)
+		VALUES ($1, $2)
+	`, userID, zoneID)
+
+	if err != nil {
+		return fmt.Errorf("CreateEvent insert failed: %w", err)
+	}
+	return nil
+}
+
+func (z *ZoneRepo) DeleteSession(userID, zoneID int) error {
+	_, err := z.db.Exec(`
+		DELETE FROM active_sessions WHERE user_id = $1 AND zone_id = $2`, userID, zoneID)
+
+	if err != nil {
+		return fmt.Errorf("CreateEvent insert failed: %w", err)
+	}
+	return nil
+}
+
+func (z *ZoneRepo) CountActiveUsers(zoneID int) (int, error) {
+	var count int
+	err := z.db.QueryRow(`SELECT COUNT(*) FROM active_sessions WHERE zone_id = $1`, zoneID).Scan(&count)
+	return count, err
+
+}
