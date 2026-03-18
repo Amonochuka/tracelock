@@ -19,18 +19,18 @@ CREATE TABLE IF NOT EXISTS access_events(
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id),
     zone_id INT REFERENCES zones(id),
-    action VARCHAR(10) NOT NULL,
-    status VARCHAR(10) NOT NULL,
+    action VARCHAR(10) NOT NULL CHECK (action IN ('enter', 'exit')),
+    status VARCHAR(10) NOT NULL CHECK (status IN ('allowed', 'denied')),
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     hash VARCHAR(64) NOT NULL,
     previous_hash VARCHAR(64)
 );
 
 CREATE TABLE IF NOT EXISTS active_sessions (
-    id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(id),
-    zone_id INT REFERENCES zones(id),
+    user_id INT NOT NULL REFERENCES users(id),
+    zone_id INT NOT NULL REFERENCES zones(id),
     entered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    PRIMARY KEY(user_id, zone_id)
 );
 
 INSERT INTO zones(name, description, max_capacity) VALUES
