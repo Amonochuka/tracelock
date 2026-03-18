@@ -115,3 +115,16 @@ curl -X POST http://localhost:8080/register \
 JWT payload is signed, not encrypted. Do not commit secrets.
 
  ***For full developer setup and deeper explanation of JWT, database, and authentication, see Developer Guide***
+
+
+why use fmt.Errorf
+
+Now the HTTP response actually tells the client something went wrong.
+
+This is how Go handles errors idiomatically — you return errors, don’t just print.
+
+Rule of thumb:
+
+Use fmt.Print only for debugging or logging.
+
+Use return fmt.Errorf(...) (or errors.New) for real errors that the caller must handle.
