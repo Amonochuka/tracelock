@@ -94,9 +94,6 @@ func (z *ZoneRepo) CountActiveUsers(zoneID int) (int, error) {
 	var count int
 	err := z.db.QueryRow(`SELECT COUNT(*) FROM active_sessions WHERE zone_id = $1`, zoneID).Scan(&count)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0, nil
-		}
 		return 0, fmt.Errorf("count active users failed: %w", err)
 	}
 	return count, nil
