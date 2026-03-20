@@ -3,7 +3,8 @@ package access
 import "errors"
 
 var (
-	ErrUserNotFound    = errors.New("user not found")
-	ErrInvalidPassword = errors.New("invalid password")
-	ErrEmailExists     = errors.New("email already exists")
+	ErrZoneFull          = errors.New("zone is full")
+	ErrUserAlreadyInZone = errors.New("user already in zone")
+	ErrNoActiveSession   = errors.New("no active session found")
+	ErrZoneNotFound      = errors.New("zone not found")
 )
