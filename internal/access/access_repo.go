@@ -21,7 +21,7 @@ func (z *ZoneRepo) GetMaximumCapacity(zoneID int) (int, error) {
 	err := z.db.QueryRow("SELECT max_capacity FROM zones WHERE id = $1", zoneID).Scan(&capacity)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, errors.New("zone not found")
+			return 0, ErrZoneNotFound
 		}
 		return 0, err
 	}
@@ -77,11 +77,14 @@ func (z *ZoneRepo) DeleteSession(userID, zoneID int) error {
 		DELETE FROM active_sessions WHERE user_id = $1 AND zone_id = $2`, userID, zoneID)
 
 	if err != nil {
-		return fmt.Errorf("Delete session failed: %w", err)
+		return fmt.Errorf("delete session failed: %w", err)
 	}
 	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check rows affected: %w", err)
+	}
 	if rows == 0 {
-		return errors.New("no active session found")
+		return ErrNoActiveSession
 	}
 
 	return nil
@@ -91,8 +94,10 @@ func (z *ZoneRepo) CountActiveUsers(zoneID int) (int, error) {
 	var count int
 	err := z.db.QueryRow(`SELECT COUNT(*) FROM active_sessions WHERE zone_id = $1`, zoneID).Scan(&count)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
 		return 0, fmt.Errorf("count active users failed: %w", err)
 	}
 	return count, nil
-
 }
