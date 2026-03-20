@@ -13,24 +13,36 @@ func NewZoneService(repo *ZoneRepo) *ZoneService {
 	return &ZoneService{repo: repo}
 }
 
-func (s *ZoneService) EnterZone(userID, zoneID int, action string, timestamp time.Time) error {
-	capacity, err := s.repo.GetMaximumCapacity(zoneID)
-	if err != nil {
-		return err
+func (s *ZoneService) HandleZoneEvent(userID, zoneID int, action string, timestamp time.Time) error {
+	if action == "enter" {
+		capacity, err := s.repo.GetMaximumCapacity(zoneID)
+		if err != nil {
+			return err
+		}
+
+		count, err := s.repo.CountActiveUsers(zoneID)
+		if err != nil {
+			return err
+		}
+
+		if count >= capacity {
+			return fmt.Errorf("zone is full")
+		}
 	}
 
-	count, err := s.repo.CountActiveUsers(zoneID)
-	if err != nil {
-		return err
-	}
-
-	if count >= capacity {
-		return fmt.Errorf("zone is full")
-	}
-
-	err = s.repo.CreateSession(userID, zoneID)
-	if err != nil {
-		return err
+	switch action {
+	case "enter":
+		err := s.repo.CreateSession(userID, zoneID)
+		if err != nil {
+			return err
+		}
+	case "exit":
+		err := s.repo.DeleteSession(userID, zoneID)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("invalid action: %s",action)
 	}
 
 	previousHash, err := s.repo.GetLastHash(zoneID)
