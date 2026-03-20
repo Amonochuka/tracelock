@@ -32,7 +32,7 @@ func (u *UserAuth) Register(name, email, password string) error {
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			if pqErr.Code == "23505" {
-				return errors.New("user already in registered")
+				return errors.New("user already registered")
 			}
 		}
 		return err
