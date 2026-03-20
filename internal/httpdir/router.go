@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strconv"
 	"tracelock/internal/auth"
+	"tracelock/internal/httpdir/middleware"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -37,7 +39,7 @@ func New(s *auth.UserService, jwtservice *auth.JWTService) http.Handler {
 
 		r.Get("/me", MeHandler(s))
 
-		r.With(RequireRole("admin")).Get("/admin/ping", (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.With(middleware.RequireRole("admin")).Get("/admin/ping", (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("admin ok" + "\n"))
 		})))
 
