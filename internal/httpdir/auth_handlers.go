@@ -1,4 +1,4 @@
-package http
+package httpdir
 
 import (
 	"encoding/json"

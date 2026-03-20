@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"tracelock/internal/auth"
 	"tracelock/internal/config"
+	"tracelock/internal/httpdir"
+
 	"tracelock/internal/db"
-	"tracelock/internal/auth/httpapi"
-	"tracelock/internal/auth/service"
 )
 
 func main() {
@@ -22,10 +22,10 @@ func main() {
 	}
 
 	userAuth := auth.NewUserAuth(database)
-	userService := service.NewUserService(userAuth)
+	userService := auth.NewUserService(userAuth)
 	jwtService := auth.NewJWTService(cfg.JWTSecret)
 
-	handler := httpapi.New(userService, jwtService)
+	handler := httpdir.New(userService, jwtService)
 
 	log.Println("Tracelock API running on:" + cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, handler); err != nil {
