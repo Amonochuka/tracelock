@@ -38,5 +38,5 @@ func (s *ZoneService) EnterZone(userID, zoneID int, action string, timestamp tim
 		return fmt.Errorf("cannot get last hash: %w", err)
 	}
 	hash := GenerateHash(userID, zoneID, action, timestamp, previousHash)
-	return s.repo.CreateEvent(userID, zoneID, "enter", "success", hash, previousHash)
+	return s.repo.CreateEvent(userID, zoneID, action, "success", hash, previousHash)
 }
