@@ -5,6 +5,7 @@ import (
 	"errors"
 	"tracelock/internal/models"
 
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -29,12 +30,17 @@ func (u *UserAuth) Register(name, email, password string) error {
 		name, email, string(hash),
 	)
 	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Code == "23505" {
+				return errors.New("user already in registered")
+			}
+		}
 		return err
 	}
 	return nil
 }
 
-// Authenticate user(tobe used for verifying logins
+// Authenticate user(to be used for verifying logins
 
 func (u *UserAuth) Authenticate(email, password string) (*models.User, error) {
 	user := &models.User{}

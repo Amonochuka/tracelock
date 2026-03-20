@@ -4,7 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
+
+	"github.com/lib/pq"
 )
 
 type ZoneRepo struct {
@@ -59,9 +60,12 @@ func (z *ZoneRepo) CreateSession(userID, zoneID int) error {
 	`, userID, zoneID)
 
 	if err != nil {
-		//detecte duplicate
-		if strings.Contains(err.Error(), "duplicate key") {
-			return errors.New("user already in the zone")
+		//detect duplicate
+		//use postgre code 23505 for unique violation
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Code == "23505" {
+				return errors.New("user already in zone")
+			}
 		}
 		return fmt.Errorf("CreateSession insert failed: %w", err)
 	}
