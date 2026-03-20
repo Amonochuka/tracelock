@@ -23,7 +23,7 @@ func (z *ZoneRepo) GetMaximumCapacity(zoneID int) (int, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, ErrZoneNotFound
 		}
-		return 0, err
+		return 0, fmt.Errorf("get max_capacity failed: %w", err)
 	}
 	return capacity, nil
 }
