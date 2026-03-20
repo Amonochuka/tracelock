@@ -22,7 +22,7 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 
 		timestamp := time.Now()
 
-		err = service.EnterZone(userID, req.ZoneID, "enter", timestamp)
+		err = service.HandleZoneEvent(userID, req.ZoneID, "enter", timestamp)
 		if err != nil {
 			WriteError(w, http.StatusBadRequest, err.Error())
 			return
