@@ -48,7 +48,7 @@ func (z *ZoneRepo) GetLastHash(zoneID int) (string, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", nil
 		}
-		return "", err
+		return "", fmt.Errorf("get last hash failed: %w", err)
 	}
 	return hash, nil
 }
