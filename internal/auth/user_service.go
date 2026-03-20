@@ -1,15 +1,12 @@
-package service
+package auth
 
-import (
-	"tracelock/internal/auth"
-	"tracelock/internal/models"
-)
+import "tracelock/internal/models"
 
 type UserService struct {
-	auth *auth.UserAuth
+	auth *UserAuth
 }
 
-func NewUserService(auth *auth.UserAuth) *UserService {
+func NewUserService(auth *UserAuth) *UserService {
 	return &UserService{auth: auth}
 }
 

@@ -1,17 +1,17 @@
-package access
+package http
 
 import (
 	"encoding/json"
 	"net/http"
+	"tracelock/internal/access"
 	"tracelock/internal/auth"
-	"tracelock/internal/httpa"
 )
 
-func EnterZoneHandler(service *ZoneService) http.HandlerFunc {
+func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := auth.GetUserIDFromContext(r.Context())
 		if err != nil {
-			httpa.WriteError(w, http.StatusUnauthorized, "unauthorized")
+			WriteError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 		var req struct {
@@ -21,7 +21,7 @@ func EnterZoneHandler(service *ZoneService) http.HandlerFunc {
 
 		err = service.EnterZone(userID, req.ZoneID)
 		if err != nil {
-			httpa.WriteError(w, http.StatusBadRequest, err.Error())
+			WriteError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		w.Write([]byte("entered successfully"))

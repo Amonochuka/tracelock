@@ -6,8 +6,8 @@ import (
 	"tracelock/internal/auth"
 	"tracelock/internal/config"
 	"tracelock/internal/db"
-	"tracelock/internal/httpapi"
-	"tracelock/internal/service"
+	"tracelock/internal/auth/httpapi"
+	"tracelock/internal/auth/service"
 )
 
 func main() {

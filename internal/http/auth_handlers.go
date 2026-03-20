@@ -1,4 +1,4 @@
-package handlers
+package http
 
 import (
 	"encoding/json"
@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strings"
 	"tracelock/internal/auth"
-	"tracelock/internal/httpa"
-	"tracelock/internal/service"
 )
 
 type RegisterRequest struct {
@@ -46,78 +44,78 @@ func (l *LoginRequest) Validate() error {
 }
 
 // same email and password in DB ?
-func LoginHandler(s *service.UserService, j *auth.JWTService) http.HandlerFunc {
+func LoginHandler(s *auth.UserService, j *auth.JWTService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req LoginRequest
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&req); err != nil {
-			httpa.WriteError(w, http.StatusBadRequest, "invalid json")
+			WriteError(w, http.StatusBadRequest, "invalid json")
 			return
 		}
 
 		if err := req.Validate(); err != nil {
-			httpa.WriteError(w, http.StatusBadRequest, "must provide name and email")
+			WriteError(w, http.StatusBadRequest, "must provide name and email")
 			return
 		}
 
 		user, err := s.Authenticate(req.Email, req.Password)
 		if err != nil {
-			httpa.WriteError(w, http.StatusUnauthorized, "invalid credentials")
+			WriteError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
 
 		token, err := j.GenerateToken(user)
 		if err != nil {
-			httpa.WriteError(w, http.StatusInternalServerError, "could not generate")
+			WriteError(w, http.StatusInternalServerError, "could not generate")
 			return
 		}
 
-		httpa.WriteJSON(w, http.StatusOK, map[string]string{
+		WriteJSON(w, http.StatusOK, map[string]string{
 			"token": token,
 		})
 	}
 }
 
-func RegisterHandler(s *service.UserService) http.HandlerFunc {
+func RegisterHandler(s *auth.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req RegisterRequest
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&req); err != nil {
-			httpa.WriteError(w, http.StatusBadRequest, "invalid json")
+			WriteError(w, http.StatusBadRequest, "invalid json")
 			return
 		}
 
 		if err := req.Validate(); err != nil {
-			httpa.WriteError(w, http.StatusBadRequest, "all fields are required")
+			WriteError(w, http.StatusBadRequest, "all fields are required")
 			return
 		}
 
 		if err := s.Register(req.Name, req.Email, req.Password); err != nil {
-			httpa.WriteError(w, http.StatusInternalServerError, "could not register user: "+err.Error())
+			WriteError(w, http.StatusInternalServerError, "could not register user: "+err.Error())
 			return
 		}
-		httpa.WriteJSON(w, http.StatusCreated, map[string]string{
+		WriteJSON(w, http.StatusCreated, map[string]string{
 			"message": "user registered successfully",
 		})
 	}
 }
 
-func MeHandler(s *service.UserService) http.HandlerFunc {
+func MeHandler(s *auth.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		claims := auth.GetUserClaims(r)
 		if claims == nil {
-			httpa.WriteError(w, http.StatusUnauthorized, "unauthorized access!")
+			WriteError(w, http.StatusUnauthorized, "unauthorized access!")
 			return
 		}
 
 		user, err := s.VerifyUser(claims.UserID)
 		if err != nil {
-			httpa.WriteError(w, http.StatusInternalServerError, "could not fetch user")
+			WriteError(w, http.StatusInternalServerError, "could not fetch user")
 			return
 		}
 
-		httpa.WriteJSON(w, http.StatusOK, user)
+		WriteJSON(w, http.StatusOK, user)
 	}
 }

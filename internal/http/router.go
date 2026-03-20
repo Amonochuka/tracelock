@@ -1,16 +1,13 @@
-package httpapi
+package http
 
 import (
 	"net/http"
 	"strconv"
 	"tracelock/internal/auth"
-	"tracelock/internal/handlers"
-	"tracelock/internal/service"
-
 	"github.com/go-chi/chi/v5"
 )
 
-func New(s *service.UserService, jwtservice *auth.JWTService) http.Handler {
+func New(s *auth.UserService, jwtservice *auth.JWTService) http.Handler {
 	r := chi.NewRouter()
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -20,10 +17,10 @@ func New(s *service.UserService, jwtservice *auth.JWTService) http.Handler {
 	})
 
 	//regsiter endpoint
-	r.Post("/register", handlers.RegisterHandler(s))
+	r.Post("/register", RegisterHandler(s))
 
 	//login route
-	r.Post("/login", handlers.LoginHandler(s, jwtservice))
+	r.Post("/login", LoginHandler(s, jwtservice))
 
 	//test JWT middleware
 
@@ -38,9 +35,9 @@ func New(s *service.UserService, jwtservice *auth.JWTService) http.Handler {
 			w.Write([]byte("JWT middleware works!" + "\n"))
 		})
 
-		r.Get("/me", handlers.MeHandler(s))
+		r.Get("/me", MeHandler(s))
 
-		r.With(auth.RequireRole("admin")).Get("/admin/ping", (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.With(RequireRole("admin")).Get("/admin/ping", (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("admin ok" + "\n"))
 		})))
 
