@@ -64,7 +64,7 @@ func (z *ZoneRepo) CreateSession(userID, zoneID int) error {
 		//use postgre code 23505 for unique violation
 		if pqErr, ok := err.(*pq.Error); ok {
 			if pqErr.Code == "23505" {
-				return errors.New("user already in zone")
+				return ErrUserAlreadyInZone
 			}
 		}
 		return fmt.Errorf("CreateSession insert failed: %w", err)

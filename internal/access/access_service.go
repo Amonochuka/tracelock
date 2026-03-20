@@ -26,7 +26,7 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, action string, timesta
 		}
 
 		if count >= capacity {
-			return fmt.Errorf("zone is full")
+			return ErrZoneFull
 		}
 	}
 
