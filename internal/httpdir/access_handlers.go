@@ -3,6 +3,7 @@ package httpdir
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 	"tracelock/internal/access"
 	"tracelock/internal/auth"
 )
@@ -19,7 +20,9 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 		}
 		json.NewDecoder(r.Body).Decode(&req)
 
-		err = service.EnterZone(userID, req.ZoneID)
+		timestamp := time.Now()
+
+		err = service.EnterZone(userID, req.ZoneID, "enter", timestamp)
 		if err != nil {
 			WriteError(w, http.StatusBadRequest, err.Error())
 			return
