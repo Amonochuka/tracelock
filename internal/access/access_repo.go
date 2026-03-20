@@ -35,7 +35,7 @@ func (z *ZoneRepo) CreateEvent(userID, zoneID int, action, status, hash, previou
 	`, userID, zoneID, action, status, hash, previousHash)
 
 	if err != nil {
-		return fmt.Errorf("CreateEvent insert failed: %w", err)
+		return fmt.Errorf("createEvent insert failed: %w", err)
 	}
 	return nil
 }
