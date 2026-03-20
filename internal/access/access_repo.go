@@ -67,7 +67,7 @@ func (z *ZoneRepo) CreateSession(userID, zoneID int) error {
 				return ErrUserAlreadyInZone
 			}
 		}
-		return fmt.Errorf("CreateSession insert failed: %w", err)
+		return fmt.Errorf("createSession insert failed: %w", err)
 	}
 	return nil
 }
