@@ -1,14 +1,11 @@
 package auth
 
 import (
-	"errors"
 	"time"
 	"tracelock/internal/models"
 
 	"github.com/golang-jwt/jwt/v5"
 )
-
-var ErrTokenInvalidMethod = errors.New("invalid jwt signing method")
 
 type JWTService struct {
 	secret []byte
