@@ -2,7 +2,6 @@ package auth
 
 import (
 	"database/sql"
-	"errors"
 	"tracelock/internal/models"
 
 	"github.com/lib/pq"
@@ -32,7 +31,7 @@ func (u *UserAuth) Register(name, email, password string) error {
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			if pqErr.Code == "23505" {
-				return errors.New("user already registered")
+				return ErrEmailExists
 			}
 		}
 		return err
@@ -47,11 +46,11 @@ func (u *UserAuth) Authenticate(email, password string) (*models.User, error) {
 	row := u.db.QueryRow("SELECT id, name, email, password_hash, role FROM users WHERE email=$1", email)
 	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role)
 	if err != nil {
-		return nil, errors.New("User not found")
+		return nil, ErrUserNotFound
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return nil, errors.New("invalid password")
+		return nil, ErrInvalidPassword
 	}
 	return user, nil
 }
