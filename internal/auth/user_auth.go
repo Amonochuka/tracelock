@@ -35,7 +35,7 @@ func (u *UserAuth) Register(name, email, password string) error {
 				return ErrEmailExists
 			}
 		}
-		return fmt.Errorf("could not register: %w", err)
+		return fmt.Errorf("could not register user: %w", err)
 	}
 	return nil
 }
