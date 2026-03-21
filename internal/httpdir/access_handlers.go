@@ -2,6 +2,7 @@ package httpdir
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 	"tracelock/internal/access"
@@ -24,10 +25,26 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 
 		err = service.HandleZoneEvent(userID, req.ZoneID, "enter", timestamp)
 		if err != nil {
-			WriteError(w, http.StatusBadRequest, err.Error())
+			switch {
+			case errors.Is(err, access.ErrZoneFull):
+				WriteError(w, http.StatusConflict, err.Error())
+
+			case errors.Is(err, access.ErrUserAlreadyInZone):
+				WriteError(w, http.StatusConflict, err.Error())
+
+			case errors.Is(err, access.ErrNoActiveSession):
+				WriteError(w, http.StatusBadRequest, err.Error())
+
+			case errors.Is(err, access.ErrZoneNotFound):
+				WriteError(w, http.StatusNotFound, err.Error())
+
+			default:
+				WriteError(w, http.StatusInternalServerError, "internal server error")
+			}
+
 			return
 		}
+		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("entered successfully"))
 	}
-
 }
