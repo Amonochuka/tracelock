@@ -2,6 +2,7 @@ package auth
 
 import (
 	"database/sql"
+	"fmt"
 	"tracelock/internal/models"
 
 	"github.com/lib/pq"
@@ -34,7 +35,7 @@ func (u *UserAuth) Register(name, email, password string) error {
 				return ErrEmailExists
 			}
 		}
-		return err
+		return fmt.Errorf("could not register: %w", err)
 	}
 	return nil
 }
@@ -59,7 +60,7 @@ func (u *UserAuth) VerifyUser(ID int) (*models.User, error) {
 	user := &models.User{}
 	err := u.db.QueryRow("SELECT id, name, email, role, created_at FROM users WHERE id = $1", ID).Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.CreatedAt)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not verify user : %w", err)
 	}
 	return user, nil
 }
