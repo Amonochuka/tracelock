@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"tracelock/internal/httpdir"
 )
 
 type contextKey string
@@ -22,7 +23,7 @@ func JWTMiddleware(j *JWTService) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-				http.Error(w, "missing or invalid token authorization header", http.StatusUnauthorized)
+				httpdir.WriteError(w,http.StatusUnauthorized, "missing or invalid token authorization header")
 				return
 			}
 
@@ -30,14 +31,14 @@ func JWTMiddleware(j *JWTService) func(http.Handler) http.Handler {
 
 			claims, err := j.VerifyToken(tokenString)
 			if err != nil {
-				http.Error(w, "invalid token", http.StatusUnauthorized)
+				httpdir.WriteError(w, http.StatusUnauthorized, "invalid token")
 				return
 			}
 
 			userID, ok := claims["sub"].(float64)
 			role, ok2 := claims["role"].(string)
 			if !ok || !ok2 {
-				http.Error(w, "invalid token payload", http.StatusUnauthorized)
+				httpdir.WriteError(w, http.StatusUnauthorized, "invalid token payload")
 				return
 			}
 
