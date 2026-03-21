@@ -11,6 +11,8 @@ import (
 
 func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
 		userID, err := auth.GetUserIDFromContext(r.Context())
 		if err != nil {
 			WriteError(w, http.StatusUnauthorized, "unauthorized")
@@ -19,7 +21,15 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 		var req struct {
 			ZoneID int `json:"zone_id"`
 		}
-		json.NewDecoder(r.Body).Decode(&req)
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		if req.ZoneID <= 0 {
+			WriteError(w, http.StatusBadRequest, "invalid zone_id")
+			return
+		}
 
 		timestamp := time.Now()
 
@@ -44,7 +54,8 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 
 			return
 		}
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("entered successfully"))
+		WriteJSON(w, http.StatusOK, map[string]string{
+			"message": "entered successfully",
+		})
 	}
 }
