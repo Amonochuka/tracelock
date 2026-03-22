@@ -12,20 +12,29 @@
 # ----------------------------
 # SQL / Database
 # ----------------------------
-# Ignore SQL dumps
-*.sql
-
-# Ignore local database files
-*.sqlite3
+# Ignore database dump files (backups, exports)
+dumps/*.sql
 *.db
-
-# Ignore temporary / backup DB folders
-db/backups/
+*.sqlite3
 tmp/
+db/backups/
 
 # ----------------------------
-# IDE / Editor
+# Migrations (tracked)
+# ----------------------------
+# Only track migration/schema files
+#migrations/*.sql <-- keep these tracked!
+
+# ----------------------------
+# Environment / config
+# ----------------------------
+.env          # your local environment variables
+.env.local    # optional local overrides
+
+# ----------------------------
+# IDE / Editor files
 # ----------------------------
 .vscode/
 .idea/
 *.swp
+*.DS_Store
