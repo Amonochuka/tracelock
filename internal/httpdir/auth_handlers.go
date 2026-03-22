@@ -1,7 +1,6 @@
 package httpdir
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -62,10 +61,12 @@ func LoginHandler(s *auth.UserService, j *auth.JWTService) http.HandlerFunc {
 
 		user, err := s.Authenticate(req.Email, req.Password)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
+			if errors.Is(err, auth.ErrUserNotFound) || errors.Is(err, auth.ErrInvalidPassword) {
 				WriteError(w, http.StatusUnauthorized, "invalid credentials")
 				return
 			}
+			WriteError(w, http.StatusInternalServerError, "internal server error")
+			return
 		}
 
 		token, err := j.GenerateToken(user)
@@ -97,10 +98,13 @@ func RegisterHandler(s *auth.UserService) http.HandlerFunc {
 
 		if err := s.Register(req.Name, req.Email, req.Password); err != nil {
 			if errors.Is(err, auth.ErrEmailExists) {
-				WriteError(w, http.StatusInternalServerError, "could not register user: "+err.Error())
+				WriteError(w, http.StatusConflict, "email already exists")
 				return
 			}
+			WriteError(w, http.StatusInternalServerError, "could not register user")
+			return
 		}
+
 		WriteJSON(w, http.StatusCreated, map[string]string{
 			"message": "user registered successfully",
 		})
@@ -117,10 +121,12 @@ func MeHandler(s *auth.UserService) http.HandlerFunc {
 
 		user, err := s.VerifyUser(claims.UserID)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				WriteError(w, http.StatusInternalServerError, "could not fetch user")
+			if errors.Is(err, auth.ErrUserNotFound) {
+				WriteError(w, http.StatusUnauthorized, "unauthorized access")
 				return
 			}
+			WriteError(w, http.StatusInternalServerError, "could not fetch user")
+			return
 		}
 		WriteJSON(w, http.StatusOK, user)
 	}
