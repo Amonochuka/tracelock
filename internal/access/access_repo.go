@@ -98,3 +98,14 @@ func (z *ZoneRepo) CountActiveUsers(zoneID int) (int, error) {
 	}
 	return count, nil
 }
+
+func (z *ZoneRepo) HasZoneAccess(userID, zoneID int) (bool, error) {
+	var exists bool
+	err := z.db.QueryRow(`SELECT EXISTS (
+		SELECT 1 FROM user_zone_access WHERE user_id = $1 AND zone_id = $2
+		)`, userID, zoneID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("HasZoneAccess query failed: %w", err)
+	}
+	return exists, nil
+}
