@@ -42,7 +42,7 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, action string, timesta
 			return err
 		}
 	default:
-		return fmt.Errorf("invalid action: %s",action)
+		return fmt.Errorf("invalid action: %s", action)
 	}
 
 	previousHash, err := s.repo.GetLastHash(zoneID)
@@ -51,4 +51,15 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, action string, timesta
 	}
 	hash := GenerateHash(userID, zoneID, action, timestamp, previousHash)
 	return s.repo.CreateEvent(userID, zoneID, action, "success", hash, previousHash)
+}
+
+func (s *ZoneService) CanEnterRoom(userID, zoneID int) error {
+	ok, err := s.repo.HasZoneAccess(userID, zoneID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrAccessDenied
+	}
+	return nil
 }
