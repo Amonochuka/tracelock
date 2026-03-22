@@ -1,0 +1,31 @@
+# ----------------------------
+# Go build / binary files
+# ----------------------------
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# ----------------------------
+# SQL / Database
+# ----------------------------
+# Ignore SQL dumps
+*.sql
+
+# Ignore local database files
+*.sqlite3
+*.db
+
+# Ignore temporary / backup DB folders
+db/backups/
+tmp/
+
+# ----------------------------
+# IDE / Editor
+# ----------------------------
+.vscode/
+.idea/
+*.swp
