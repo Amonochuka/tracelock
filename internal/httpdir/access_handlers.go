@@ -51,7 +51,6 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			default:
 				WriteError(w, http.StatusInternalServerError, "internal server error")
 			}
-
 			return
 		}
 		WriteJSON(w, http.StatusOK, map[string]string{
