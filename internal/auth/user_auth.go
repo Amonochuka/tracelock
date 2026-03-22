@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"tracelock/internal/models"
 
-	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -23,18 +22,12 @@ func (u *UserAuth) Register(name, email, password string) error {
 	if err != nil {
 		return err
 	}
-
 	//insert into the DB
 	_, err = u.db.Exec(
 		"INSERT INTO users(name, email, password_hash) VALUES($1,$2,$3)",
 		name, email, string(hash),
 	)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok {
-			if pqErr.Code == "23505" {
-				return ErrEmailExists
-			}
-		}
 		return fmt.Errorf("could not register user: %w", err)
 	}
 	return nil
@@ -47,20 +40,21 @@ func (u *UserAuth) Authenticate(email, password string) (*models.User, error) {
 	row := u.db.QueryRow("SELECT id, name, email, password_hash, role FROM users WHERE email=$1", email)
 	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role)
 	if err != nil {
-		return nil, ErrUserNotFound
+		return nil, fmt.Errorf("authenticate query failed: %w", err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return nil, ErrInvalidPassword
+		return nil, fmt.Errorf("login failed: %w", ErrInvalidPassword)
 	}
 	return user, nil
 }
 
 func (u *UserAuth) VerifyUser(ID int) (*models.User, error) {
 	user := &models.User{}
-	err := u.db.QueryRow("SELECT id, name, email, role, created_at FROM users WHERE id = $1", ID).Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.CreatedAt)
+	err := u.db.QueryRow("SELECT id, name, email, role, created_at FROM users WHERE id = $1", ID).Scan(&user.ID,
+		&user.Name, &user.Email, &user.Role, &user.CreatedAt)
 	if err != nil {
-		return nil, fmt.Errorf("could not verify user : %w", err)
+		return nil, fmt.Errorf("verify user query failed : %w", err)
 	}
 	return user, nil
 }
