@@ -2,10 +2,7 @@ package access
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
-
-	"github.com/lib/pq"
 )
 
 type ZoneRepo struct {
@@ -20,9 +17,6 @@ func (z *ZoneRepo) GetMaximumCapacity(zoneID int) (int, error) {
 	var capacity int
 	err := z.db.QueryRow("SELECT max_capacity FROM zones WHERE id = $1", zoneID).Scan(&capacity)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0, ErrZoneNotFound
-		}
 		return 0, fmt.Errorf("get max_capacity failed: %w", err)
 	}
 	return capacity, nil
@@ -45,9 +39,7 @@ func (z *ZoneRepo) GetLastHash(zoneID int) (string, error) {
 	err := z.db.QueryRow(`SELECT hash FROM access_events WHERE zone_id = $1
 	ORDER BY timestamp DESC LIMIT 1`, zoneID).Scan(&hash)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", nil
-		}
+
 		return "", fmt.Errorf("get last hash failed: %w", err)
 	}
 	return hash, nil
@@ -60,13 +52,6 @@ func (z *ZoneRepo) CreateSession(userID, zoneID int) error {
 	`, userID, zoneID)
 
 	if err != nil {
-		//detect duplicate
-		//use postgre code 23505 for unique violation
-		if pqErr, ok := err.(*pq.Error); ok {
-			if pqErr.Code == "23505" {
-				return ErrUserAlreadyInZone
-			}
-		}
 		return fmt.Errorf("createSession insert failed: %w", err)
 	}
 	return nil

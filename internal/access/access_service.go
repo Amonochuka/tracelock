@@ -1,8 +1,12 @@
 package access
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type ZoneService struct {
@@ -17,6 +21,9 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, action string, timesta
 	if action == "enter" {
 		capacity, err := s.repo.GetMaximumCapacity(zoneID)
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return ErrZoneNotFound
+			}
 			return err
 		}
 
@@ -34,6 +41,13 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, action string, timesta
 	case "enter":
 		err := s.repo.CreateSession(userID, zoneID)
 		if err != nil {
+			//detect duplicate
+			//use postgre code 23505 for unique violation
+			if pqErr, ok := err.(*pq.Error); ok {
+				if pqErr.Code == "23505" {
+					return ErrUserAlreadyInZone
+				}
+			}
 			return err
 		}
 	case "exit":
@@ -42,11 +56,14 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, action string, timesta
 			return err
 		}
 	default:
-		return fmt.Errorf("invalid action: %s",action)
+		return fmt.Errorf("invalid action: %s", action)
 	}
 
 	previousHash, err := s.repo.GetLastHash(zoneID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNoActiveSession
+		}
 		return fmt.Errorf("cannot get last hash: %w", err)
 	}
 	hash := GenerateHash(userID, zoneID, action, timestamp, previousHash)
