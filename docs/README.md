@@ -1,9 +1,9 @@
 # TraceLock – Backend (Go + PostgreSQL)
 
-TraceLock is a backend service for tracking access events and zone activity in real time.  
+TraceLock is a backend service for tracking physical access events and zone activity in real time.
 It is designed as a clean, production-style Go API with PostgreSQL and a modular internal architecture.
 
-This project is being built incrementally with professional backend practices: small features, clear commits, and environment-based configuration.
+Built incrementally with professional backend practices: small features, clear commits, and environment-based configuration.
 
 ---
 
@@ -19,12 +19,14 @@ This project is being built incrementally with professional backend practices: s
 
 ## Current Features
 
-- PostgreSQL database schema
-- Go project layout using `cmd/` and `internal/`
-- Database connection using environment variables
-- User registration endpoint
-- Secure password hashing using bcrypt
-- Health endpoint (`GET /health`)
+- User registration and login with bcrypt password hashing
+- JWT authentication with role-based middleware
+- Zone entry and exit tracking
+- Tamper-evident access event chain using SHA-256 hashing
+- Active session management (one session per user per zone)
+- Zone capacity enforcement
+- Health endpoint
+- PostgreSQL database schema with foreign key constraints
 
 ---
 
@@ -33,98 +35,145 @@ This project is being built incrementally with professional backend practices: s
 ```
 tracelock/
 ├── cmd/
-│ └── api/
-│ └── main.go
+│   └── api/
+│       └── main.go
 ├── internal/
-│ ├── auth/
-│ │ └── auth.go
-│ ├── db/
-│ │ └── db.go
-│ └── httpapi/
-│ └── router.go
-└── migrations/
-└── 01_init.sql
+│   ├── access/
+│   │   ├── access_repo.go
+│   │   ├── access_service.go
+│   │   ├── hash.go
+│   │   └── errors.go
+│   ├── auth/
+│   │   ├── user_auth.go
+│   │   ├── user_service.go
+│   │   ├── jwt.go
+│   │   ├── middleware.go
+│   │   └── errors.go
+│   ├── db/
+│   │   ├── db.go
+│   │   └── migrations.go
+│   ├── httpdir/
+│   │   ├── router.go
+│   │   ├── auth_handler.go
+│   │   ├── access_handler.go
+│   │   ├── response.go
+│   │   └── middleware/
+│   │       └── roles.go
+│   ├── models/
+│   │   └── models.go
+│   └── config/
+│       └── config.go
+├── migrations/
+│   └── tables.sql
+├── docs/
+│   ├── README.md
+│   ├── Developer_guide.md
+│   └── security.md
+├── .gitignore
+├── go.mod
+└── go.sum
 ```
+
+---
 
 ## Environment Variables
 
-Configure the app using environment variables (do not commit real secrets):
+Create a `.env` file in the project root (never commit real secrets):
 
 ```
-DB_HOST=
-DB_PORT=
-DB_USER=
-DB_PASSWORD=
-DB_NAME=
-JWT_SECRET=
-
-
-- `DB_*` → database connection  
-- `JWT_SECRET` → used to sign and verify JWT tokens
-
+PORT=8080
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=yourpassword
+DB_NAME=tracelock
+JWT_SECRET=yoursecretkey
 ```
+
+Load and run:
+
+```bash
+source .env && go run ./cmd/api/main.go
+```
+
+To persist variables across terminal sessions, add them to `~/.bashrc`.
+
+---
 
 ## Running the API
 
-From the project root:
-
 ```bash
-go run ./cmd/api
+go run ./cmd/api/main.go
 ```
 
-If successful, the server logs:
+If successful:
 
-Connected to database successfully!
+```
+Tracelock API running on: 8080
+```
+
+---
 
 ## Endpoints
- - Health Check
 
- - GET /health → Response: ok
+### Public
 
- - User Registration
+| Method | Route       | Description          |
+|--------|-------------|----------------------|
+| GET    | /health     | Health check         |
+| POST   | /register   | Register a new user  |
+| POST   | /login      | Login, returns JWT   |
 
- - POST /register
+### Protected (requires JWT)
 
-```
-Example body:
+| Method | Route          | Description                        |
+|--------|----------------|------------------------------------|
+| GET    | /me            | Returns authenticated user profile |
+| GET    | /protected     | Test JWT — returns user ID and role |
+| GET    | /testjwt       | Confirms JWT middleware is working  |
+| POST   | /zones/enter   | Enter a zone                        |
+| POST   | /zones/exit    | Exit a zone                         |
 
-{
-  "name": "Amon",
-  "email": "amon@example.com",
-  "password": "mypassword"
-}
-```
-```
-Example curl:
+### Admin only (requires role: admin)
 
+| Method | Route         | Description      |
+|--------|---------------|------------------|
+| GET    | /admin/ping   | Admin access test |
+
+---
+
+## Example Requests
+
+**Register**
+```bash
 curl -X POST http://localhost:8080/register \
   -H "Content-Type: application/json" \
-  -d '{"name":"Amon","email":"amon@example.com","password":"mypassword"}'
+  -d '{"name": "Amon", "email": "amon@example.com", "password": "password123"}'
 ```
 
-## Login & JWT
+**Login**
+```bash
+curl -X POST http://localhost:8080/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "amon@example.com", "password": "password123"}'
+```
 
- - POST /login → returns JWT token
+**Enter a zone**
+```bash
+curl -X POST http://localhost:8080/zones/enter \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"zone_id": 1}'
+```
 
- - Protected endpoints:
+**Exit a zone**
+```bash
+curl -X POST http://localhost:8080/zones/exit \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"zone_id": 1}'
+```
 
- - /me → returns authenticated user data
+---
 
- - /testjwt → tests JWT validation
-
-JWT payload is signed, not encrypted. Do not commit secrets.
-
- ***For full developer setup and deeper explanation of JWT, database, and authentication, see Developer Guide***
-
-
-why use fmt.Errorf
-
-Now the HTTP response actually tells the client something went wrong.
-
-This is how Go handles errors idiomatically — you return errors, don’t just print.
-
-Rule of thumb:
-
-Use fmt.Print only for debugging or logging.
-
-Use return fmt.Errorf(...) (or errors.New) for real errors that the caller must handle.
+*For full developer setup, JWT internals, database notes, and common pitfalls — see the Developer Guide.*
