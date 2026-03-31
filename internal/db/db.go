@@ -16,6 +16,7 @@ func Open(cfg *config.Config) (*sql.DB, error) {
 		cfg.DBUser,
 		cfg.DBPassword,
 		cfg.DBName,
+		cfg.DBSSLMode,
 	)
 
 	//data source name

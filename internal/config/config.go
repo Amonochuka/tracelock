@@ -13,6 +13,7 @@ type Config struct {
 	DBUser     string
 	DBPassword string
 	DBName     string
+	DBSSLMode  string
 
 	JWTSecret string
 }
@@ -25,6 +26,7 @@ func Load() *Config {
 		DBUser:     mustEnv("DB_USER"),
 		DBPassword: mustEnv("DB_PASSWORD"),
 		DBName:     mustEnv("DB_NAME"),
+		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:  mustEnv("JWT_SECRET"),
 	}
 	return cfg
