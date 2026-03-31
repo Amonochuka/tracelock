@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+
 	"tracelock/internal/auth"
 )
 
@@ -19,70 +20,33 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-// validation methods for registering and logins
 func (r *RegisterRequest) Validate() error {
-	if len(r.Name) < 2 {
-		return errors.New("name must be atleast two charcaters")
+	if len(strings.TrimSpace(r.Name)) < 2 {
+		return errors.New("name must be at least two characters")
 	}
 	if !strings.Contains(r.Email, "@") {
 		return errors.New("invalid email")
 	}
 	if len(r.Password) < 8 {
-		return errors.New("password must be atleast 8 characters")
+		return errors.New("password must be at least 8 characters")
 	}
 	return nil
 }
 
 func (l *LoginRequest) Validate() error {
 	if !strings.Contains(l.Email, "@") {
-		return errors.New("invalid error")
+		return errors.New("invalid email")
 	}
 	if len(l.Password) < 8 {
-		return errors.New("password must be atleast 8 characters")
+		return errors.New("password must be at least 8 characters")
 	}
 	return nil
 }
 
-// same email and password in DB ?
-func LoginHandler(s *auth.UserService, j *auth.JWTService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req LoginRequest
-		dec := json.NewDecoder(r.Body)
-		dec.DisallowUnknownFields()
-		if err := dec.Decode(&req); err != nil {
-			WriteError(w, http.StatusBadRequest, "invalid json")
-			return
-		}
-
-		if err := req.Validate(); err != nil {
-			WriteError(w, http.StatusBadRequest, "must provide name and email")
-			return
-		}
-
-		user, err := s.Authenticate(req.Email, req.Password)
-		if err != nil {
-			if errors.Is(err, auth.ErrUserNotFound) || errors.Is(err, auth.ErrInvalidPassword) {
-				WriteError(w, http.StatusUnauthorized, "invalid credentials")
-				return
-			}
-			WriteError(w, http.StatusInternalServerError, "internal server error")
-			return
-		}
-
-		token, err := j.GenerateToken(user)
-		if err != nil {
-			WriteError(w, http.StatusInternalServerError, "could not generate")
-			return
-		}
-
-		WriteJSON(w, http.StatusOK, map[string]string{
-			"token": token,
-		})
-	}
-}
-
 func RegisterHandler(s *auth.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
 		var req RegisterRequest
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
@@ -90,9 +54,8 @@ func RegisterHandler(s *auth.UserService) http.HandlerFunc {
 			WriteError(w, http.StatusBadRequest, "invalid json")
 			return
 		}
-
 		if err := req.Validate(); err != nil {
-			WriteError(w, http.StatusBadRequest, "all fields are required")
+			WriteError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
@@ -111,23 +74,62 @@ func RegisterHandler(s *auth.UserService) http.HandlerFunc {
 	}
 }
 
+func LoginHandler(s *auth.UserService, j *auth.JWTService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		var req LoginRequest
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&req); err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid json")
+			return
+		}
+		if err := req.Validate(); err != nil {
+			WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		user, err := s.Authenticate(req.Email, req.Password)
+		if err != nil {
+			if errors.Is(err, auth.ErrInvalidCredentials) {
+				WriteError(w, http.StatusUnauthorized, "invalid credentials")
+				return
+			}
+			WriteError(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+
+		token, err := j.GenerateToken(user)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not generate token")
+			return
+		}
+
+		WriteJSON(w, http.StatusOK, map[string]string{
+			"token": token,
+		})
+	}
+}
+
 func MeHandler(s *auth.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		claims := auth.GetUserClaims(r)
 		if claims == nil {
-			WriteError(w, http.StatusUnauthorized, "unauthorized access!")
+			WriteError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
 		user, err := s.VerifyUser(claims.UserID)
 		if err != nil {
 			if errors.Is(err, auth.ErrUserNotFound) {
-				WriteError(w, http.StatusUnauthorized, "unauthorized access")
+				WriteError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
 			WriteError(w, http.StatusInternalServerError, "could not fetch user")
 			return
 		}
+
 		WriteJSON(w, http.StatusOK, user)
 	}
 }
