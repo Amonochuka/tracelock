@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS active_sessions (
     PRIMARY KEY(user_id, zone_id)
 );
 
+
 INSERT INTO zones(name, description, max_capacity) VALUES
 ('Lobby', 'Main lobby', 50),
 ('Server Room', 'Restricted area', 5),

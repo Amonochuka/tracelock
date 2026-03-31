@@ -17,7 +17,7 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, action string, timesta
 	if action == "enter" {
 		capacity, err := s.repo.GetMaximumCapacity(zoneID)
 		if err != nil {
-			return err // ErrZoneNotFound passes through clean
+			return err
 		}
 
 		count, err := s.repo.CountActiveUsers(zoneID)
@@ -33,11 +33,11 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, action string, timesta
 	switch action {
 	case "enter":
 		if err := s.repo.CreateSession(userID, zoneID); err != nil {
-			return err // ErrUserAlreadyInZone passes through clean
+			return err
 		}
 	case "exit":
 		if err := s.repo.DeleteSession(userID, zoneID); err != nil {
-			return err // ErrNoActiveSession passes through clean
+			return err
 		}
 	default:
 		return fmt.Errorf("invalid action: %s", action)
@@ -45,9 +45,13 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, action string, timesta
 
 	previousHash, err := s.repo.GetLastHash(zoneID)
 	if err != nil {
-		return err // ErrNoHashFound passes through clean
+		if err == ErrNoHashFound {
+			previousHash = ""
+		} else {
+			return fmt.Errorf("get last hash: %w", err)
+		}
 	}
 
 	hash := GenerateHash(userID, zoneID, action, timestamp, previousHash)
-	return s.repo.CreateEvent(userID, zoneID, action, "success", hash, previousHash)
+	return s.repo.CreateEvent(userID, zoneID, action, "allowed", hash, previousHash)
 }
