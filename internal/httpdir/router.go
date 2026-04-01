@@ -15,8 +15,7 @@ func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.Z
 	r := chi.NewRouter()
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
 	r.Post("/register", RegisterHandler(s))
