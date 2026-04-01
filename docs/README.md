@@ -7,6 +7,17 @@ Built incrementally with professional backend practices: small features, clear c
 
 ---
 
+## Live API
+
+**Base URL:** https://tracelock-db.onrender.com
+
+**GitHub:** https://github.com/Amonochuka/tracelock
+
+> The API does not expose a root route — opening the base URL returns 404. Use the endpoints below.
+> Hosted on Render's free tier, so the first request may take a few seconds while the backend spins up.
+
+---
+
 ## Tech Stack
 
 - Go
@@ -142,36 +153,70 @@ Tracelock API running on: 8080
 
 ---
 
-## Example Requests
+## Live Testing
+
+**Health check**
+```bash
+curl https://tracelock-db.onrender.com/health
+```
 
 **Register**
 ```bash
-curl -X POST http://localhost:8080/register \
+curl -X POST https://tracelock-db.onrender.com/register \
   -H "Content-Type: application/json" \
-  -d '{"name": "Amon", "email": "amon@example.com", "password": "password123"}'
+  -d '{"name":"Amon","email":"amon@example.com","password":"password123"}'
 ```
 
-**Login**
+**Login (returns JWT token)**
 ```bash
-curl -X POST http://localhost:8080/login \
+curl -X POST https://tracelock-db.onrender.com/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "amon@example.com", "password": "password123"}'
+  -d '{"email":"amon@example.com","password":"password123"}'
+```
+
+Save the token for subsequent requests:
+```bash
+TOKEN="your_jwt_token_here"
+```
+
+**Get authenticated user**
+```bash
+curl https://tracelock-db.onrender.com/me \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Test JWT middleware**
+```bash
+curl https://tracelock-db.onrender.com/testjwt \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Protected route**
+```bash
+curl https://tracelock-db.onrender.com/protected \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 **Enter a zone**
 ```bash
-curl -X POST http://localhost:8080/zones/enter \
+curl -X POST https://tracelock-db.onrender.com/zones/enter \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d '{"zone_id": 1}'
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"zone_id":1}'
 ```
 
 **Exit a zone**
 ```bash
-curl -X POST http://localhost:8080/zones/exit \
+curl -X POST https://tracelock-db.onrender.com/zones/exit \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d '{"zone_id": 1}'
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"zone_id":1}'
+```
+
+**Admin endpoint (requires admin role)**
+```bash
+curl https://tracelock-db.onrender.com/admin/ping \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ---
