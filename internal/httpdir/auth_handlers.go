@@ -130,6 +130,12 @@ func MeHandler(s *auth.UserService) http.HandlerFunc {
 			return
 		}
 
-		WriteJSON(w, http.StatusOK, user)
+		WriteJSON(w, http.StatusOK, UserResponse{
+			ID:        user.ID,
+			Name:      user.Name,
+			Email:     user.Email,
+			Role:      user.Role,
+			CreatedAt: user.CreatedAt,
+		})
 	}
 }

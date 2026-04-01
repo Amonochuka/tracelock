@@ -4,6 +4,7 @@ package httpdir
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 type ErrorResponse struct {
@@ -23,4 +24,12 @@ func WriteError(w http.ResponseWriter, status int, message string) {
 	WriteJSON(w, status, ErrorResponse{
 		Error: message,
 	})
+}
+
+type UserResponse struct {
+	ID        int       `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
 }
