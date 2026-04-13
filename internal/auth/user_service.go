@@ -51,3 +51,15 @@ func (s *UserService) BootStrapAdmin(name, email, password string) error {
 	}
 	return s.auth.RegisterAdmin(name, email, password)
 }
+
+// admin duties; update roles and list users
+func (s *UserService) UpdateRole(userID int, role string) error {
+	if role != "admin" && role != "user" {
+		return ErrInvalidRole
+	}
+	return s.UpdateRole(userID, role)
+}
+
+func (s *UserService) ListUsers() ([]*models.User, error) {
+	return s.auth.ListUsers()
+}

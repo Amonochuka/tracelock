@@ -174,3 +174,58 @@ func BootStrapHandler(s *auth.UserService) http.HandlerFunc {
 		})
 	}
 }
+
+func ListUsersHandler(s *auth.UserService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		users, err := s.ListUsers()
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not fetch users")
+			return
+		}
+
+		resp := make([]UserResponse, 0, len(users))
+		for _, u := range users {
+			resp = append(resp, UserResponse{
+				ID:        u.ID,
+				Name:      u.Name,
+				Email:     u.Email,
+				Role:      u.Role,
+				CreatedAt: u.CreatedAt,
+			})
+		}
+		WriteJSON(w, http.StatusOK, resp)
+	}
+}
+
+func UpdateRoleHandler(s *auth.UserService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		targetID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid user id")
+			return
+		}
+		var req struct {
+			Role string `json:"role"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid json")
+			return
+		}
+		if err := s.UpdateRole(targetID, req.Role); err != nil {
+			switch {
+			case errors.Is(err, auth.ErrUserNotFound):
+				WriteError(w, http.StatusNotFound, "user not found")
+			case errors.Is(err, auth.ErrInvalidRole):
+				WriteError(w, http.StatusNotFound, "role must be 'admin' or 'user'")
+			default:
+				WriteError(w, http.StatusInternalServerError, "could not update role")
+			}
+			return
+		}
+		WriteJSON(w, http.StatusOK, map[string]string{
+			"message": "role updated successfully",
+		})
+	}
+}

@@ -104,3 +104,34 @@ func (u *UserAuth) RegisterAdmin(name, email, password string) error {
 	}
 	return nil
 }
+
+// admin duty; update
+func (u *UserAuth) UpdateRole(userID int, role string) error {
+	res, err := u.db.Exec("UPDATE users SET role = $1 WHERE id = $2", role, userID)
+	if err != nil {
+		return fmt.Errorf("updating user role:%w", err)
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+// admin duty:list all users
+func (u *UserAuth) ListUsers() ([]*models.User, error) {
+	rows, err := u.db.Query("SELECT id, name, email, role, created_at FROM users ORDER BY id")
+	if err != nil {
+		return nil, fmt.Errorf("listing users:%w", err)
+	}
+	defer rows.Close()
+	var users []*models.User
+	for rows.Next() {
+		u := &models.User{}
+		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Role); err != nil {
+			return nil, fmt.Errorf("scanning users :%w", err)
+		}
+		users = append(users, u)
+	}
+	return users, nil
+}
