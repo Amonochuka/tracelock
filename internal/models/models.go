@@ -10,3 +10,7 @@ type User struct {
 	Role         string
 	CreatedAt    time.Time
 }
+
+type Zone struct{
+	
+}

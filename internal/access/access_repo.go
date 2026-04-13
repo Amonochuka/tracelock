@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"tracelock/internal/models"
+
 	"github.com/lib/pq"
 )
 
@@ -16,6 +18,7 @@ func NewZoneRepo(db *sql.DB) *ZoneRepo {
 	return &ZoneRepo{db: db}
 }
 
+// check a zone's max capacity
 func (z *ZoneRepo) GetMaximumCapacity(zoneID int) (int, error) {
 	var capacity int
 	err := z.db.QueryRow("SELECT max_capacity FROM zones WHERE id = $1", zoneID).Scan(&capacity)
@@ -28,6 +31,7 @@ func (z *ZoneRepo) GetMaximumCapacity(zoneID int) (int, error) {
 	return capacity, nil
 }
 
+// CreateEvent writes an access event to the audit log.
 func (z *ZoneRepo) CreateEvent(userID, zoneID int, action, status, hash, previousHash string) error {
 	_, err := z.db.Exec(`
         INSERT INTO access_events (user_id, zone_id, action, status, hash, previous_hash)
@@ -39,6 +43,7 @@ func (z *ZoneRepo) CreateEvent(userID, zoneID int, action, status, hash, previou
 	return nil
 }
 
+// GetLastHash retrieves the most recent event hash for a zone to chain the next event.
 func (z *ZoneRepo) GetLastHash(zoneID int) (string, error) {
 	var hash string
 	err := z.db.QueryRow(`
@@ -53,6 +58,7 @@ func (z *ZoneRepo) GetLastHash(zoneID int) (string, error) {
 	return hash, nil
 }
 
+// CreateSession registers a user as actively inside a zone.
 func (z *ZoneRepo) CreateSession(userID, zoneID int) error {
 	_, err := z.db.Exec(`
         INSERT INTO active_sessions (user_id, zone_id)
@@ -68,6 +74,7 @@ func (z *ZoneRepo) CreateSession(userID, zoneID int) error {
 	return nil
 }
 
+// DeleteSession removes a user's active session when they exit a zone.
 func (z *ZoneRepo) DeleteSession(userID, zoneID int) error {
 	res, err := z.db.Exec(`
         DELETE FROM active_sessions WHERE user_id = $1 AND zone_id = $2`, userID, zoneID)
@@ -85,6 +92,7 @@ func (z *ZoneRepo) DeleteSession(userID, zoneID int) error {
 	return nil
 }
 
+// check current users in a certain zone
 func (z *ZoneRepo) CountActiveUsers(zoneID int) (int, error) {
 	var count int
 	err := z.db.QueryRow(`SELECT COUNT(*) FROM active_sessions WHERE zone_id = $1`, zoneID).Scan(&count)
@@ -92,4 +100,85 @@ func (z *ZoneRepo) CountActiveUsers(zoneID int) (int, error) {
 		return 0, fmt.Errorf("count active users: %w", err)
 	}
 	return count, nil
+}
+
+// ---zone access permissions--
+// check if a user has been granted permission to enter a certain zone
+func (z *ZoneRepo) HasZoneAccess(userID, zoneID int, role string) (bool, error) {
+	if role == "admin" {
+		return true, nil
+	}
+
+	var exists bool
+	err := z.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM user_zone_access 
+		WHERE user_id = $1 AAND zone_id = $2)`, userID, zoneID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check zone access: %w", err)
+	}
+	return exists, nil
+}
+
+// grant zone access
+func (z *ZoneRepo) GrantAccess(userID, zoneID, granted_by int) error {
+	_, err := z.db.Exec(`INSERT INTO user_zone_access(user_id, zone_id, granted_by)VALUES($1, $2, $3),
+						ON CONFLICT DO NOTHING`, userID, zoneID, granted_by)
+	if err != nil {
+		return fmt.Errorf("grant zone access: %w", err)
+	}
+	return nil
+}
+
+// revoke access to a room
+func (z *ZoneRepo) RevokeZoneAccess(userID, zoneID int) error {
+	res, err := z.db.Exec(`DELETE FROM user_zone_access WHERE user_id = $1 AND zone_id = $2`, userID, zoneID)
+	if err != nil {
+		return fmt.Errorf("revoke zone access:%w", err)
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return ErrAccessNotFound
+	}
+	return nil
+}
+
+// lists all zones a user has been granted access to
+func (z *ZoneRepo) ListUserZoneAccess(userID int) ([]*models.Zone, error) {
+	rows, err := z.db.Query(`SELECT zo.id, zo.name, zo.description, zo.max_capacity, zo.created_at
+							FROM zones zo INNER JOIN user_zone_access uza ON uza.zone_id = zo.id
+							WHERE uza.user_id = $1 ORDER BY zo.id`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list user zone access: %w", err)
+	}
+	defer rows.Close()
+
+	var zones []*models.Zone
+	for rows.Next() {
+		zo := &models.Zone{}
+		if err := rows.Scan(&zo.id, &zo.Name, &zo.Description, &zo.MaxCapacity, &zo.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan zone: %w", err)
+		}
+		zones = append(zones, zo)
+	}
+	return zones, nil
+}
+
+// list all users granted access to a zone
+func (z *ZoneRepo) ListZoneUsers(userID int) ([]*models.User, error) {
+	rows, err := z.db.Query(`SELECT u.id, u.name, u.email, u.role, u.created_at
+							FROM users u INNER JOIN user_zone_access uza ON uza.zone_id = u.id
+							WHERE uza.zone_id = $1 ORDER BY u.name`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list user zone access: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		u := &models.User{}
+		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan zone: %w", err)
+		}
+		users = append(users, u)
+	}
+	return users, nil
 }
