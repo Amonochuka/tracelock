@@ -40,3 +40,12 @@ INSERT INTO zones(name, description, max_capacity) VALUES
 ('Gym', 'Employee gym', 20),
 ('Boardroom', 'Meeting room', 20)
 ON CONFLICT DO NOTHING;
+
+
+CREATE IF NOT EXISTS user_zone_access (
+    user_id INT NOT NULL REFERENCES users(id),
+    zone_id INT NOT NULL REFERENCES zones(id),
+    granted_by INT REFERENCES users(id),
+    granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    PRIMARY KEY(user_id, zone_id)
+);
