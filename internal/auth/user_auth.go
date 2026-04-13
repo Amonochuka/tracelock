@@ -75,3 +75,32 @@ func (u *UserAuth) VerifyUser(id int) (*models.User, error) {
 
 	return user, nil
 }
+
+// register admin account, but first check if an admin exists
+func (u *UserAuth) AdminExists() (bool, error) {
+	var exists bool
+	err := u.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE role = 'admin')").Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("checking admin exists: %w", err)
+	}
+	return exists, nil
+}
+
+// now regsiter an admin
+func (u *UserAuth) RegisterAdmin(name, email, password string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hashing password: %w", err)
+	}
+
+	_, err = u.db.Exec("INSERT INTO users(name, email, password_hash, role)VALUES($1, $2, $3, 'admin')",
+		name, email, string(hash))
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return ErrEmailExists
+		}
+		return fmt.Errorf("inserting admin: %w", err)
+	}
+	return nil
+}

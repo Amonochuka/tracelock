@@ -139,3 +139,38 @@ func MeHandler(s *auth.UserService) http.HandlerFunc {
 		})
 	}
 }
+
+// bootstrap handler
+func BootStrapHandler(s *auth.UserService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		var req RegisterRequest
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&req); err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid json")
+			return
+		}
+
+		if err := req.Validate(); err != nil {
+			WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if err := s.BootStrapAdmin(req.Name, req.Email, req.Password); err != nil {
+			if errors.Is(err, auth.ErrAdminExists) {
+				WriteError(w, http.StatusForbidden, "admin already exists")
+				return
+			}
+			if errors.Is(err, auth.ErrEmailExists) {
+				WriteError(w, http.StatusConflict, "email already exists")
+				return
+			}
+			WriteError(w, http.StatusInternalServerError, "could not create admin")
+			return
+		}
+		WriteJSON(w, http.StatusCreated, map[string]string{
+			"message": "admin account created",
+		})
+	}
+}

@@ -39,3 +39,15 @@ func (s *UserService) VerifyUser(id int) (*models.User, error) {
 	}
 	return user, nil
 }
+
+// bootstrap admin
+func (s *UserService) BootStrapAdmin(name, email, password string) error {
+	exists, err := s.auth.AdminExists()
+	if err != nil {
+		return err
+	}
+	if exists {
+		return ErrAdminExists
+	}
+	return s.auth.RegisterAdmin(name, email, password)
+}
