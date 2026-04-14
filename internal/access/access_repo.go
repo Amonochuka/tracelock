@@ -163,12 +163,12 @@ func (z *ZoneRepo) ListUserZoneAccess(userID int) ([]*models.Zone, error) {
 }
 
 // list all users granted access to a zone
-func (z *ZoneRepo) ListZoneUsers(userID int) ([]*models.User, error) {
+func (z *ZoneRepo) ListZoneUsers(zoneID int) ([]*models.User, error) {
 	rows, err := z.db.Query(`SELECT u.id, u.name, u.email, u.role, u.created_at
 							FROM users u INNER JOIN user_zone_access uza ON uza.zone_id = u.id
-							WHERE uza.zone_id = $1 ORDER BY u.name`, userID)
+							WHERE uza.zone_id = $1 ORDER BY u.name`, zoneID)
 	if err != nil {
-		return nil, fmt.Errorf("list user zone access: %w", err)
+		return nil, fmt.Errorf("list zone users: %w", err)
 	}
 	defer rows.Close()
 
