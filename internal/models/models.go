@@ -11,6 +11,10 @@ type User struct {
 	CreatedAt    time.Time
 }
 
-type Zone struct{
-	
+type Zone struct {
+	ID          int
+	Name        string
+	Description string
+	MaxCapacity int
+	CreatedAt   time.Time
 }

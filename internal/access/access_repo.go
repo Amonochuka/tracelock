@@ -154,7 +154,7 @@ func (z *ZoneRepo) ListUserZoneAccess(userID int) ([]*models.Zone, error) {
 	var zones []*models.Zone
 	for rows.Next() {
 		zo := &models.Zone{}
-		if err := rows.Scan(&zo.id, &zo.Name, &zo.Description, &zo.MaxCapacity, &zo.CreatedAt); err != nil {
+		if err := rows.Scan(&zo.ID, &zo.Name, &zo.Description, &zo.MaxCapacity, &zo.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan zone: %w", err)
 		}
 		zones = append(zones, zo)

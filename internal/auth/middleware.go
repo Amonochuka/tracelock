@@ -66,3 +66,13 @@ func GetUserIDFromContext(ctx context.Context) (int, error) {
 	}
 	return claims.UserID, nil
 }
+
+//add helper to get role from context
+func GetUserRoleFromContext(ctx context.Context) (string,  error) {
+	claims, ok := ctx.Value(UserContextKey).(*UserClaims)
+	if !ok || claims == nil {
+		return "", ErrUserNotFound
+	}
+	return claims.Role, nil
+}
+

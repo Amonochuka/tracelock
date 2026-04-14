@@ -20,6 +20,12 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			return
 		}
 
+		role, err := auth.GetUserRoleFromContext(r.Context())
+		if err != nil {
+			WriteError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
 		var req struct {
 			ZoneID int `json:"zone_id"`
 		}
@@ -32,9 +38,11 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			return
 		}
 
-		err = service.HandleZoneEvent(userID, req.ZoneID, "enter", time.Now())
+		err = service.HandleZoneEvent(userID, req.ZoneID, role, "enter", time.Now())
 		if err != nil {
 			switch {
+			case errors.Is(err, access.ErrAccessDenied):
+				WriteError(w, http.StatusForbidden, "you do not have access to this zone")
 			case errors.Is(err, access.ErrZoneFull):
 				WriteError(w, http.StatusForbidden, "zone is full")
 			case errors.Is(err, access.ErrUserAlreadyInZone):
@@ -62,6 +70,11 @@ func ExitZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			WriteError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+		role, err := auth.GetUserRoleFromContext(r.Context())
+		if err != nil {
+			WriteError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
 
 		var req struct {
 			ZoneID int `json:"zone_id"`
@@ -75,7 +88,7 @@ func ExitZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			return
 		}
 
-		err = service.HandleZoneEvent(userID, req.ZoneID, "exit", time.Now())
+		err = service.HandleZoneEvent(userID, req.ZoneID, role, "exit", time.Now())
 		if err != nil {
 			switch {
 			case errors.Is(err, access.ErrNoActiveSession):
