@@ -289,3 +289,79 @@ func (z *ZoneRepo) GetActiveUsersInZone(zoneID int) ([]models.User, error) {
 	}
 	return users, nil
 }
+
+// ListZoneEvents returns paginated access events for a zone, newest first.
+func (z *ZoneRepo) ListZoneEvents(zoneID, limit, offset int) ([]*models.AccessEvent, int, error) {
+	var total int
+	err := z.db.QueryRow(`SELECT COUNT(*) FROM access_events WHERE zone_id = $1`, zoneID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count zone events: %w", err)
+	}
+
+	rows, err := z.db.Query(`SELECT id, user_id, zone_id, action, status, timestamp, hash, previous_hash
+		FROM access_events WHERE zone_id = $1
+		ORDER BY timestamp DESC LIMIT $2 OFFSET $3`, zoneID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list zone events: %w", err)
+	}
+	defer rows.Close()
+
+	return scanEvents(rows, total)
+}
+
+// ListUserEvents returns paginated access events for a user, newest first.
+func (z *ZoneRepo) ListUserEvents(userID, limit, offset int) ([]*models.AccessEvent, int, error) {
+	var total int
+	err := z.db.QueryRow(`SELECT COUNT(*) FROM access_events WHERE user_id = $1`, userID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count user events: %w", err)
+	}
+
+	rows, err := z.db.Query(`SELECT id, user_id, zone_id, action, status, timestamp, hash, previous_hash
+		FROM access_events WHERE user_id = $1
+		ORDER BY timestamp DESC LIMIT $2 OFFSET $3`, userID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list user events: %w", err)
+	}
+	defer rows.Close()
+
+	return scanEvents(rows, total)
+}
+
+// VerifyChain walks all events for a zone oldest-first and verifies hash chain integrity.
+func (z *ZoneRepo) VerifyChain(zoneID int) (bool, int, error) {
+	rows, err := z.db.Query(`SELECT hash, previous_hash FROM access_events
+		WHERE zone_id = $1 ORDER BY timestamp ASC, id ASC`, zoneID)
+	if err != nil {
+		return false, 0, fmt.Errorf("verify chain: %w", err)
+	}
+	defer rows.Close()
+
+	var prev string
+	count := 0
+	for rows.Next() {
+		var hash, previousHash string
+		if err := rows.Scan(&hash, &previousHash); err != nil {
+			return false, count, fmt.Errorf("scan chain row: %w", err)
+		}
+		if previousHash != prev {
+			return false, count, nil
+		}
+		prev = hash
+		count++
+	}
+	return true, count, nil
+}
+
+func scanEvents(rows *sql.Rows, total int) ([]*models.AccessEvent, int, error) {
+	var events []*models.AccessEvent
+	for rows.Next() {
+		e := &models.AccessEvent{}
+		if err := rows.Scan(&e.ID, &e.UserID, &e.ZoneID, &e.Action, &e.Status,
+			&e.Timestamp, &e.Hash, &e.PreviousHash); err != nil {
+			return nil, 0, fmt.Errorf("scan event: %w", err)
+		}
+		events = append(events, e)
+	}
+	return events, total, nil
+}
