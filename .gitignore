@@ -37,4 +37,4 @@ db/backups/
 .vscode/
 .idea/
 *.swp
-*.DS_Store
+*.DS_Store.env
