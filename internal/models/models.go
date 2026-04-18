@@ -18,3 +18,20 @@ type Zone struct {
 	MaxCapacity int
 	CreatedAt   time.Time
 }
+
+type AccessEvent struct {
+	ID           int
+	UserID       int
+	ZoneID       int
+	Action       string
+	Status       string
+	Timestamp    time.Time
+	Hash         string
+	PreviousHash string
+}
+
+type ZoneOccupancy struct {
+	Zone
+	ActiveCount int
+	ActiveUsers []User
+}

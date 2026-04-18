@@ -17,12 +17,12 @@ func NewZoneService(repo *ZoneRepo) *ZoneService {
 
 // --zone management--
 // list all existing zones
-func (s *ZoneService) ListZones() ([]*models.Occupancy, error) {
+func (s *ZoneService) ListZones() ([]*models.Zone, error) {
 	return s.repo.ListZones()
 }
 
 // get a particular zone
-func (s *ZoneService) GetZone(zoneID int) ([]*models.Occupancy, error) {
+func (s *ZoneService) GetZone(zoneID int) (*models.ZoneOccupancy, error) {
 	zone, err := s.repo.GetZone(zoneID)
 	if err != nil {
 		return nil, err
@@ -31,11 +31,11 @@ func (s *ZoneService) GetZone(zoneID int) ([]*models.Occupancy, error) {
 	if err != nil {
 		return nil, err
 	}
-	users, err := s.repo.GetActiveUsers(zoneID)
+	users, err := s.repo.GetActiveUsersInZone(zoneID)
 	if err != nil {
 		return nil, err
 	}
-	return &models.Occupancy{Zone: *zone, ActiveCount: count, ActiveUsers: users}, nil
+	return &models.ZoneOccupancy{Zone: *zone, ActiveCount: count, ActiveUsers: users}, nil
 }
 
 // create a new zone
@@ -62,12 +62,12 @@ func (s *ZoneService) DeleteZone(zoneID int) error {
 
 // --zone access permissions--
 // grant access
-func (s *ZoneService) GrantAccess(userID, zoneID, granted_by int) error {
+func (s *ZoneService) GrantAccess(userID, zoneID, grantedBy int) error {
 	// verify if zone exists
 	if _, err := s.repo.GetZone(zoneID); err != nil {
 		return err
 	}
-	return s.repo.GrantAccess(userID, zoneID, granted_by)
+	return s.repo.GrantAccess(userID, zoneID, grantedBy)
 }
 
 // revoke access
@@ -81,12 +81,12 @@ func (s *ZoneService) ListUserAccess(userID int) ([]*models.Zone, error) {
 }
 
 // list zone users
-func (s *ZoneService) ListZoneUsers(userID, zoneID, granted_by int) ([]*models.User, error) {
+func (s *ZoneService) ListZoneUsers(zoneID int) ([]*models.User, error) {
 	// verify if zone exists
 	if _, err := s.repo.GetZone(zoneID); err != nil {
-		return err
+		return nil, err
 	}
-	return s.repo.ListZoneUsers(userID)
+	return s.repo.ListZoneUsers(zoneID)
 }
 
 //--access events--
@@ -157,13 +157,13 @@ func (s *ZoneService) logDeniedEvent(userID, zoneID int, action string, timestam
 	if err != nil {
 		previousHash = ""
 	}
-	hash := GenerateHash(userID, zoneID, action+": denied", timestamp, previousHash)
+	hash := GenerateHash(userID, zoneID, action+":denied", timestamp, previousHash)
 	_ = s.repo.CreateEvent(userID, zoneID, action, "denied", hash, previousHash)
 }
 
 // --event queries--
 // list all events of a particular zone
-func (s *ZoneService) ListZoneEvents(zoneID, offset, limit int) ([]*models.AccessEvent, int, error) {
+func (s *ZoneService) ListZoneEvents(zoneID, limit, offset int) ([]*models.AccessEvent, int, error) {
 	if _, err := s.repo.GetZone(zoneID); err != nil {
 		return nil, 0, err
 	}
@@ -171,7 +171,7 @@ func (s *ZoneService) ListZoneEvents(zoneID, offset, limit int) ([]*models.Acces
 }
 
 // list a user's activities across all zones
-func (s *ZoneService) ListUserEvents(userID, offset, limit int) ([]*models.AccessEvent, int, error) {
+func (s *ZoneService) ListUserEvents(userID, limit, offset int) ([]*models.AccessEvent, int, error) {
 	return s.repo.ListUserEvents(userID, limit, offset)
 }
 
