@@ -251,3 +251,59 @@ func UpdateZoneHandler(service *access.ZoneService) http.HandlerFunc {
 		})
 	}
 }
+
+func DeleteZoneHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		zoneID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid zone id")
+			return
+		}
+
+		if err := service.DeleteZone(zoneID); err != nil {
+			switch {
+			case errors.Is(err, access.ErrZoneNotFound):
+				WriteError(w, http.StatusNotFound, "zone not found")
+			case errors.Is(err, access.ErrZoneHasActivity):
+				WriteError(w, http.StatusConflict, "zone has active sessions and cannot be deleted")
+			default:
+				WriteError(w, http.StatusInternalServerError, "could not delete zone")
+			}
+			return
+		}
+
+		WriteJSON(w, http.StatusOK, map[string]string{"message": "zone deleted"})
+	}
+}
+
+func VerifyChainHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		zoneID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid zone id")
+			return
+		}
+
+		valid, count, err := service.VerifyChain(zoneID)
+		if err != nil {
+			if errors.Is(err, access.ErrZoneNotFound) {
+				WriteError(w, http.StatusNotFound, "zone not found")
+				return
+			}
+			WriteError(w, http.StatusInternalServerError, "could not verify chain")
+			return
+		}
+
+		msg := "chain is intact"
+		if !valid {
+			msg = "chain integrity violation detected"
+		}
+
+		WriteJSON(w, http.StatusOK, map[string]any{
+			"zone_id":        zoneID,
+			"valid":          valid,
+			"events_checked": count,
+			"message":        msg,
+		})
+	}
+}
