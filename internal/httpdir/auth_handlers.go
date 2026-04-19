@@ -231,66 +231,6 @@ func UpdateRoleHandler(s *auth.UserService) http.HandlerFunc {
 	}
 }
 
-func ListZonesHandler(service *access.ZoneService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		zones, err := service.ListZones()
-		if err != nil {
-			WriteError(w, http.StatusInternalServerError, "could not fetch zones")
-			return
-		}
-		WriteJSON(w, http.StatusOK, zones)
-	}
-}
-
-func GetZoneHandler(service *access.ZoneService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		zoneID, err := parseIDParam(r, "id")
-		if err != nil {
-			WriteError(w, http.StatusBadRequest, "invalid zone id")
-			return
-		}
-
-		zone, err := service.GetZone(zoneID)
-		if err != nil {
-			if errors.Is(err, access.ErrZoneNotFound) {
-				WriteError(w, http.StatusNotFound, "zone not found")
-				return
-			}
-			WriteError(w, http.StatusInternalServerError, "could not fetch zone")
-			return
-		}
-		WriteJSON(w, http.StatusOK, zone)
-	}
-}
-
-func ListZoneEventsHandler(service *access.ZoneService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		zoneID, err := parseIDParam(r, "id")
-		if err != nil {
-			WriteError(w, http.StatusBadRequest, "invalid zone id")
-			return
-		}
-
-		limit, offset := parsePagination(r)
-
-		events, total, err := service.ListZoneEvents(zoneID, limit, offset)
-		if err != nil {
-			if errors.Is(err, access.ErrZoneNotFound) {
-				WriteError(w, http.StatusNotFound, "zone not found")
-				return
-			}
-			WriteError(w, http.StatusInternalServerError, "could not fetch events")
-			return
-		}
-
-		WriteJSON(w, http.StatusOK, map[string]any{
-			"events": events,
-			"total":  total,
-			"limit":  limit,
-			"offset": offset,
-		})
-	}
-}
 
 func ListUserEventsHandler(service *access.ZoneService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
