@@ -106,3 +106,148 @@ func ExitZoneHandler(service *access.ZoneService) http.HandlerFunc {
 		})
 	}
 }
+
+func CreateZoneHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		var req struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+			MaxCapacity int    `json:"max_capacity"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		if req.Name == "" {
+			WriteError(w, http.StatusBadRequest, "name is required")
+			return
+		}
+
+		zone, err := service.CreateZone(req.Name, req.Description, req.MaxCapacity)
+		if err != nil {
+			if errors.Is(err, access.ErrZoneNameExists) {
+				WriteError(w, http.StatusConflict, "zone name already exists")
+				return
+			}
+			WriteError(w, http.StatusInternalServerError, "could not create zone")
+			return
+		}
+		WriteJSON(w, http.StatusOK, ZoneResponse{
+			ID:          zone.ID,
+			Name:        zone.Name,
+			Description: zone.Description,
+			MaxCapacity: zone.MaxCapacity,
+			CreatedAt:   zone.CreatedAt,
+		})
+	}
+}
+
+func GetZoneHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		zoneID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid zone id")
+			return
+		}
+
+		zone, err := service.GetZone(zoneID)
+		if err != nil {
+			if errors.Is(err, access.ErrZoneNotFound) {
+				WriteError(w, http.StatusNotFound, "zone not found")
+				return
+			}
+			WriteError(w, http.StatusInternalServerError, "could not fetch zone")
+			return
+		}
+		WriteJSON(w, http.StatusOK, zone)
+	}
+}
+
+func ListZonesHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		zones, err := service.ListZones()
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not fetch zones")
+			return
+		}
+		WriteJSON(w, http.StatusOK, zones)
+	}
+}
+
+func ListZoneEventsHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		zoneID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid zone id")
+			return
+		}
+
+		limit, offset := parsePagination(r)
+
+		events, total, err := service.ListZoneEvents(zoneID, limit, offset)
+		if err != nil {
+			if errors.Is(err, access.ErrZoneNotFound) {
+				WriteError(w, http.StatusNotFound, "zone not found")
+				return
+			}
+			WriteError(w, http.StatusInternalServerError, "could not fetch events")
+			return
+		}
+
+		WriteJSON(w, http.StatusOK, map[string]any{
+			"events": events,
+			"total":  total,
+			"limit":  limit,
+			"offset": offset,
+		})
+	}
+}
+
+func UpdateZoneHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		zoneID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid zone id")
+			return
+		}
+
+		var req struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+			MaxCapacity int    `json:"max_capacity"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		if req.Name == "" {
+			WriteError(w, http.StatusBadRequest, "name is required")
+			return
+		}
+
+		zone, err := service.UpdateZone(zoneID, req.Name, req.Description, req.MaxCapacity)
+		if err != nil {
+			if errors.Is(err, access.ErrZoneNotFound) {
+				WriteError(w, http.StatusNotFound, "zone not found")
+				return
+			}
+			WriteError(w, http.StatusInternalServerError, "could not update zone")
+			return
+		}
+
+		WriteJSON(w, http.StatusOK, ZoneResponse{
+			ID:          zone.ID,
+			Name:        zone.Name,
+			Description: zone.Description,
+			MaxCapacity: zone.MaxCapacity,
+			CreatedAt:   zone.CreatedAt,
+		})
+	}
+}
