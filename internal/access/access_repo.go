@@ -38,7 +38,7 @@ func (z *ZoneRepo) CreateZone(name, description string, maxCapacity int) (*model
 
 // delete a zonehow methe code thats missing from my orginal ac
 func (z *ZoneRepo) DeleteZone(zoneID int) error {
-	res, err := z.db.Exec(`DELETE FROM zones WHERE zone_id = $1`, zoneID)
+	res, err := z.db.Exec(`DELETE FROM zones WHERE id = $1`, zoneID)
 	if err != nil {
 		return fmt.Errorf("delete zone: %w", err)
 	}
@@ -169,9 +169,9 @@ func (z *ZoneRepo) HasZoneAccess(userID, zoneID int, role string) (bool, error) 
 }
 
 // grant zone access
-func (z *ZoneRepo) GrantAccess(userID, zoneID, granted_by int) error {
+func (z *ZoneRepo) GrantZoneAccess(userID, zoneID, grantedBy int) error {
 	_, err := z.db.Exec(`INSERT INTO user_zone_access(user_id, zone_id, granted_by)VALUES($1, $2, $3)
-						ON CONFLICT DO NOTHING`, userID, zoneID, granted_by)
+						ON CONFLICT DO NOTHING`, userID, zoneID, grantedBy)
 	if err != nil {
 		return fmt.Errorf("grant zone access: %w", err)
 	}

@@ -67,7 +67,7 @@ func (s *ZoneService) GrantAccess(userID, zoneID, grantedBy int) error {
 	if _, err := s.repo.GetZone(zoneID); err != nil {
 		return err
 	}
-	return s.repo.GrantAccess(userID, zoneID, grantedBy)
+	return s.repo.GrantZoneAccess(userID, zoneID, grantedBy)
 }
 
 // revoke access
@@ -182,14 +182,3 @@ func (s *ZoneService) VerifyChain(zoneID int) (bool, int, error) {
 	return s.repo.VerifyChain(zoneID)
 }
 
-// check if a user can enter a zone
-func (s *ZoneService) CanEnterRoom(userID, zoneID int, role string) error {
-	ok, err := s.repo.HasZoneAccess(userID, zoneID, role)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return ErrAccessDenied
-	}
-	return nil
-}
