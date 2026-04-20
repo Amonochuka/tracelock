@@ -42,7 +42,7 @@ INSERT INTO zones(name, description, max_capacity) VALUES
 ON CONFLICT DO NOTHING;
 
 
-CREATE IF NOT EXISTS user_zone_access (
+CREATE TABLE IF NOT EXISTS user_zone_access (
     user_id INT NOT NULL REFERENCES users(id),
     zone_id INT NOT NULL REFERENCES zones(id),
     granted_by INT REFERENCES users(id),
