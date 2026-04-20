@@ -181,3 +181,15 @@ func (s *ZoneService) VerifyChain(zoneID int) (bool, int, error) {
 	}
 	return s.repo.VerifyChain(zoneID)
 }
+
+// check if a user can enter a zone
+func (s *ZoneService) CanEnterRoom(userID, zoneID int, role string) error {
+	ok, err := s.repo.HasZoneAccess(userID, zoneID, role)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrAccessDenied
+	}
+	return nil
+}
