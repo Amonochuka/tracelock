@@ -126,6 +126,11 @@ func CreateZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			return
 		}
 
+		if req.MaxCapacity < 0 {
+			WriteError(w, http.StatusBadRequest, "max_capacity cannot be negative")
+			return
+		}
+
 		zone, err := service.CreateZone(req.Name, req.Description, req.MaxCapacity)
 		if err != nil {
 			if errors.Is(err, access.ErrZoneNameExists) {
