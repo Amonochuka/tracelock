@@ -135,7 +135,7 @@ func CreateZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			WriteError(w, http.StatusInternalServerError, "could not create zone")
 			return
 		}
-		WriteJSON(w, http.StatusOK, ZoneResponse{
+		WriteJSON(w, http.StatusCreated, ZoneResponse{
 			ID:          zone.ID,
 			Name:        zone.Name,
 			Description: zone.Description,
