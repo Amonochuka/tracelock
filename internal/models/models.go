@@ -33,5 +33,5 @@ type AccessEvent struct {
 type ZoneOccupancy struct {
 	Zone
 	ActiveCount int
-	ActiveUsers []User
+	ActiveUsers []*User `json:"active_users"`
 }

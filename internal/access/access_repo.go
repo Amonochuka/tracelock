@@ -270,7 +270,7 @@ func (z *ZoneRepo) UpdateZone(zoneID int, name, description string, maxCapacity 
 }
 
 // GetActiveUsersInZone returns all users currently inside a zone.
-func (z *ZoneRepo) GetActiveUsersInZone(zoneID int) ([]models.User, error) {
+func (z *ZoneRepo) GetActiveUsersInZone(zoneID int) ([]*models.User, error) {
 	rows, err := z.db.Query(`SELECT u.id, u.name, u.email, u.role, u.created_at
 		FROM users u INNER JOIN active_sessions s ON s.user_id = u.id
 		WHERE s.zone_id = $1 ORDER BY s.entered_at`, zoneID)
@@ -279,13 +279,13 @@ func (z *ZoneRepo) GetActiveUsersInZone(zoneID int) ([]models.User, error) {
 	}
 	defer rows.Close()
 
-	var users []models.User
+	var users []*models.User
 	for rows.Next() {
 		var u models.User
 		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan user: %w", err)
 		}
-		users = append(users, u)
+		users = append(users, &u)
 	}
 	return users, nil
 }
