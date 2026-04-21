@@ -3,20 +3,20 @@ package models
 import "time"
 
 type User struct {
-	ID           int
-	Name         string
-	Email        string
-	PasswordHash string
-	Role         string
-	CreatedAt    time.Time
+	ID           int       `json:"id"`
+	Name         string    `json:"name"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"-"`
+	Role         string    `json:"role"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type Zone struct {
-	ID          int
-	Name        string
-	Description string
-	MaxCapacity int
-	CreatedAt   time.Time
+	ID          int       `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	MaxCapacity int       `json:"max_capacity"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type AccessEvent struct {
@@ -32,6 +32,6 @@ type AccessEvent struct {
 
 type ZoneOccupancy struct {
 	Zone
-	ActiveCount int
+	ActiveCount int     `json:"active_count"`
 	ActiveUsers []*User `json:"active_users"`
 }
