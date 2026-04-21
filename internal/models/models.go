@@ -20,14 +20,14 @@ type Zone struct {
 }
 
 type AccessEvent struct {
-	ID           int
-	UserID       int
-	ZoneID       int
-	Action       string
-	Status       string
-	Timestamp    time.Time
-	Hash         string
-	PreviousHash string
+	ID           int       `json:"id"`
+	UserID       int       `json:"user_id"`
+	ZoneID       int       `json:"zone_id"`
+	Action       string    `json:"action"`
+	Status       string    `json:"status"`
+	Timestamp    time.Time `json:"timestamp"`
+	Hash         string    `json:"hash"`
+	PreviousHash string    `json:"previous_hash"`
 }
 
 type ZoneOccupancy struct {
