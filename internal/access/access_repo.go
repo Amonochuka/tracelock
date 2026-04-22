@@ -360,7 +360,7 @@ func (z *ZoneRepo) VerifyChain(zoneID int) (bool, int, error) {
 }
 
 func scanEvents(rows *sql.Rows, total int) ([]*models.AccessEvent, int, error) {
-	var events []*models.AccessEvent
+	events := make([]*models.AccessEvent, 0)
 	for rows.Next() {
 		e := &models.AccessEvent{}
 		if err := rows.Scan(&e.ID, &e.UserID, &e.ZoneID, &e.Action, &e.Status,
