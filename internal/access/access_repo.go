@@ -169,6 +169,12 @@ func (z *ZoneRepo) HasZoneAccess(userID, zoneID int, role string) (bool, error) 
 }
 
 // grant zone access
+// what ON CONFLICT DO NOTHING achieves;
+// if we try to grant access that already exists, do nothing instead of erroring
+// normally PostgreSQL would throw a duplicate key error.
+// user_zone_access has a composite primary key (user_id, zone_id)
+// so user_id should be unique for every pair
+
 func (z *ZoneRepo) GrantZoneAccess(userID, zoneID, grantedBy int) error {
 	_, err := z.db.Exec(`INSERT INTO user_zone_access(user_id, zone_id, granted_by)VALUES($1, $2, $3)
 						ON CONFLICT DO NOTHING`, userID, zoneID, grantedBy)

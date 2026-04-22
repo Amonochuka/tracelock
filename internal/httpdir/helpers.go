@@ -11,6 +11,8 @@ func parseIDParam(r *http.Request, param string) (int, error) {
 	return strconv.Atoi(chi.URLParam(r, param))
 }
 
+//helps in display of records from a certain point
+//defaults set are 20 and 0
 func parsePagination(r *http.Request) (limit, offset int) {
 	limit = 20
 	offset = 0
