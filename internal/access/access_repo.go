@@ -36,7 +36,7 @@ func (z *ZoneRepo) CreateZone(name, description string, maxCapacity int) (*model
 	return zone, nil
 }
 
-// delete a zonehow methe code thats missing from my orginal ac
+// delete a zone
 func (z *ZoneRepo) DeleteZone(zoneID int) error {
 	res, err := z.db.Exec(`DELETE FROM zones WHERE id = $1`, zoneID)
 	if err != nil {
@@ -333,7 +333,6 @@ func (z *ZoneRepo) ListUserEvents(userID, limit, offset int) ([]*models.AccessEv
 
 	return scanEvents(rows, total)
 }
-
 // VerifyChain walks all events for a zone oldest-first and verifies hash chain integrity.
 func (z *ZoneRepo) VerifyChain(zoneID int) (bool, int, error) {
 	rows, err := z.db.Query(`SELECT hash, previous_hash FROM access_events
