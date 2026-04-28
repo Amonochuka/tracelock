@@ -18,8 +18,10 @@ func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.Z
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
-	r.Post("/register", RegisterHandler(s))
-	r.Post("/login", LoginHandler(s, jwtService))
+	limiter := middleware.NewRateLimiter(5) // 5 requests per minute
+
+	r.With(limiter.Middleware).Post("/register", RegisterHandler(s))
+	r.With(limiter.Middleware).Post("/login", LoginHandler(s, jwtService))
 	r.Post("/bootstrap", BootStrapHandler(s))
 
 	// Authenticated

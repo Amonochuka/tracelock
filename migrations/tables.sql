@@ -49,3 +49,12 @@ CREATE TABLE IF NOT EXISTS user_zone_access (
     granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY(user_id, zone_id)
 );
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id         SERIAL PRIMARY KEY,
+    user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token      VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    revoked    BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

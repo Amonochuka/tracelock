@@ -19,11 +19,11 @@ func (j *JWTService) GenerateToken(user *models.User) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":  user.ID,
 		"role": user.Role,
-		"exp":  time.Now().Add(time.Hour * 24).Unix(),
+		"exp":  time.Now().Add(time.Minute * 15).Unix(),
 		"iat":  time.Now().Unix(),
 	}
 
-	//create a token with HS356 signing
+	//create a token with HS256 signing
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	//sign token using jwtSecret
