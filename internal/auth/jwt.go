@@ -1,7 +1,11 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"time"
+
 	"tracelock/internal/models"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -23,10 +27,10 @@ func (j *JWTService) GenerateToken(user *models.User) (string, error) {
 		"iat":  time.Now().Unix(),
 	}
 
-	//create a token with HS256 signing
+	// create a token with HS256 signing
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	//sign token using jwtSecret
+	// sign token using jwtSecret
 	tokenString, err := token.SignedString(j.secret)
 	if err != nil {
 		return "", ErrTokenInvalidMethod
@@ -50,4 +54,15 @@ func (j *JWTService) VerifyToken(tokenString string) (jwt.MapClaims, error) {
 		return nil, err
 	}
 	return claims, nil
+}
+
+func (j *JWTService) GenerateRefreshToken() (string, time.Time, error) {
+	// generate random 32 byte token
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", time.Time{}, fmt.Errorf("generating refresh token: %w", err)
+	}
+	token := hex.EncodeToString(b)
+	expiresAt := time.Now().Add(time.Hour * 24 * 7)
+	return token, expiresAt, nil
 }
