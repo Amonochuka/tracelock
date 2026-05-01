@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"tracelock/internal/models"
 
@@ -134,4 +135,15 @@ func (u *UserAuth) ListUsers() ([]*models.User, error) {
 		users = append(users, u)
 	}
 	return users, nil
+}
+
+// save refersh token
+func (u *UserAuth) SaveRefreshToken(userID int, token string, expiresAt time.Time) error {
+	_, err := u.db.Exec(
+		"INSERT INTO refresh_tokens(user_id, token, expires_at) VALUES($1,$2,$3)",
+		userID, token, expiresAt)
+	if err != nil {
+		return fmt.Errorf("saving refresh token: %w", err)
+	}
+	return nil
 }

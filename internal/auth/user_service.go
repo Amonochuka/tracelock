@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"time"
 
 	"tracelock/internal/models"
 )
@@ -38,6 +39,11 @@ func (s *UserService) VerifyUser(id int) (*models.User, error) {
 		return nil, fmt.Errorf("verify user %d: %w", id, err)
 	}
 	return user, nil
+}
+
+// save refersh token
+func (s *UserService) SaveRefreshToken(userID int, token string, expiresAt time.Time) error {
+	return s.auth.SaveRefreshToken(userID, token, expiresAt)
 }
 
 // bootstrap admin

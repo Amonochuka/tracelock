@@ -107,8 +107,23 @@ func LoginHandler(s *auth.UserService, j *auth.JWTService) http.HandlerFunc {
 			return
 		}
 
-		WriteJSON(w, http.StatusOK, map[string]string{
-			"token": token,
+		refreshToken, expiresAt, err := j.GenerateRefreshToken()
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not generate refresh token")
+			return
+		}
+
+		err = s.SaveRefreshToken(user.ID, refreshToken, expiresAt)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not save refresh token")
+			return
+		}
+
+		WriteJSON(w, http.StatusOK, map[string]any{
+			"token":         token,
+			"refresh_token": refreshToken,
+			"expires_at":    expiresAt,
+			"token_type":    "Bearer",
 		})
 	}
 }
@@ -230,7 +245,6 @@ func UpdateRoleHandler(s *auth.UserService) http.HandlerFunc {
 		})
 	}
 }
-
 
 func ListUserEventsHandler(service *access.ZoneService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

@@ -46,11 +46,8 @@ func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.Z
 		// Zone read
 		r.Get("/zones", ListZonesHandler(zoneService))
 		r.Get("/zones/{id}", GetZoneHandler(zoneService))
-		r.Get("/zones/{id}/events", ListZoneEventsHandler(zoneService))
 
 		// User routes
-		r.Get("/users/{id}/events", ListUserEventsHandler(zoneService))
-		r.Get("/users/{id}/access", ListUserAccessHandler(zoneService))
 
 		// Admin only
 		r.Group(func(r chi.Router) {
@@ -63,12 +60,15 @@ func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.Z
 			// User management
 			r.Get("/admin/users", ListUsersHandler(s))
 			r.Put("/admin/users/{id}/role", UpdateRoleHandler(s))
+			r.Get("/users/{id}/events", ListUserEventsHandler(zoneService))
+			r.Get("/users/{id}/access", ListUserAccessHandler(zoneService))
 
 			// Zone management
 			r.Post("/admin/zones", CreateZoneHandler(zoneService))
 			r.Put("/admin/zones/{id}", UpdateZoneHandler(zoneService))
 			r.Delete("/admin/zones/{id}", DeleteZoneHandler(zoneService))
 			r.Get("/admin/zones/{id}/users", ListZoneUsersHandler(zoneService))
+			r.Get("/zones/{id}/events", ListZoneEventsHandler(zoneService))
 			r.Get("/admin/zones/{id}/verify-chain", VerifyChainHandler(zoneService))
 
 			// Access control
