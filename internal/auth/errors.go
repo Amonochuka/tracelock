@@ -10,4 +10,7 @@ var (
 	ErrInvalidCredentials = errors.New("invalid email/password")
 	ErrInvalidRole        = errors.New("role must be 'user' or 'admin'")
 	ErrAdminExists        = errors.New("admin already exists")
+	ErrTokenNotFound      = errors.New("refresh token not found")
+	ErrTokenRevoked       = errors.New("refresh token has been revoked")
+	ErrTokenExpired       = errors.New("refersh token has expired")
 )

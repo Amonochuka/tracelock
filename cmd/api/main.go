@@ -21,8 +21,8 @@ func main() {
 
 	// auth
 	userAuth := auth.NewUserAuth(database)
-	userService := auth.NewUserService(userAuth)
 	jwtService := auth.NewJWTService(cfg.JWTSecret)
+	userService := auth.NewUserService(userAuth, jwtService)
 
 	// access
 	zoneRepo := access.NewZoneRepo(database)

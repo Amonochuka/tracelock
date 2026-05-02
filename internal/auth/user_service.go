@@ -9,10 +9,11 @@ import (
 
 type UserService struct {
 	auth *UserAuth
+	jwt  *JWTService
 }
 
-func NewUserService(auth *UserAuth) *UserService {
-	return &UserService{auth: auth}
+func NewUserService(auth *UserAuth, j *JWTService) *UserService {
+	return &UserService{auth: auth, jwt: j}
 }
 
 func (s *UserService) Register(name, email, password string) error {
@@ -68,4 +69,29 @@ func (s *UserService) UpdateRole(userID int, role string) error {
 
 func (s *UserService) ListUsers() ([]*models.User, error) {
 	return s.auth.ListUsers()
+}
+
+// give a user a new access token
+func (s *UserService) RefreshAccessToken(token string) (string, error) {
+	//get the refresh token
+	if err := s.auth.GetRefreshToken(token); err != nil {
+		return "", err
+	}
+
+	//get userID associated to a refersh token
+	userID, err := s.auth.GetUserIDFromRefreshToken(token)
+	if err != nil {
+		return "", err
+	}
+
+	//verify user
+	user, err := s.auth.VerifyUser(userID)
+	if err != nil {
+		return "", err
+	}
+	return s.jwt.GenerateToken(user)
+}
+
+func (s *UserService) Logout(token string) error {
+	return s.auth.RevokeRefreshToken(token)
 }

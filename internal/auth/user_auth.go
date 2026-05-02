@@ -147,3 +147,50 @@ func (u *UserAuth) SaveRefreshToken(userID int, token string, expiresAt time.Tim
 	}
 	return nil
 }
+
+// get the refresh token
+func (u *UserAuth) GetRefreshToken(token string) error {
+	var revoked bool
+	var expiresAt time.Time
+	err := u.db.QueryRow(`SELECT revoked, expires_at from refresh_tokens 
+				WHERE token = $1`, token).Scan(&revoked, &expiresAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrTokenNotFound
+		}
+		return fmt.Errorf("get refresh token: %w", err)
+	}
+	if revoked {
+		return ErrTokenRevoked
+	}
+	if time.Now().After(expiresAt) {
+		return ErrTokenExpired
+	}
+	return nil
+}
+
+// revoke the refresh token
+func (u *UserAuth) RevokeRefreshToken(token string) error {
+	res, err := u.db.Exec("UPDATE refresh_tokens SET revoked = true WHERE token = $1", token)
+	if err != nil {
+		return fmt.Errorf("revoke refresh tokens: %w", err)
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return ErrTokenNotFound
+	}
+	return nil
+}
+
+// get user using a certain refresh token
+func (u *UserAuth) GetUserIDFromRefreshToken(token string) (int, error) {
+	var userID int
+	err := u.db.QueryRow("SELECT user_id FROM refresh_tokens WHERE token = $1", token).Scan(&token)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, ErrTokenNotFound
+		}
+		return 0, fmt.Errorf("getting user from refresh token: %w", err)
+	}
+	return userID, nil
+}

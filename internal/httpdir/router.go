@@ -23,6 +23,8 @@ func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.Z
 	r.With(limiter.Middleware).Post("/register", RegisterHandler(s))
 	r.With(limiter.Middleware).Post("/login", LoginHandler(s, jwtService))
 	r.Post("/bootstrap", BootStrapHandler(s))
+	r.Post("/logout", LogoutHandler(s))
+	r.Post("/refresh", RefreshHandler(s))
 
 	// Authenticated
 	r.Group(func(r chi.Router) {

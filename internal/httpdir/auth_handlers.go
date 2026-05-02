@@ -270,3 +270,73 @@ func ListUserEventsHandler(service *access.ZoneService) http.HandlerFunc {
 		})
 	}
 }
+
+// get a new refersh token
+func RefreshHandler(s *auth.UserService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		var req struct {
+			Token string `json:"token"`
+		}
+
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&req); err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid json")
+			return
+		}
+
+		token, err := s.RefreshAccessToken(req.Token)
+		if err != nil {
+			if errors.Is(err, auth.ErrTokenNotFound) {
+				WriteError(w, http.StatusNotFound, "token not found")
+				return
+			}
+			if errors.Is(err, auth.ErrTokenRevoked) {
+				WriteError(w, http.StatusUnauthorized, "token revoked")
+				return
+			}
+			if errors.Is(err, auth.ErrTokenExpired) {
+				WriteError(w, http.StatusUnauthorized, "token has expired")
+				return
+			}
+			WriteError(w, http.StatusInternalServerError, "could not refresh token")
+			return
+		}
+
+		WriteJSON(w, http.StatusOK, map[string]string{
+			"token": token,
+		})
+	}
+}
+
+func LogoutHandler(s *auth.UserService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
+		var req struct {
+			Token string `json:"token"`
+		}
+
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&req); err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid json")
+			return
+		}
+
+		err := s.Logout(req.Token)
+		if err != nil {
+			if errors.Is(err, auth.ErrTokenNotFound) {
+				WriteError(w, http.StatusNotFound, "token not found")
+				return
+			}
+			WriteError(w, http.StatusInternalServerError, "could not logout")
+			return
+		}
+		WriteJSON(w, http.StatusOK, map[string]string{
+			"message": "logged out successfully",
+		})
+	}
+}
