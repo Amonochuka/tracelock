@@ -8,11 +8,16 @@ import (
 	"tracelock/internal/auth"
 	"tracelock/internal/httpdir/middleware"
 
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
+
 	"github.com/go-chi/chi/v5"
 )
 
 func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService) http.Handler {
 	r := chi.NewRouter()
+
+	r.Use(chimiddleware.Logger)
+	r.Use(chimiddleware.RequestID)
 
 	// Public
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
