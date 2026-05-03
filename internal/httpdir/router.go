@@ -36,6 +36,9 @@ func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.Z
 		r.Use(auth.JWTMiddleware(jwtService))
 
 		r.Get("/me", MeHandler(s))
+		// Me routes; users can see their own data
+		r.Get("/me/events", MeEventsHandler(zoneService))
+		r.Get("/me/access", MeAccessHandler(zoneService))
 
 		r.Get("/protected", func(w http.ResponseWriter, r *http.Request) {
 			user := auth.GetUserClaims(r)

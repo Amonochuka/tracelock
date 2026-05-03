@@ -340,3 +340,56 @@ func LogoutHandler(s *auth.UserService) http.HandlerFunc {
 		})
 	}
 }
+
+func MeEventsHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		claims := auth.GetUserClaims(r)
+		if claims == nil {
+			WriteError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		limit, offset := parsePagination(r)
+
+		events, total, err := service.ListUserEvents(claims.UserID, limit, offset)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not fetch events")
+			return
+		}
+
+		WriteJSON(w, http.StatusOK, map[string]any{
+			"events": events,
+			"total":  total,
+			"limit":  limit,
+			"offset": offset,
+		})
+	}
+}
+
+func MeAccessHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		claims := auth.GetUserClaims(r)
+		if claims == nil {
+			WriteError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		zones, err := service.ListUserAccess(claims.UserID)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not fetch access list")
+			return
+		}
+
+		resp := make([]ZoneResponse, 0, len(zones))
+		for _, z := range zones {
+			resp = append(resp, ZoneResponse{
+				ID:          z.ID,
+				Name:        z.Name,
+				Description: z.Description,
+				MaxCapacity: z.MaxCapacity,
+				CreatedAt:   z.CreatedAt,
+			})
+		}
+		WriteJSON(w, http.StatusOK, resp)
+	}
+}
