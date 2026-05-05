@@ -14,9 +14,14 @@ import (
 	"tracelock/internal/config"
 	"tracelock/internal/db"
 	"tracelock/internal/httpdir"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+
+	godotenv.Load() // loads .env file automatically
+
 	cfg := config.Load()
 
 	database, err := db.Open(cfg)
