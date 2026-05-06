@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -23,6 +24,10 @@ func main() {
 	godotenv.Load() // loads .env file automatically
 
 	cfg := config.Load()
+	fmt.Println("DB_USER:", os.Getenv("DB_USER"))
+	fmt.Println("DB_PASSWORD:", os.Getenv("DB_PASSWORD"))
+	fmt.Println("DB_HOST:", os.Getenv("DB_HOST"))
+	fmt.Println("DB_NAME:", os.Getenv("DB_NAME"))
 
 	database, err := db.Open(cfg)
 	if err != nil {

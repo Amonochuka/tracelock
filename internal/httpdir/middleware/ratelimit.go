@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -90,8 +91,12 @@ func (r1 *RateLimiter) Middleware(next http.Handler) http.Handler {
 // not the real client IP. Fix that by checking the X-Forwarded-For header
 func getIP(r *http.Request) string {
 	ip := r.Header.Get("X-Forwarded-For")
-	if ip == "" {
-		ip = r.RemoteAddr
+	if ip != "" {
+		return ip
 	}
-	return ip
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
