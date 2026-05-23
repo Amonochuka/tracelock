@@ -185,7 +185,7 @@ func (u *UserAuth) RevokeRefreshToken(token string) error {
 // get user using a certain refresh token
 func (u *UserAuth) GetUserIDFromRefreshToken(token string) (int, error) {
 	var userID int
-	err := u.db.QueryRow("SELECT user_id FROM refresh_tokens WHERE token = $1", token).Scan(&token)
+	err := u.db.QueryRow("SELECT user_id FROM refresh_tokens WHERE token = $1", token).Scan(&userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, ErrTokenNotFound

@@ -3,6 +3,7 @@ package httpdir
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -301,6 +302,7 @@ func RefreshHandler(s *auth.UserService) http.HandlerFunc {
 				WriteError(w, http.StatusUnauthorized, "token has expired")
 				return
 			}
+			log.Printf("refresh failed: %v", err)
 			WriteError(w, http.StatusInternalServerError, "could not refresh token")
 			return
 		}
