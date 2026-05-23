@@ -58,3 +58,27 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     revoked    BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS devices (
+    id         SERIAL PRIMARY KEY,
+    zone_id    INT NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
+    name       VARCHAR(100) NOT NULL,
+    type       VARCHAR(20) NOT NULL CHECK (type IN ('fingerprint', 'face', 'iris', 'card', 'pin')),
+    serial     VARCHAR(100) UNIQUE,
+    active     BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS biometric_credentials (
+    id              SERIAL PRIMARY KEY,
+    user_id         INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    entry_method    VARCHAR(20) NOT NULL CHECK (entry_method IN ('fingerprint', 'face', 'iris', 'card', 'pin')),
+    credential_hash VARCHAR(255) NOT NULL,
+    enrolled_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    revoked         BOOLEAN NOT NULL DEFAULT FALSE,
+    UNIQUE (user_id, entry_method)
+);
+
+ALTER TABLE access_events
+    ADD COLUMN IF NOT EXISTS device_id    INT REFERENCES devices(id),
+    ADD COLUMN IF NOT EXISTS entry_method VARCHAR(20) CHECK (entry_method IN ('fingerprint', 'face', 'iris', 'card', 'pin', 'api'));
