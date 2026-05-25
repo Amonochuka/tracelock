@@ -39,3 +39,4 @@ db/backups/
 *.swp
 *.DS_Store.env
 .env
+*.tar.gz
