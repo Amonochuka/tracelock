@@ -41,3 +41,12 @@ type ZoneResponse struct {
 	MaxCapacity int       `json:"max_capacity"`
 	CreatedAt   time.Time `json:"created_at"`
 }
+
+type DeviceResponse struct {
+	ID        int       `json:"id"`
+	Name      string    `json:"name"`
+	Type      string    `json:"type"`
+	Active    bool      `json:"active"`
+	Serial    string    `json:"serial"`
+	CreatedAt time.Time `json:"created_at"`
+}
