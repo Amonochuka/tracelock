@@ -50,7 +50,7 @@ func (d *DeviceRepo) ListZoneDevices(zoneID int) ([]*models.Device, error) {
 	for rows.Next() {
 		dvc := &models.Device{}
 		if err := rows.Scan(&dvc.ID, &dvc.ZoneID, &dvc.Name, &dvc.Type, &dvc.Serial, &dvc.Active, &dvc.CreatedAt); err != nil {
-			return nil, fmt.Errorf("device listing: %w", err)
+			return nil, fmt.Errorf("scan device: %w", err)
 		}
 		devices = append(devices, dvc)
 	}
