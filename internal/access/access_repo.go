@@ -36,7 +36,7 @@ func (z *ZoneRepo) CreateZone(name, description string, maxCapacity int) (*model
 	return zone, nil
 }
 
-// delete a zonehow methe code thats missing from my orginal ac
+// delete a zone
 func (z *ZoneRepo) DeleteZone(zoneID int) error {
 	res, err := z.db.Exec(`DELETE FROM zones WHERE id = $1`, zoneID)
 	if err != nil {
