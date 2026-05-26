@@ -42,7 +42,11 @@ func main() {
 	deviceRepo := access.NewDeviceRepo(database)
 	deviceService := access.NewDeviceService(deviceRepo)
 
-	handler := httpdir.New(userService, jwtService, zoneService, deviceService)
+	//credentials
+	credentialRepo := access.NewCredentialRepo(database)
+	credentialService := access.NewCredentialService(credentialRepo)
+
+	handler := httpdir.New(userService, jwtService, zoneService, deviceService, credentialService)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
