@@ -14,4 +14,6 @@ var (
 	ErrZoneHasActivity    = errors.New("zone has active sessions and cannot be deleted")
 	ErrDeviceNotFound     = errors.New("device not found")
 	ErrDeviceSerialExists = errors.New("device serial already exists")
+	ErrCredentialExists   = errors.New("credential already exists for this method")
+	ErrCredentialNotFound = errors.New("credential not found")
 )
