@@ -13,7 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService) http.Handler {
+func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService, deviceService *access.DeviceService) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimiddleware.Logger)
@@ -84,6 +84,14 @@ func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.Z
 			// Access control
 			r.Post("/admin/access", GrantAccessHandler(zoneService))
 			r.Delete("/admin/access", RevokeAccessHandler(zoneService))
+
+			// Device management (admin only — already inside admin group)
+			r.Post("/admin/zones/{id}/devices", CreateDeviceHandler(deviceService))
+			r.Get("/admin/zones/{id}/devices", ListDevicesHandler(deviceService))
+			r.Get("/admin/devices/{id}", GetDeviceHandler(deviceService))
+			r.Put("/admin/devices/{id}", UpdateDeviceHandler(deviceService))
+			r.Patch("/admin/devices/{id}/deactivate", DeactivateDeviceHandler(deviceService))
+			r.Delete("/admin/devices/{id}", DeleteDeviceHandler(deviceService))
 		})
 	})
 

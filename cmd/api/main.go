@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -20,14 +19,9 @@ import (
 )
 
 func main() {
-
 	godotenv.Load() // loads .env file automatically
 
 	cfg := config.Load()
-	fmt.Println("DB_USER:", os.Getenv("DB_USER"))
-	fmt.Println("DB_PASSWORD:", os.Getenv("DB_PASSWORD"))
-	fmt.Println("DB_HOST:", os.Getenv("DB_HOST"))
-	fmt.Println("DB_NAME:", os.Getenv("DB_NAME"))
 
 	database, err := db.Open(cfg)
 	if err != nil {
@@ -44,14 +38,18 @@ func main() {
 	zoneRepo := access.NewZoneRepo(database)
 	zoneService := access.NewZoneService(zoneRepo)
 
-	handler := httpdir.New(userService, jwtService, zoneService)
+	// device management
+	deviceRepo := access.NewDeviceRepo(database)
+	deviceService := access.NewDeviceService(deviceRepo)
+
+	handler := httpdir.New(userService, jwtService, zoneService, deviceService)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: handler,
 	}
 
-	//run server in the background
+	// run server in the background
 	go func() {
 		log.Println("Tracelock API running on: " + cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -75,5 +73,4 @@ func main() {
 	}
 
 	log.Println("server stopped cleanly")
-
 }
