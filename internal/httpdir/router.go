@@ -13,7 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService, deviceService *access.DeviceService) http.Handler {
+func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService, deviceService *access.DeviceService, credentialService *access.CredentialService) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimiddleware.Logger)
@@ -92,6 +92,12 @@ func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.Z
 			r.Put("/admin/devices/{id}", UpdateDeviceHandler(deviceService))
 			r.Patch("/admin/devices/{id}/deactivate", DeactivateDeviceHandler(deviceService))
 			r.Delete("/admin/devices/{id}", DeleteDeviceHandler(deviceService))
+
+			// credential management
+			r.Post("/users/{id}/credentials", EnrollCredentialHandler(credentialService))
+			r.Get("/users/{id}/credentials", GetCredentialHandler(credentialService))
+			r.Delete("/users/{id}/credentials", RevokeCredentialHandler(credentialService))
+			r.Get("/users/{id}/credentials", ListUserCredentialsHandler(credentialService))
 		})
 	})
 
