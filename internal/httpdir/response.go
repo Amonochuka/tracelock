@@ -44,9 +44,10 @@ type ZoneResponse struct {
 
 type DeviceResponse struct {
 	ID        int       `json:"id"`
+	ZoneID    int       `json:"zone_id"`
 	Name      string    `json:"name"`
 	Type      string    `json:"type"`
-	Active    bool      `json:"active"`
 	Serial    string    `json:"serial"`
+	Active    bool      `json:"active"`
 	CreatedAt time.Time `json:"created_at"`
 }

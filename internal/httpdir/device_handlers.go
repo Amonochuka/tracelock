@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
 	"tracelock/internal/access"
 )
 
@@ -37,8 +38,10 @@ func CreateDeviceHandler(service *access.DeviceService) http.HandlerFunc {
 		}
 		WriteJSON(w, http.StatusCreated, DeviceResponse{
 			ID:        device.ID,
+			ZoneID:    device.ZoneID,
 			Name:      device.Name,
 			Type:      device.Type,
+			Serial:    device.Serial,
 			Active:    device.Active,
 			CreatedAt: device.CreatedAt,
 		})
@@ -113,10 +116,12 @@ func UpdateDeviceHandler(service *access.DeviceService) http.HandlerFunc {
 			return
 		}
 
-		WriteJSON(w, http.StatusOK, DeviceResponse{
+		WriteJSON(w, http.StatusCreated, DeviceResponse{
 			ID:        device.ID,
+			ZoneID:    device.ZoneID,
 			Name:      device.Name,
 			Type:      device.Type,
+			Serial:    device.Serial,
 			Active:    device.Active,
 			CreatedAt: device.CreatedAt,
 		})

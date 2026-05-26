@@ -22,14 +22,6 @@ func (s *DeviceService) GetDevice(deviceID int) (*models.Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	// count, err := s.repo.CountActiveUsers(zoneID)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// users, err := s.repo.GetActiveUsersInZone(zoneID)
-	// if err != nil {
-	// 	return nil, err
-	// }
 	return device, nil
 }
 
@@ -44,24 +36,10 @@ func (s *DeviceService) UpdateDevice(deviceID int, name, deviceType, serial stri
 }
 
 func (s *DeviceService) DeleteDevice(deviceID int) error {
-	// count, err := s.repo.CountActiveUsers(zoneID)
-	// if err != nil {
-	// 	return err
-	// }
-	// if count > 0 {
-	// 	return ErrZoneHasActivity
-	// }
 	return s.repo.DeleteDevice(deviceID)
 }
 
 // delete a device
 func (s *DeviceService) DeactivateDevice(deviceID int) error {
-	// count, err := s.repo.CountActiveUsers(zoneID)
-	// if err != nil {
-	// 	return err
-	// }
-	// if count > 0 {
-	// 	return ErrZoneHasActivity
-	// }
 	return s.repo.DeactivateDevice(deviceID)
 }
