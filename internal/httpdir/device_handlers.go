@@ -130,6 +130,7 @@ func UpdateDeviceHandler(service *access.DeviceService) http.HandlerFunc {
 
 func DeactivateDeviceHandler(service *access.DeviceService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
 		deviceID, err := parseIDParam(r, "id")
 		if err != nil {
 			WriteError(w, http.StatusBadRequest, "invalid device id")
@@ -152,6 +153,7 @@ func DeactivateDeviceHandler(service *access.DeviceService) http.HandlerFunc {
 
 func DeleteDeviceHandler(service *access.DeviceService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
 		deviceID, err := parseIDParam(r, "id")
 		if err != nil {
 			WriteError(w, http.StatusBadRequest, "invalid device id")
