@@ -5,14 +5,16 @@ import (
 	"errors"
 	"net/http"
 	"tracelock/internal/access"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func EnrollCredentialHandler(service *access.CredentialService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		var req struct {
-			EntryMethod    string `json:"entrymethod"`
-			CredentialHash string `json:"credentialhash"`
+			EntryMethod    string `json:"entry_method"`
+			CredentialHash string `json:"credential_hash"`
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -48,13 +50,8 @@ func EnrollCredentialHandler(service *access.CredentialService) http.HandlerFunc
 
 func GetCredentialHandler(service *access.CredentialService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			EntryMethod string `json:"entrymethod"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			WriteError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
+
+		entryMethod := chi.URLParam(r, "method")
 
 		userID, err := parseIDParam(r, "id")
 		if err != nil {
@@ -62,7 +59,7 @@ func GetCredentialHandler(service *access.CredentialService) http.HandlerFunc {
 			return
 		}
 
-		credential, err := service.GetCredential(userID, req.EntryMethod)
+		credential, err := service.GetCredential(userID, entryMethod)
 		if err != nil {
 			if errors.Is(err, access.ErrCredentialNotFound) {
 				WriteError(w, http.StatusNotFound, "credential not found")
@@ -77,13 +74,8 @@ func GetCredentialHandler(service *access.CredentialService) http.HandlerFunc {
 
 func RevokeCredentialHandler(service *access.CredentialService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			EntryMethod string `json:"entrymethod"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			WriteError(w, http.StatusBadRequest, "invalid request body")
-			return
-		}
+		defer r.Body.Close()
+		entryMethod := chi.URLParam(r, "method")
 
 		userID, err := parseIDParam(r, "id")
 		if err != nil {
@@ -91,7 +83,7 @@ func RevokeCredentialHandler(service *access.CredentialService) http.HandlerFunc
 			return
 		}
 
-		if err := service.RevokeCredential(userID, req.EntryMethod); err != nil {
+		if err := service.RevokeCredential(userID, entryMethod); err != nil {
 			switch {
 			case errors.Is(err, access.ErrCredentialNotFound):
 				WriteError(w, http.StatusNotFound, "credential not found")
@@ -114,7 +106,7 @@ func ListUserCredentialsHandler(service *access.CredentialService) http.HandlerF
 
 		credentials, err := service.ListUserCredentials(userID)
 		if err != nil {
-			WriteError(w, http.StatusInternalServerError, "could not fetch devices")
+			WriteError(w, http.StatusInternalServerError, "could not fetch credentials")
 			return
 		}
 		WriteJSON(w, http.StatusOK, credentials)
