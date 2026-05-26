@@ -1,50 +1,122 @@
 package httpdir
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
 	"tracelock/internal/access"
 )
 
-func EnrollCredentialHandler(service *access.CredentialService) http.HandlerFunc{
+func EnrollCredentialHandler(service *access.CredentialService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		var req struct {
-			Name   string `json:"name"`
-			Type   string `json:"type"`
-			Serial string `json:"serial"`
+			EntryMethod    string `json:"entrymethod"`
+			CredentialHash string `json:"credentialhash"`
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			WriteError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		zoneID, err := parseIDParam(r, "id")
+
+		userID, err := parseIDParam(r, "id")
 		if err != nil {
-			WriteError(w, http.StatusBadRequest, "invalid zone id")
+			WriteError(w, http.StatusBadRequest, "invalid user id")
 			return
 		}
 
-		device, err := service.CreateDevice(zoneID, req.Name, req.Type, req.Serial)
+		credential, err := service.EnrollCredential(userID, req.EntryMethod, req.CredentialHash)
 		if err != nil {
-			if errors.Is(err, access.ErrDeviceSerialExists) {
-				WriteError(w, http.StatusConflict, "device already exists")
+			if errors.Is(err, access.ErrCredentialExists) {
+				WriteError(w, http.StatusConflict, "credential already exists")
 				return
 			}
-			WriteError(w, http.StatusInternalServerError, "could not create device")
+			WriteError(w, http.StatusInternalServerError, "could not enroll credential")
 			return
 		}
-		WriteJSON(w, http.StatusCreated, DeviceResponse{
-			ID:        device.ID,
-			ZoneID:    device.ZoneID,
-			Name:      device.Name,
-			Type:      device.Type,
-			Serial:    device.Serial,
-			Active:    device.Active,
-			CreatedAt: device.CreatedAt,
+		WriteJSON(w, http.StatusCreated, CredentialResponse{
+			ID:             credential.ID,
+			UserID:         credential.UserID,
+			EntryMethod:    credential.EntryMethod,
+			CredentialHash: credential.CredentialHash,
+			EnrolledAt:     credential.EnrolledAt,
+			Revoked:        credential.Revoked,
 		})
 	}
 }
 
-func GetCredentialHandler(service *access.CredentialService)http.HandlerFunc{}
-func RevokeCredentialHandler(service *access.CredentialService)http.HandlerFunc{}
-func ListUserCredentialsHandler(service *access.CredentialService) http.HandlerFunc{}
+func GetCredentialHandler(service *access.CredentialService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			EntryMethod string `json:"entrymethod"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		userID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid user id")
+			return
+		}
+
+		credential, err := service.GetCredential(userID, req.EntryMethod)
+		if err != nil {
+			if errors.Is(err, access.ErrCredentialNotFound) {
+				WriteError(w, http.StatusNotFound, "credential not found")
+				return
+			}
+			WriteError(w, http.StatusInternalServerError, "could not fetch credential")
+			return
+		}
+		WriteJSON(w, http.StatusOK, credential)
+	}
+}
+
+func RevokeCredentialHandler(service *access.CredentialService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			EntryMethod string `json:"entrymethod"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		userID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid user id")
+			return
+		}
+
+		if err := service.RevokeCredential(userID, req.EntryMethod); err != nil {
+			switch {
+			case errors.Is(err, access.ErrCredentialNotFound):
+				WriteError(w, http.StatusNotFound, "credential not found")
+			default:
+				WriteError(w, http.StatusInternalServerError, "could not revoke credential")
+			}
+			return
+		}
+		WriteJSON(w, http.StatusOK, map[string]string{"message": "credential revoked"})
+	}
+}
+
+func ListUserCredentialsHandler(service *access.CredentialService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid user id")
+			return
+		}
+
+		credentials, err := service.ListUserCredentials(userID)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not fetch devices")
+			return
+		}
+		WriteJSON(w, http.StatusOK, credentials)
+	}
+}

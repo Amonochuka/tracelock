@@ -51,3 +51,12 @@ type DeviceResponse struct {
 	Active    bool      `json:"active"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type CredentialResponse struct {
+	ID             int       `json:"id"`
+	UserID         int       `json:"user_id"`
+	EntryMethod    string    `json:"entry_method"`
+	CredentialHash string    `json:"credential_hash"`
+	EnrolledAt     time.Time `json:"enrolled_at"`
+	Revoked        bool      `json:"revoked"`
+}
