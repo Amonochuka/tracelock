@@ -82,11 +82,12 @@ func (z *ZoneRepo) GetMaximumCapacity(zoneID int) (int, error) {
 }
 
 // CreateEvent writes an access event to the audit log.
-func (z *ZoneRepo) CreateEvent(userID, zoneID int, action, status, hash, previousHash string) error {
+func (z *ZoneRepo) CreateEvent(userID, zoneID int, action, status, hash, previousHash string, 
+	deviceID *int, entryMethod string) error {
 	_, err := z.db.Exec(`
-        INSERT INTO access_events (user_id, zone_id, action, status, hash, previous_hash)
-        VALUES ($1, $2, $3, $4, $5, $6)
-    `, userID, zoneID, action, status, hash, previousHash)
+        INSERT INTO access_events (user_id, zone_id, action, status, hash, previous_hash, device_id, entry_method)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, userID, zoneID, action, status, hash, previousHash, deviceID, entryMethod)
 	if err != nil {
 		return fmt.Errorf("create event: %w", err)
 	}
@@ -304,7 +305,8 @@ func (z *ZoneRepo) ListZoneEvents(zoneID, limit, offset int) ([]*models.AccessEv
 		return nil, 0, fmt.Errorf("count zone events: %w", err)
 	}
 
-	rows, err := z.db.Query(`SELECT id, user_id, zone_id, action, status, timestamp, hash, previous_hash
+	rows, err := z.db.Query(`SELECT id, user_id, zone_id, action, status, timestamp, hash, 
+		previous_hash, device_id, entry_method
 		FROM access_events WHERE zone_id = $1
 		ORDER BY timestamp DESC LIMIT $2 OFFSET $3`, zoneID, limit, offset)
 	if err != nil {
@@ -323,7 +325,8 @@ func (z *ZoneRepo) ListUserEvents(userID, limit, offset int) ([]*models.AccessEv
 		return nil, 0, fmt.Errorf("count user events: %w", err)
 	}
 
-	rows, err := z.db.Query(`SELECT id, user_id, zone_id, action, status, timestamp, hash, previous_hash
+	rows, err := z.db.Query(`SELECT id, user_id, zone_id, action, status, timestamp, 
+		hash, previous_hash, device_id, entry_method
 		FROM access_events WHERE user_id = $1
 		ORDER BY timestamp DESC LIMIT $2 OFFSET $3`, userID, limit, offset)
 	if err != nil {
@@ -363,8 +366,10 @@ func scanEvents(rows *sql.Rows, total int) ([]*models.AccessEvent, int, error) {
 	events := make([]*models.AccessEvent, 0)
 	for rows.Next() {
 		e := &models.AccessEvent{}
-		if err := rows.Scan(&e.ID, &e.UserID, &e.ZoneID, &e.Action, &e.Status,
-			&e.Timestamp, &e.Hash, &e.PreviousHash); err != nil {
+		if err := rows.Scan(
+			&e.ID, &e.UserID, &e.ZoneID, &e.Action, &e.Status,
+			&e.Timestamp, &e.Hash, &e.PreviousHash, &e.DeviceID, &e.EntryMethod,
+		); err != nil {
 			return nil, 0, fmt.Errorf("scan event: %w", err)
 		}
 		events = append(events, e)

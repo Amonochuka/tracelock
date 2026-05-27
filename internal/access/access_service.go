@@ -89,9 +89,8 @@ func (s *ZoneService) ListZoneUsers(zoneID int) ([]*models.User, error) {
 	return s.repo.ListZoneUsers(zoneID)
 }
 
-//--access events--
-
-func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, timestamp time.Time) error {
+// --access events--
+func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, timestamp time.Time, deviceID *int, entryMethod string) error {
 	if action == "enter" {
 		// check permission
 		allowed, err := s.repo.HasZoneAccess(userID, zoneID, role)
@@ -100,7 +99,7 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 		}
 
 		if !allowed {
-			s.logDeniedEvent(userID, zoneID, action, timestamp, "no_access")
+			s.logDeniedEvent(userID, zoneID, action, timestamp, "no_access", deviceID, entryMethod)
 			return ErrAccessDenied
 		}
 
@@ -116,7 +115,7 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 		}
 
 		if capacity > 0 && count >= capacity {
-			s.logDeniedEvent(userID, zoneID, action, timestamp, "zone_full")
+			s.logDeniedEvent(userID, zoneID, action, timestamp, "zone_full", deviceID, entryMethod)
 			return ErrZoneFull
 		}
 	}
@@ -125,7 +124,7 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 	case "enter":
 		if err := s.repo.CreateSession(userID, zoneID); err != nil {
 			if err == ErrUserAlreadyInZone {
-				s.logDeniedEvent(userID, zoneID, action, timestamp, "already_in_zone")
+				s.logDeniedEvent(userID, zoneID, action, timestamp, "already_in_zone", deviceID, entryMethod)
 			}
 			return err
 		}
@@ -146,19 +145,19 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 		}
 	}
 
-	hash := GenerateHash(userID, zoneID, action, timestamp, previousHash)
-	return s.repo.CreateEvent(userID, zoneID, action, "allowed", hash, previousHash)
+	hash := GenerateHash(userID, zoneID, action, timestamp, previousHash, entryMethod)
+	return s.repo.CreateEvent(userID, zoneID, action, "allowed", hash, previousHash, deviceID, entryMethod)
 }
 
 // log denied entries
-func (s *ZoneService) logDeniedEvent(userID, zoneID int, action string, timestamp time.Time, reason string) {
+func (s *ZoneService) logDeniedEvent(userID, zoneID int, action string, timestamp time.Time, reason string, deviceID *int, entryMethod string) {
 	_ = reason
 	previousHash, err := s.repo.GetLastHash(zoneID)
 	if err != nil {
 		previousHash = ""
 	}
-	hash := GenerateHash(userID, zoneID, action+":denied", timestamp, previousHash)
-	_ = s.repo.CreateEvent(userID, zoneID, action, "denied", hash, previousHash)
+	hash := GenerateHash(userID, zoneID, action+":denied", timestamp, previousHash, entryMethod)
+	_ = s.repo.CreateEvent(userID, zoneID, action, "denied", hash, previousHash, deviceID, entryMethod)
 }
 
 // --event queries--
@@ -181,4 +180,3 @@ func (s *ZoneService) VerifyChain(zoneID int) (bool, int, error) {
 	}
 	return s.repo.VerifyChain(zoneID)
 }
-

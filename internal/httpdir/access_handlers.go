@@ -27,7 +27,9 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 		}
 
 		var req struct {
-			ZoneID int `json:"zone_id"`
+			ZoneID      int    `json:"zone_id"`
+			DeviceID    *int   `json:"device_id"`
+			EntryMethod string `json:"entry_method"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			WriteError(w, http.StatusBadRequest, "invalid request body")
@@ -38,7 +40,7 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			return
 		}
 
-		err = service.HandleZoneEvent(userID, req.ZoneID, role, "enter", time.Now())
+		err = service.HandleZoneEvent(userID, req.ZoneID, role, "enter", time.Now(), req.DeviceID, req.EntryMethod)
 		if err != nil {
 			switch {
 			case errors.Is(err, access.ErrAccessDenied):
@@ -77,8 +79,11 @@ func ExitZoneHandler(service *access.ZoneService) http.HandlerFunc {
 		}
 
 		var req struct {
-			ZoneID int `json:"zone_id"`
+			ZoneID      int    `json:"zone_id"`
+			DeviceID    *int   `json:"device_id"`
+			EntryMethod string `json:"entry_method"`
 		}
+
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			WriteError(w, http.StatusBadRequest, "invalid request body")
 			return
@@ -88,7 +93,7 @@ func ExitZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			return
 		}
 
-		err = service.HandleZoneEvent(userID, req.ZoneID, role, "exit", time.Now())
+		err = service.HandleZoneEvent(userID, req.ZoneID, role, "exit", time.Now(), req.DeviceID, req.EntryMethod)
 		if err != nil {
 			switch {
 			case errors.Is(err, access.ErrNoActiveSession):
