@@ -82,3 +82,10 @@ INSERT INTO devices(zone_id, name, type, serial) VALUES
 (4, 'riswa', 'card', '4512mnop')
 ON CONFLICT DO NOTHING;
 
+
+INSERT INTO zones(name, description, max_capacity) VALUES
+('Lobby', 'Main lobby', 50),
+('Server Room', 'Restricted area', 5),
+('Gym', 'Employee gym', 20),
+('Boardroom', 'Meeting room', 20)
+ON CONFLICT DO NOTHING;
