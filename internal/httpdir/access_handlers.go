@@ -35,6 +35,11 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			WriteError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
+
+		if req.EntryMethod == "" {
+			req.EntryMethod = "api"
+		}
+
 		if req.ZoneID <= 0 {
 			WriteError(w, http.StatusBadRequest, "invalid zone_id")
 			return
@@ -88,6 +93,11 @@ func ExitZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			WriteError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
+
+		if req.EntryMethod == "" {
+			req.EntryMethod = "api"
+		}
+
 		if req.ZoneID <= 0 {
 			WriteError(w, http.StatusBadRequest, "invalid zone_id")
 			return
