@@ -93,11 +93,11 @@ func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.Z
 			r.Patch("/admin/devices/{id}/deactivate", DeactivateDeviceHandler(deviceService))
 			r.Delete("/admin/devices/{id}", DeleteDeviceHandler(deviceService))
 
-			// credential management
-			r.Post("/users/{id}/credentials", EnrollCredentialHandler(credentialService))
-			r.Get("/users/{id}/credentials", GetCredentialHandler(credentialService))
-			r.Delete("/users/{id}/credentials", RevokeCredentialHandler(credentialService))
-			r.Get("/users/{id}/credentials", ListUserCredentialsHandler(credentialService))
+			// Credential management
+			r.Post("/admin/users/{id}/credentials", EnrollCredentialHandler(credentialService))
+			r.Get("/admin/users/{id}/credentials", ListUserCredentialsHandler(credentialService))
+			r.Get("/admin/users/{id}/credentials/{method}", GetCredentialHandler(credentialService))
+			r.Delete("/admin/users/{id}/credentials/{method}", RevokeCredentialHandler(credentialService))
 		})
 	})
 
