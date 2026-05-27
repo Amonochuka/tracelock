@@ -33,15 +33,6 @@ CREATE TABLE IF NOT EXISTS active_sessions (
     PRIMARY KEY(user_id, zone_id)
 );
 
-
-INSERT INTO zones(name, description, max_capacity) VALUES
-('Lobby', 'Main lobby', 50),
-('Server Room', 'Restricted area', 5),
-('Gym', 'Employee gym', 20),
-('Boardroom', 'Meeting room', 20)
-ON CONFLICT DO NOTHING;
-
-
 CREATE TABLE IF NOT EXISTS user_zone_access (
     user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     zone_id    INT NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
@@ -82,3 +73,12 @@ CREATE TABLE IF NOT EXISTS biometric_credentials (
 ALTER TABLE access_events
     ADD COLUMN IF NOT EXISTS device_id    INT REFERENCES devices(id),
     ADD COLUMN IF NOT EXISTS entry_method VARCHAR(20) CHECK (entry_method IN ('fingerprint', 'face', 'iris', 'card', 'pin', 'api'));
+
+
+INSERT INTO devices(zone_id, name, type, serial) VALUES
+(1, 'trinity', 'fingerprint', '1234abcd'),
+(2, 'halo', 'iris', '5678efgh'),
+(3, 'meta', 'face', '9012ijkl'),
+(4, 'riswa', 'card', '4512mnop')
+ON CONFLICT DO NOTHING;
+
