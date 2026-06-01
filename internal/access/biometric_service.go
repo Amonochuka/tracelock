@@ -1,7 +1,6 @@
 package access
 
 import (
-	"fmt"
 	"time"
 	"tracelock/internal/models"
 )
@@ -15,11 +14,11 @@ type UserResolver interface {
 type BiometricService struct {
 	credentials  *CredentialRepo
 	devices      *DeviceRepo
-	zones        *ZoneRepo
+	zones        *ZoneService // changed from *ZoneRepo
 	userResolver UserResolver
 }
 
-func NewBiometricService(credentials *CredentialRepo, devices *DeviceRepo, zones *ZoneRepo, userResolver UserResolver) *BiometricService {
+func NewBiometricService(credentials *CredentialRepo, devices *DeviceRepo, zones *ZoneService, userResolver UserResolver) *BiometricService {
 	return &BiometricService{
 		credentials:  credentials,
 		devices:      devices,
@@ -38,7 +37,7 @@ func (s *BiometricService) AuthenticateBiometric(deviceID int, credentialHash st
 		return ErrDeviceInactive
 	}
 
-	//validate credential exists and is not revoked
+	//  validate credential exists and is not revoked
 	credential, err := s.credentials.GetCredentialByHash(credentialHash)
 	if err != nil {
 		return err
@@ -47,37 +46,12 @@ func (s *BiometricService) AuthenticateBiometric(deviceID int, credentialHash st
 		return ErrCredentialRevoked
 	}
 
-	// resolve user from credential
+	// resolve user
 	user, err := s.userResolver.VerifyUser(credential.UserID)
 	if err != nil {
 		return err
 	}
 
-	// verify user has access to device's zone
-	allowed, err := s.zones.HasZoneAccess(credential.UserID, device.ZoneID, user.Role)
-	if err != nil {
-		return err
-	}
-	if !allowed {
-		return ErrAccessDenied
-	}
-
-	// create session
-	if err := s.zones.CreateSession(credential.UserID, device.ZoneID); err != nil {
-		return err
-	}
-
-	//  write audit event with device attribution
-	previousHash, err := s.zones.GetLastHash(device.ZoneID)
-	if err != nil {
-		if err == ErrNoHashFound {
-			previousHash = ""
-		} else {
-			return fmt.Errorf("get last hash: %w", err)
-		}
-	}
-
-	hash := GenerateHash(credential.UserID, device.ZoneID, "enter", time.Now(), previousHash, credential.EntryMethod)
-	return s.zones.CreateEvent(credential.UserID, device.ZoneID, "enter", "allowed", hash, previousHash, &deviceID, credential.EntryMethod)
+	// delegate to HandleZoneEvent for session + event creation
+	return s.zones.HandleZoneEvent(credential.UserID, device.ZoneID, user.Role, "enter", time.Now(), &deviceID, credential.EntryMethod)
 }
-
