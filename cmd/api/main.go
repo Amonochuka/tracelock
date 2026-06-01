@@ -46,7 +46,10 @@ func main() {
 	credentialRepo := access.NewCredentialRepo(database)
 	credentialService := access.NewCredentialService(credentialRepo)
 
-	handler := httpdir.New(userService, jwtService, zoneService, deviceService, credentialService)
+	//biometrics
+	biometricService := access.NewBiometricService(credentialRepo, deviceRepo, zoneService, userAuth)
+
+	handler := httpdir.New(userService, jwtService, zoneService, deviceService, credentialService,biometricService)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

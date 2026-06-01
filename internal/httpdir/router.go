@@ -13,7 +13,9 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService, deviceService *access.DeviceService, credentialService *access.CredentialService) http.Handler {
+func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService,
+	deviceService *access.DeviceService, credentialService *access.CredentialService,
+	biometricService *access.BiometricService) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimiddleware.Logger)
@@ -25,17 +27,19 @@ func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.Z
 	})
 	limiter := middleware.NewRateLimiter(5) // 5 requests per minute
 
-	r.With(limiter.Middleware).Post("/register", RegisterHandler(s))
-	r.With(limiter.Middleware).Post("/login", LoginHandler(s, jwtService))
-	r.Post("/bootstrap", BootStrapHandler(s))
-	r.Post("/logout", LogoutHandler(s))
-	r.Post("/refresh", RefreshHandler(s))
+	r.With(limiter.Middleware).Post("/register", RegisterHandler(authService))
+	r.With(limiter.Middleware).Post("/login", LoginHandler(authService, jwtService))
+	r.Post("/bootstrap", BootStrapHandler(authService))
+	r.Post("/logout", LogoutHandler(authService))
+	r.Post("/refresh", RefreshHandler(authService))
+
+	r.Post("/devices/authenticate", AuthenticateBiometricHandler(biometricService))
 
 	// Authenticated
 	r.Group(func(r chi.Router) {
 		r.Use(auth.JWTMiddleware(jwtService))
 
-		r.Get("/me", MeHandler(s))
+		r.Get("/me", MeHandler(authService))
 		// Me routes; users can see their own data
 		r.Get("/me/events", MeEventsHandler(zoneService))
 		r.Get("/me/access", MeAccessHandler(zoneService))
@@ -68,8 +72,8 @@ func New(s *auth.UserService, jwtService *auth.JWTService, zoneService *access.Z
 			})
 
 			// User management
-			r.Get("/admin/users", ListUsersHandler(s))
-			r.Put("/admin/users/{id}/role", UpdateRoleHandler(s))
+			r.Get("/admin/users", ListUsersHandler(authService))
+			r.Put("/admin/users/{id}/role", UpdateRoleHandler(authService))
 			r.Get("/users/{id}/events", ListUserEventsHandler(zoneService))
 			r.Get("/users/{id}/access", ListUserAccessHandler(zoneService))
 
