@@ -16,4 +16,6 @@ var (
 	ErrDeviceSerialExists = errors.New("device serial already exists")
 	ErrCredentialExists   = errors.New("credential already exists for this method")
 	ErrCredentialNotFound = errors.New("credential not found")
+	ErrDeviceInactive     = errors.New("device not active")
+	ErrCredentialRevoked  = errors.New("credentials have been revoked")
 )
