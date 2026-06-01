@@ -11,11 +11,16 @@ type UserResolver interface {
 	VerifyUser(id int) (*models.User, error)
 }
 
+type JWTIssuer interface {
+	GenerateToken(user *models.User) (string, error)
+}
+
 type BiometricService struct {
 	credentials  *CredentialRepo
 	devices      *DeviceRepo
-	zones        *ZoneService // changed from *ZoneRepo
+	zones        *ZoneService
 	userResolver UserResolver
+	jwtService   JWTIssuer
 }
 
 func NewBiometricService(credentials *CredentialRepo, devices *DeviceRepo, zones *ZoneService, userResolver UserResolver) *BiometricService {
@@ -27,31 +32,36 @@ func NewBiometricService(credentials *CredentialRepo, devices *DeviceRepo, zones
 	}
 }
 
-func (s *BiometricService) AuthenticateBiometric(deviceID int, credentialHash string) error {
+func (s *BiometricService) AuthenticateBiometric(deviceID int, credentialHash string) (string, error) {
 	// validate device exists and is active
 	device, err := s.devices.GetDevice(deviceID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if !device.Active {
-		return ErrDeviceInactive
+		return "", ErrDeviceInactive
 	}
 
-	//  validate credential exists and is not revoked
+	// validate credential exists and is not revoked
 	credential, err := s.credentials.GetCredentialByHash(credentialHash)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if credential.Revoked {
-		return ErrCredentialRevoked
+		return "", ErrCredentialRevoked
 	}
 
 	// resolve user
 	user, err := s.userResolver.VerifyUser(credential.UserID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// delegate to HandleZoneEvent for session + event creation
-	return s.zones.HandleZoneEvent(credential.UserID, device.ZoneID, user.Role, "enter", time.Now(), &deviceID, credential.EntryMethod)
+	if err := s.zones.HandleZoneEvent(credential.UserID, device.ZoneID, user.Role, "enter", time.Now(), &deviceID, credential.EntryMethod); err != nil {
+		return "", err
+	}
+
+	// generate JWT for the authenticated user
+	return s.jwtService.GenerateToken(user)
 }

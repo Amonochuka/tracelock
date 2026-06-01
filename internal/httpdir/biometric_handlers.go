@@ -32,7 +32,8 @@ func AuthenticateBiometricHandler(service *access.BiometricService) http.Handler
 			return
 		}
 
-		if err := service.AuthenticateBiometric(req.DeviceID, req.CredentialHash); err != nil {
+		token, err := service.AuthenticateBiometric(req.DeviceID, req.CredentialHash)
+		if err != nil {
 			switch {
 			case errors.Is(err, access.ErrDeviceNotFound):
 				WriteError(w, http.StatusNotFound, "device not found")
@@ -54,8 +55,9 @@ func AuthenticateBiometricHandler(service *access.BiometricService) http.Handler
 			return
 		}
 
-		WriteJSON(w, http.StatusOK, map[string]string{
+		WriteJSON(w, http.StatusOK, map[string]any{
 			"message": "access granted",
+			"token":   token,
 		})
 	}
 }
