@@ -23,12 +23,13 @@ type BiometricService struct {
 	jwtService   JWTIssuer
 }
 
-func NewBiometricService(credentials *CredentialRepo, devices *DeviceRepo, zones *ZoneService, userResolver UserResolver) *BiometricService {
+func NewBiometricService(credentials *CredentialRepo, devices *DeviceRepo, zones *ZoneService, userResolver UserResolver, jwtService JWTIssuer) *BiometricService {
 	return &BiometricService{
 		credentials:  credentials,
 		devices:      devices,
 		zones:        zones,
 		userResolver: userResolver,
+		jwtService:   jwtService,
 	}
 }
 
