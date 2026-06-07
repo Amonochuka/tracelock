@@ -64,5 +64,9 @@ func (s *BiometricService) AuthenticateBiometric(deviceID int, credentialHash st
 	}
 
 	// generate JWT for the authenticated user
-	return s.jwtService.GenerateToken(user)
+	// generate JWT only if device is the main entry point
+	if device.IsEntryPoint {
+		return s.jwtService.GenerateToken(user)
+	}
+	return "", nil
 }

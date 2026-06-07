@@ -51,13 +51,14 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 );
 
 CREATE TABLE IF NOT EXISTS devices (
-    id         SERIAL PRIMARY KEY,
-    zone_id    INT NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
-    name       VARCHAR(100) NOT NULL,
-    type       VARCHAR(20) NOT NULL CHECK (type IN ('fingerprint', 'face', 'iris', 'card', 'pin')),
-    serial     VARCHAR(100) UNIQUE,
-    active     BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id             SERIAL PRIMARY KEY,
+    zone_id        INT NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
+    name           VARCHAR(100) NOT NULL,
+    type           VARCHAR(20) NOT NULL CHECK (type IN ('fingerprint', 'face', 'iris', 'card', 'pin')),
+    serial         VARCHAR(100) UNIQUE,
+    active         BOOLEAN NOT NULL DEFAULT TRUE,
+    is_entry_point BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS biometric_credentials (
@@ -75,11 +76,11 @@ ALTER TABLE access_events
     ADD COLUMN IF NOT EXISTS entry_method VARCHAR(20) CHECK (entry_method IN ('fingerprint', 'face', 'iris', 'card', 'pin', 'api'));
 
 
-INSERT INTO devices(zone_id, name, type, serial) VALUES
-(1, 'trinity', 'fingerprint', '1234abcd'),
-(2, 'halo', 'iris', '5678efgh'),
-(3, 'meta', 'face', '9012ijkl'),
-(4, 'riswa', 'card', '4512mnop')
+INSERT INTO devices(zone_id, name, type, serial, is_entry_point) VALUES
+('trinity', 'fingerprint', '1234abcd', TRUE),
+('halo', 'iris', '5678efgh', FALSE),
+('meta', 'face', '9012ijkl', FALSE),
+('riswa', 'card', '4512mnop', FALSE)
 ON CONFLICT DO NOTHING;
 
 

@@ -21,9 +21,9 @@ func NewDeviceRepo(db *sql.DB) *DeviceRepo {
 func (d *DeviceRepo) CreateDevice(zoneID int, name, deviceType, serial string) (*models.Device, error) {
 	device := &models.Device{}
 	err := d.db.QueryRow(`INSERT INTO devices(zone_id, name, type, serial)
-		VALUES($1,$2,$3,$4) RETURNING id, zone_id, name, type, serial, active, created_at`,
+		VALUES($1,$2,$3,$4) RETURNING id, zone_id, name, type, serial, active, is_entry_point, created_at`,
 		zoneID, name, deviceType, serial).
-		Scan(&device.ID, &device.ZoneID, &device.Name, &device.Type, &device.Serial, &device.Active, &device.CreatedAt)
+		Scan(&device.ID, &device.ZoneID, &device.Name, &device.Type, &device.Serial, &device.Active, &device.IsEntryPoint, &device.CreatedAt)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
@@ -36,8 +36,8 @@ func (d *DeviceRepo) CreateDevice(zoneID int, name, deviceType, serial string) (
 
 func (d *DeviceRepo) GetDevice(deviceID int) (*models.Device, error) {
 	dvc := &models.Device{}
-	err := d.db.QueryRow("SELECT id, zone_id, name, type, serial, active, created_at FROM devices WHERE id = $1", deviceID).
-		Scan(&dvc.ID, &dvc.ZoneID, &dvc.Name, &dvc.Type, &dvc.Serial, &dvc.Active, &dvc.CreatedAt)
+	err := d.db.QueryRow("SELECT id, zone_id, name, type, serial, active, is_entry_point, created_at FROM devices WHERE id = $1", deviceID).
+		Scan(&dvc.ID, &dvc.ZoneID, &dvc.Name, &dvc.Type, &dvc.Serial, &dvc.Active, &dvc.IsEntryPoint, &dvc.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrDeviceNotFound
@@ -48,7 +48,7 @@ func (d *DeviceRepo) GetDevice(deviceID int) (*models.Device, error) {
 }
 
 func (d *DeviceRepo) ListZoneDevices(zoneID int) ([]*models.Device, error) {
-	rows, err := d.db.Query(`SELECT id, zone_id, name, type, serial, active, created_at FROM devices WHERE zone_id = $1`, zoneID)
+	rows, err := d.db.Query(`SELECT id, zone_id, name, type, serial, active,is_entry_point, created_at FROM devices WHERE zone_id = $1`, zoneID)
 	if err != nil {
 		return nil, fmt.Errorf("list zone devices: %w", err)
 	}
@@ -57,7 +57,7 @@ func (d *DeviceRepo) ListZoneDevices(zoneID int) ([]*models.Device, error) {
 	var devices []*models.Device
 	for rows.Next() {
 		dvc := &models.Device{}
-		if err := rows.Scan(&dvc.ID, &dvc.ZoneID, &dvc.Name, &dvc.Type, &dvc.Serial, &dvc.Active, &dvc.CreatedAt); err != nil {
+		if err := rows.Scan(&dvc.ID, &dvc.ZoneID, &dvc.Name, &dvc.Type, &dvc.Serial, &dvc.Active, &dvc.IsEntryPoint, &dvc.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan device: %w", err)
 		}
 		devices = append(devices, dvc)
@@ -68,9 +68,9 @@ func (d *DeviceRepo) ListZoneDevices(zoneID int) ([]*models.Device, error) {
 func (d *DeviceRepo) UpdateDevice(deviceID int, name, deviceType, serial string) (*models.Device, error) {
 	device := &models.Device{}
 	err := d.db.QueryRow(`UPDATE devices SET name=$1, type=$2, serial=$3
-		WHERE id=$4 RETURNING id, zone_id,  name, type, serial, active, created_at`,
+		WHERE id=$4 RETURNING id, zone_id,  name, type, serial, active, is_entry_point, created_at`,
 		name, deviceType, serial, deviceID).
-		Scan(&device.ID, &device.ZoneID, &device.Name, &device.Type, &device.Serial, &device.Active, &device.CreatedAt)
+		Scan(&device.ID, &device.ZoneID, &device.Name, &device.Type, &device.Serial, &device.Active, &device.IsEntryPoint, &device.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrDeviceNotFound
@@ -91,7 +91,6 @@ func (d *DeviceRepo) DeactivateDevice(deviceID int) error {
 	}
 	return nil
 }
-
 
 func (d *DeviceRepo) DeleteDevice(deviceID int) error {
 	res, err := d.db.Exec("DELETE FROM devices WHERE id = $1", deviceID)

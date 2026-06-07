@@ -39,13 +39,14 @@ type ZoneOccupancy struct {
 }
 
 type Device struct {
-	ID        int       `json:"id"`
-	ZoneID    int       `json:"zone_id"`
-	Name      string    `json:"name"`
-	Type      string    `json:"type"`
-	Serial    string    `json:"serial"`
-	Active    bool      `json:"active"`
-	CreatedAt time.Time `json:"created_at"`
+	ID           int       `json:"id"`
+	ZoneID       int       `json:"zone_id"`
+	Name         string    `json:"name"`
+	Type         string    `json:"type"`
+	Serial       string    `json:"serial"`
+	Active       bool      `json:"active"`
+	IsEntryPoint bool      `json:"is_entry_point"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type BiometricCredential struct {
