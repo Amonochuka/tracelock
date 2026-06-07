@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users(
 
 CREATE TABLE IF NOT EXISTS zones(
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
     max_capacity INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -61,6 +61,8 @@ CREATE TABLE IF NOT EXISTS devices (
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE devices ADD COLUMN IF NOT EXISTS is_entry_point BOOLEAN NOT NULL DEFAULT FALSE;
+
 CREATE TABLE IF NOT EXISTS biometric_credentials (
     id              SERIAL PRIMARY KEY,
     user_id         INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -77,10 +79,10 @@ ALTER TABLE access_events
 
 
 INSERT INTO devices(zone_id, name, type, serial, is_entry_point) VALUES
-('trinity', 'fingerprint', '1234abcd', TRUE),
-('halo', 'iris', '5678efgh', FALSE),
-('meta', 'face', '9012ijkl', FALSE),
-('riswa', 'card', '4512mnop', FALSE)
+(1, 'trinity', 'fingerprint', '1234abcd', TRUE),
+(2, 'halo', 'iris', '5678efgh', FALSE),
+(3, 'meta', 'face', '9012ijkl', FALSE),
+(4, 'riswa', 'card', '4512mnop', FALSE)
 ON CONFLICT DO NOTHING;
 
 
@@ -89,4 +91,4 @@ INSERT INTO zones(name, description, max_capacity) VALUES
 ('Server Room', 'Restricted area', 5),
 ('Gym', 'Employee gym', 20),
 ('Boardroom', 'Meeting room', 20)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name) DO NOTHING;
