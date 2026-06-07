@@ -78,6 +78,13 @@ ALTER TABLE access_events
     ADD COLUMN IF NOT EXISTS entry_method VARCHAR(20) CHECK (entry_method IN ('fingerprint', 'face', 'iris', 'card', 'pin', 'api'));
 
 
+INSERT INTO zones(name, description, max_capacity) VALUES
+('Lobby', 'Main lobby', 50),
+('Server Room', 'Restricted area', 5),
+('Gym', 'Employee gym', 20),
+('Boardroom', 'Meeting room', 20)
+ON CONFLICT (name) DO NOTHING;
+
 INSERT INTO devices(zone_id, name, type, serial, is_entry_point) VALUES
 (1, 'trinity', 'fingerprint', '1234abcd', TRUE),
 (2, 'halo', 'iris', '5678efgh', FALSE),
@@ -86,9 +93,3 @@ INSERT INTO devices(zone_id, name, type, serial, is_entry_point) VALUES
 ON CONFLICT DO NOTHING;
 
 
-INSERT INTO zones(name, description, max_capacity) VALUES
-('Lobby', 'Main lobby', 50),
-('Server Room', 'Restricted area', 5),
-('Gym', 'Employee gym', 20),
-('Boardroom', 'Meeting room', 20)
-ON CONFLICT (name) DO NOTHING;
