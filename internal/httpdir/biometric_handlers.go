@@ -15,6 +15,7 @@ func AuthenticateBiometricHandler(service *access.BiometricService) http.Handler
 		var req struct {
 			DeviceID       int    `json:"device_id"`
 			CredentialHash string `json:"credential_hash"`
+			Action         string `json:"action"` // "enter" or "exit"
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -32,7 +33,11 @@ func AuthenticateBiometricHandler(service *access.BiometricService) http.Handler
 			return
 		}
 
-		token, err := service.AuthenticateBiometric(req.DeviceID, req.CredentialHash)
+		if req.Action == "" {
+			req.Action = "enter"
+		}
+
+		token, err := service.AuthenticateBiometric(req.DeviceID, req.CredentialHash, req.Action)
 		if err != nil {
 			switch {
 			case errors.Is(err, access.ErrDeviceNotFound):

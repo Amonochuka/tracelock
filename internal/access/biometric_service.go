@@ -33,7 +33,7 @@ func NewBiometricService(credentials *CredentialRepo, devices *DeviceRepo, zones
 	}
 }
 
-func (s *BiometricService) AuthenticateBiometric(deviceID int, credentialHash string) (string, error) {
+func (s *BiometricService) AuthenticateBiometric(deviceID int, credentialHash string, action string) (string, error) {
 	// validate device exists and is active
 	device, err := s.devices.GetDevice(deviceID)
 	if err != nil {
@@ -59,13 +59,13 @@ func (s *BiometricService) AuthenticateBiometric(deviceID int, credentialHash st
 	}
 
 	// delegate to HandleZoneEvent for session + event creation
-	if err := s.zones.HandleZoneEvent(credential.UserID, device.ZoneID, user.Role, "enter", time.Now(), &deviceID, credential.EntryMethod); err != nil {
+	if err := s.zones.HandleZoneEvent(credential.UserID, device.ZoneID, user.Role, action, time.Now(), &deviceID, credential.EntryMethod); err != nil {
 		return "", err
 	}
 
 	// generate JWT for the authenticated user
-	// generate JWT only if device is the main entry point
-	if device.IsEntryPoint {
+	// only issue JWT on entry at entry point
+	if action == "enter" && device.IsEntryPoint {
 		return s.jwtService.GenerateToken(user)
 	}
 	return "", nil
