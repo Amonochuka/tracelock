@@ -1,7 +1,6 @@
 # TraceLock – Backend (Go + PostgreSQL)
 
-TraceLock is a backend service for tracking physical access events and zone activity in real time.
-It is designed as a clean, production-style Go API with PostgreSQL and a modular internal architecture.
+TraceLock is a biometric access control backend — a production-style Go API that tracks physical zone access events in real time, enforces permissions, and maintains a tamper-evident SHA-256 hash chain on every event.
 
 Built incrementally with professional backend practices: small features, clear commits, and environment-based configuration.
 
@@ -25,19 +24,29 @@ Built incrementally with professional backend practices: small features, clear c
 - chi router
 - bcrypt for password hashing
 - JWT (JSON Web Token) for authentication
+- SHA-256 hash chain for tamper-evident audit trail
+- godotenv for local environment loading
 
 ---
 
 ## Current Features
 
-- User registration and login with bcrypt password hashing
-- JWT authentication with role-based middleware
-- Zone entry and exit tracking
-- Tamper-evident access event chain using SHA-256 hashing
+- User registration, login and bcrypt password hashing
+- JWT authentication (15min access token + 7-day refresh token)
+- Role-based access control (admin / user)
+- One-time bootstrap endpoint for first admin creation
+- Zone management (CRUD with capacity enforcement)
+- User-zone access control (admin grants/revokes per user)
+- Zone entry and exit tracking with device and entry method attribution
+- Tamper-evident access event hash chain using SHA-256
 - Active session management (one session per user per zone)
-- Zone capacity enforcement
-- Health endpoint
-- PostgreSQL database schema with foreign key constraints
+- Biometric device management (fingerprint, face, iris, card, pin)
+- Biometric credential enrollment and revocation per user
+- Runtime biometric authentication — device scan resolves user, verifies access, creates session and issues JWT
+- IP-based rate limiting on login and register (token bucket algorithm)
+- Chi request logging and request ID middleware
+- Graceful shutdown with 30-second drain and DB connection cleanup
+- PostgreSQL migrations run automatically on startup
 
 ---
 
@@ -52,6 +61,11 @@ tracelock/
 │   ├── access/
 │   │   ├── access_repo.go
 │   │   ├── access_service.go
+│   │   ├── device_repo.go
+│   │   ├── device_service.go
+│   │   ├── credential_repo.go
+│   │   ├── credential_service.go
+│   │   ├── biometric_service.go
 │   │   ├── hash.go
 │   │   └── errors.go
 │   ├── auth/
@@ -65,11 +79,19 @@ tracelock/
 │   │   └── migrations.go
 │   ├── httpdir/
 │   │   ├── router.go
-│   │   ├── auth_handler.go
-│   │   ├── access_handler.go
+│   │   ├── auth_handlers.go
+│   │   ├── access_handlers.go
+│   │   ├── zone_handlers.go
+│   │   ├── permissions_handlers.go
+│   │   ├── user_handlers.go
+│   │   ├── device_handlers.go
+│   │   ├── credential_handlers.go
+│   │   ├── biometric_handlers.go
+│   │   ├── helpers.go
 │   │   ├── response.go
 │   │   └── middleware/
-│   │       └── roles.go
+│   │       ├── roles.go
+│   │       └── ratelimit.go
 │   ├── models/
 │   │   └── models.go
 │   └── config/
@@ -98,23 +120,18 @@ DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=yourpassword
 DB_NAME=tracelock
+DB_SSLMODE=disable
 JWT_SECRET=yoursecretkey
 ```
 
-Load and run:
-
-```bash
-source .env && go run ./cmd/api/main.go
-```
-
-To persist variables across terminal sessions, add them to `~/.bashrc`.
+godotenv loads `.env` automatically on startup — no need to source it manually.
 
 ---
 
 ## Running the API
 
 ```bash
-go run ./cmd/api/main.go
+go run ./cmd/api
 ```
 
 If successful:
@@ -129,95 +146,57 @@ Tracelock API running on: 8080
 
 ### Public
 
-| Method | Route       | Description          |
-|--------|-------------|----------------------|
-| GET    | /health     | Health check         |
-| POST   | /register   | Register a new user  |
-| POST   | /login      | Login, returns JWT   |
+| Method | Route                   | Description                                      |
+|--------|-------------------------|--------------------------------------------------|
+| GET    | /health                 | Health check                                     |
+| POST   | /bootstrap              | Create first admin (self-sealing, one-time only) |
+| POST   | /register               | Register a new user                              |
+| POST   | /login                  | Login — returns access token + refresh token     |
+| POST   | /refresh                | Get new access token using refresh token         |
+| POST   | /logout                 | Revoke refresh token                             |
+| POST   | /devices/authenticate   | Biometric scanner authentication                 |
 
 ### Protected (requires JWT)
 
-| Method | Route          | Description                        |
-|--------|----------------|------------------------------------|
-| GET    | /me            | Returns authenticated user profile |
-| GET    | /protected     | Test JWT — returns user ID and role |
-| GET    | /testjwt       | Confirms JWT middleware is working  |
-| POST   | /zones/enter   | Enter a zone                        |
-| POST   | /zones/exit    | Exit a zone                         |
+| Method | Route                  | Description                          |
+|--------|------------------------|--------------------------------------|
+| GET    | /me                    | Authenticated user profile           |
+| GET    | /me/events             | Current user's access history        |
+| GET    | /me/access             | Zones current user can enter         |
+| GET    | /protected             | Test JWT — returns user ID and role  |
+| GET    | /testjwt               | Confirms JWT middleware is working   |
+| POST   | /zones/enter           | Enter a zone                         |
+| POST   | /zones/exit            | Exit a zone                          |
+| GET    | /zones                 | List all zones with live occupancy   |
+| GET    | /zones/{id}            | Zone detail with active users        |
 
 ### Admin only (requires role: admin)
 
-| Method | Route         | Description      |
-|--------|---------------|------------------|
-| GET    | /admin/ping   | Admin access test |
-
----
-
-## Live Testing
-
-**Health check**
-```bash
-curl https://tracelock-db.onrender.com/health
-```
-
-**Register**
-```bash
-curl -X POST https://tracelock-db.onrender.com/register \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Amon","email":"amon@example.com","password":"password123"}'
-```
-
-**Login (returns JWT token)**
-```bash
-curl -X POST https://tracelock-db.onrender.com/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"amon@example.com","password":"password123"}'
-```
-
-Save the token for subsequent requests:
-```bash
-TOKEN="your_jwt_token_here"
-```
-
-**Get authenticated user**
-```bash
-curl https://tracelock-db.onrender.com/me \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-**Test JWT middleware**
-```bash
-curl https://tracelock-db.onrender.com/testjwt \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-**Protected route**
-```bash
-curl https://tracelock-db.onrender.com/protected \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-**Enter a zone**
-```bash
-curl -X POST https://tracelock-db.onrender.com/zones/enter \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"zone_id":1}'
-```
-
-**Exit a zone**
-```bash
-curl -X POST https://tracelock-db.onrender.com/zones/exit \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"zone_id":1}'
-```
-
-**Admin endpoint (requires admin role)**
-```bash
-curl https://tracelock-db.onrender.com/admin/ping \
-  -H "Authorization: Bearer $TOKEN"
-```
+| Method | Route                                    | Description                          |
+|--------|------------------------------------------|--------------------------------------|
+| GET    | /admin/ping                              | Admin access test                    |
+| GET    | /admin/users                             | List all users                       |
+| PUT    | /admin/users/{id}/role                   | Update user role                     |
+| GET    | /users/{id}/events                       | User access history                  |
+| GET    | /users/{id}/access                       | Zones a user can enter               |
+| POST   | /admin/zones                             | Create zone                          |
+| PUT    | /admin/zones/{id}                        | Update zone                          |
+| DELETE | /admin/zones/{id}                        | Delete zone                          |
+| GET    | /admin/zones/{id}/users                  | Users with access to a zone          |
+| GET    | /zones/{id}/events                       | Paginated event log for a zone       |
+| GET    | /admin/zones/{id}/verify-chain           | Verify hash chain integrity          |
+| POST   | /admin/access                            | Grant user access to a zone          |
+| DELETE | /admin/access                            | Revoke user access to a zone         |
+| POST   | /admin/zones/{id}/devices                | Register a device to a zone          |
+| GET    | /admin/zones/{id}/devices                | List devices in a zone               |
+| GET    | /admin/devices/{id}                      | Get a device                         |
+| PUT    | /admin/devices/{id}                      | Update a device                      |
+| PATCH  | /admin/devices/{id}/deactivate           | Deactivate a device                  |
+| DELETE | /admin/devices/{id}                      | Delete a device                      |
+| POST   | /admin/users/{id}/credentials            | Enroll biometric credential          |
+| GET    | /admin/users/{id}/credentials            | List user credentials                |
+| GET    | /admin/users/{id}/credentials/{method}   | Get credential by method             |
+| DELETE | /admin/users/{id}/credentials/{method}   | Revoke credential                    |
 
 ---
 
