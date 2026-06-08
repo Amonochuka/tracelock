@@ -1,6 +1,7 @@
 package access
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -92,7 +93,7 @@ func (s *ZoneService) ListZoneUsers(zoneID int) ([]*models.User, error) {
 // --access events--
 func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, timestamp time.Time, deviceID *int, entryMethod string) error {
 	if action == "enter" {
-		// check permission
+		// 1. Check permission
 		allowed, err := s.repo.HasZoneAccess(userID, zoneID, role)
 		if err != nil {
 			return err
@@ -103,7 +104,39 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 			return ErrAccessDenied
 		}
 
-		// check capacity
+		// 2. Check if user is already in another zone (Auto-Exit Logic)
+		// Use a new variable 'activeZoneID' so we don't overwrite the target 'zoneID'
+		activeZoneID, err := s.repo.GetActiveSessionForUser(userID)
+		if err != nil && !errors.Is(err, ErrNoActiveSession) {
+			return err // Return real database errors
+		}
+
+		// If they have an active session in a DIFFERENT zone, auto-exit them first
+		if err == nil && activeZoneID != zoneID {
+			// Delete the old session
+			if err := s.repo.DeleteSession(userID, activeZoneID); err != nil {
+				return fmt.Errorf("auto-exit delete session failed: %w", err)
+			}
+
+			// Generate hash for the auto-exit event
+			prevExitHash, err := s.repo.GetLastHash(activeZoneID)
+			if err != nil && !errors.Is(err, ErrNoHashFound) {
+				return fmt.Errorf("auto-exit get last hash failed: %w", err)
+			}
+			if errors.Is(err, ErrNoHashFound) {
+				prevExitHash = ""
+			}
+
+			exitHash := GenerateHash(userID, activeZoneID, "exit", timestamp, prevExitHash, entryMethod)
+
+			// Create the audit trail for the auto-exit
+			err = s.repo.CreateEvent(userID, activeZoneID, "exit", "allowed", exitHash, prevExitHash, deviceID, entryMethod)
+			if err != nil {
+				return fmt.Errorf("auto-exit create event failed: %w", err)
+			}
+		}
+
+		// 3. Check capacity of the target zone
 		capacity, err := s.repo.GetMaximumCapacity(zoneID)
 		if err != nil {
 			return err
@@ -120,10 +153,11 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 		}
 	}
 
+	// 4. Mutate sessions based on incoming action
 	switch action {
 	case "enter":
 		if err := s.repo.CreateSession(userID, zoneID); err != nil {
-			if err == ErrUserAlreadyInZone {
+			if errors.Is(err, ErrUserAlreadyInZone) {
 				s.logDeniedEvent(userID, zoneID, action, timestamp, "already_in_zone", deviceID, entryMethod)
 			}
 			return err
@@ -136,9 +170,10 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 		return fmt.Errorf("invalid action: %s", action)
 	}
 
+	// 5. Log the main event (with secure cryptographic hash chain)
 	previousHash, err := s.repo.GetLastHash(zoneID)
 	if err != nil {
-		if err == ErrNoHashFound {
+		if errors.Is(err, ErrNoHashFound) {
 			previousHash = ""
 		} else {
 			return fmt.Errorf("get last hash: %w", err)
@@ -148,6 +183,7 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 	hash := GenerateHash(userID, zoneID, action, timestamp, previousHash, entryMethod)
 	return s.repo.CreateEvent(userID, zoneID, action, "allowed", hash, previousHash, deviceID, entryMethod)
 }
+
 
 // log denied entries
 func (s *ZoneService) logDeniedEvent(userID, zoneID int, action string, timestamp time.Time, reason string, deviceID *int, entryMethod string) {

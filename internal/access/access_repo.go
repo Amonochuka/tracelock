@@ -82,7 +82,7 @@ func (z *ZoneRepo) GetMaximumCapacity(zoneID int) (int, error) {
 }
 
 // CreateEvent writes an access event to the audit log.
-func (z *ZoneRepo) CreateEvent(userID, zoneID int, action, status, hash, previousHash string, 
+func (z *ZoneRepo) CreateEvent(userID, zoneID int, action, status, hash, previousHash string,
 	deviceID *int, entryMethod string) error {
 	_, err := z.db.Exec(`
         INSERT INTO access_events (user_id, zone_id, action, status, hash, previous_hash, device_id, entry_method)
@@ -375,4 +375,17 @@ func scanEvents(rows *sql.Rows, total int) ([]*models.AccessEvent, int, error) {
 		events = append(events, e)
 	}
 	return events, total, nil
+}
+
+// get activesession for a user
+func (z *ZoneRepo) GetActiveSessionForUser(userID int) (int, error) {
+	var zoneID int
+	err := z.db.QueryRow(`SELECT zone_id FROM active_sessions WHERE user_id = $1`, userID).Scan(&zoneID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, ErrNoActiveSession
+		}
+		return 0, fmt.Errorf("get active session for user: %w", err)
+	}
+	return zoneID, nil
 }
