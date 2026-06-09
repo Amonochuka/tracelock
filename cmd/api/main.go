@@ -36,7 +36,12 @@ func main() {
 
 	// access
 	zoneRepo := access.NewZoneRepo(database)
-	zoneService := access.NewZoneService(zoneRepo)
+	// create hub and start it
+
+	hub := access.NewHub()
+	go hub.Run()
+	// pass hub to zone service
+	zoneService := access.NewZoneService(zoneRepo, hub)
 
 	// device management
 	deviceRepo := access.NewDeviceRepo(database)

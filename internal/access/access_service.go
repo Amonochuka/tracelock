@@ -3,6 +3,7 @@ package access
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"tracelock/internal/models"
@@ -10,10 +11,11 @@ import (
 
 type ZoneService struct {
 	repo *ZoneRepo
+	hub  *Hub
 }
 
-func NewZoneService(repo *ZoneRepo) *ZoneService {
-	return &ZoneService{repo: repo}
+func NewZoneService(repo *ZoneRepo, hub *Hub) *ZoneService {
+	return &ZoneService{repo: repo, hub: hub}
 }
 
 // --zone management--
@@ -91,7 +93,8 @@ func (s *ZoneService) ListZoneUsers(zoneID int) ([]*models.User, error) {
 }
 
 // --access events--
-func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, timestamp time.Time, deviceID *int, entryMethod string) error {
+func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, timestamp time.Time, 
+	deviceID *int, entryMethod string) error {
 	if action == "enter" {
 		// 1. Check permission
 		allowed, err := s.repo.HasZoneAccess(userID, zoneID, role)
@@ -181,9 +184,23 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 	}
 
 	hash := GenerateHash(userID, zoneID, action, timestamp, previousHash, entryMethod)
-	return s.repo.CreateEvent(userID, zoneID, action, "allowed", hash, previousHash, deviceID, entryMethod)
-}
+	if err := s.repo.CreateEvent(userID, zoneID, action, "allowed", hash, previousHash, deviceID, entryMethod); err != nil {
+		return err
+	}
 
+	// broadcast zone state change to all WebSocket clients
+	go s.broadcastZoneState(zoneID)
+
+	// if auto-exit happened, broadcast the old zone too
+	if action == "enter" {
+		activeZoneID, _ := s.repo.GetActiveSessionForUser(userID)
+		if activeZoneID != 0 && activeZoneID != zoneID {
+			go s.broadcastZoneState(activeZoneID)
+		}
+	}
+
+	return nil
+}
 
 // log denied entries
 func (s *ZoneService) logDeniedEvent(userID, zoneID int, action string, timestamp time.Time, reason string, deviceID *int, entryMethod string) {
@@ -215,4 +232,37 @@ func (s *ZoneService) VerifyChain(zoneID int) (bool, int, error) {
 		return false, 0, err
 	}
 	return s.repo.VerifyChain(zoneID)
+}
+
+// broadcastZoneState fetches current zone state and broadcasts to all WebSocket clients.
+func (s *ZoneService) broadcastZoneState(zoneID int) {
+	zone, err := s.repo.GetZone(zoneID)
+	if err != nil {
+		log.Printf("broadcast skipped: could not fetch zone %d: %v", zoneID, err)
+		return
+	}
+
+	count, err := s.repo.CountActiveUsers(zoneID)
+	if err != nil {
+		log.Printf("broadcast skipped: could not count users in zone %d: %v", zoneID, err)
+		return
+	}
+
+	users, err := s.repo.GetActiveUsersInZone(zoneID)
+	if err != nil {
+		log.Printf("broadcast skipped: could not fetch users in zone %d: %v", zoneID, err)
+		return
+	}
+
+	payload := models.ZoneOccupancy{
+		Zone:        *zone,
+		ActiveCount: count,
+		ActiveUsers: users,
+	}
+
+	s.hub.BroadcastPayload(payload)
+}
+
+func (s *ZoneService) GetHub() *Hub {
+    return s.hub
 }

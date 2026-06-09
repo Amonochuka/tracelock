@@ -61,8 +61,9 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 		r.Get("/zones", ListZonesHandler(zoneService))
 		r.Get("/zones/{id}", GetZoneHandler(zoneService))
 
-		// User routes
-
+		// hub
+		// WebSocket; live zone occupancy feed
+		r.Get("/ws/zones", zoneService.GetHub().HandleWebSocket)
 		// Admin only
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireRole("admin"))
