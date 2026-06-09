@@ -34,6 +34,9 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 	r.Post("/refresh", RefreshHandler(authService))
 
 	r.Post("/devices/authenticate", AuthenticateBiometricHandler(biometricService))
+	// hub
+	// WebSocket; live zone occupancy feed
+	r.Get("/ws/zones", zoneService.GetHub().HandleWebSocket)
 
 	// Authenticated
 	r.Group(func(r chi.Router) {
@@ -61,9 +64,6 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 		r.Get("/zones", ListZonesHandler(zoneService))
 		r.Get("/zones/{id}", GetZoneHandler(zoneService))
 
-		// hub
-		// WebSocket; live zone occupancy feed
-		r.Get("/ws/zones", zoneService.GetHub().HandleWebSocket)
 		// Admin only
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireRole("admin"))
