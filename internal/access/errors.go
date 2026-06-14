@@ -18,4 +18,5 @@ var (
 	ErrCredentialNotFound = errors.New("credential not found")
 	ErrDeviceInactive     = errors.New("device not active")
 	ErrCredentialRevoked  = errors.New("credentials have been revoked")
+	ErrAccountLocked      = errors.New("account is temporarily locked")
 )

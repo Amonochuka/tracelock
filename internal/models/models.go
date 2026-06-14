@@ -3,12 +3,14 @@ package models
 import "time"
 
 type User struct {
-	ID           int       `json:"id"`
-	Name         string    `json:"name"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	Role         string    `json:"role"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID             int        `json:"id"`
+	Name           string     `json:"name"`
+	Email          string     `json:"email"`
+	PasswordHash   string     `json:"-"`
+	Role           string     `json:"role"`
+	FailedAttempts int        `json:"failed_attempts"`
+	LockedUntil    *time.Time `json:"locked_until,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
 }
 
 type Zone struct {
@@ -33,9 +35,9 @@ type AccessEvent struct {
 }
 
 type ZoneOccupancy struct {
-    Zone
-    ActiveCount      int     `json:"active_count"`
-    ActiveUsers      []*User `json:"active_users,omitempty"`
+	Zone
+	ActiveCount int     `json:"active_count"`
+	ActiveUsers []*User `json:"active_users,omitempty"`
 }
 
 type Device struct {
@@ -59,8 +61,8 @@ type BiometricCredential struct {
 }
 
 type ZoneAnalytics struct {
-	DayOfWeek  int `json:"day_of_week"`  // 0=Sunday, 6=Saturday
-	Hour       int `json:"hour"`          // 0-23
+	DayOfWeek  int `json:"day_of_week"` // 0=Sunday, 6=Saturday
+	Hour       int `json:"hour"`        // 0-23
 	EntryCount int `json:"entry_count"`
 }
 

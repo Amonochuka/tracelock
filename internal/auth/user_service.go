@@ -99,3 +99,7 @@ func (s *UserService) Logout(token string) error {
 func (s *UserService) DeleteExpiredTokens() error {
 	return s.auth.DeleteExpiredTokens()
 }
+
+func (s *UserService) UnlockAccount(userID int) error {
+	return s.auth.UnlockAccount(userID)
+}

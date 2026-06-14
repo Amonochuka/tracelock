@@ -109,6 +109,9 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 
 			//peak analysis
 			r.Get("/admin/zones/{id}/analytics", GetZoneAnalyticsHandler(zoneService))
+
+			//unlock a locked account
+			r.Put("/admin/users/{id}/unlock", UnlockAccountHandler(authService))
 		})
 	})
 

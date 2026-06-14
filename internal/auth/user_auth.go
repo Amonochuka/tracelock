@@ -43,11 +43,21 @@ func (u *UserAuth) Register(name, email, password string) error {
 }
 
 func (u *UserAuth) Authenticate(email, password string) (*models.User, error) {
-	user := &models.User{}
+	// check if account is locked first
+	locked, err := u.IsAccountLocked(email)
+	if err != nil && !errors.Is(err, ErrUserNotFound) {
+		return nil, fmt.Errorf("checking account lock: %w", err)
+	}
+	if locked {
+		return nil, ErrAccountLocked
+	}
 
-	err := u.db.QueryRow(
-		"SELECT id, name, email, password_hash, role FROM users WHERE email=$1", email,
-	).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role)
+	user := &models.User{}
+	err = u.db.QueryRow(
+		`SELECT id, name, email, password_hash, role, failed_attempts, locked_until, created_at 
+			FROM users WHERE email=$1`, email,).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, 
+			&user.Role, &user.FailedAttempts, 
+			&user.LockedUntil, &user.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrInvalidCredentials
@@ -56,25 +66,33 @@ func (u *UserAuth) Authenticate(email, password string) (*models.User, error) {
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		// wrong password;increment failed attempts
+		_ = u.IncrementFailedAttempts(email)
+
+		// lock after 5 failed attempts
+		if user.FailedAttempts+1 >= 5 {
+			_ = u.LockAccount(email)
+			return nil, ErrAccountLocked
+		}
 		return nil, ErrInvalidCredentials
 	}
 
+	// successful login;reset counter
+	_ = u.ResetFailedAttempts(email)
 	return user, nil
 }
 
 func (u *UserAuth) VerifyUser(id int) (*models.User, error) {
 	user := &models.User{}
-
 	err := u.db.QueryRow(
-		"SELECT id, name, email, role, created_at FROM users WHERE id=$1", id,
-	).Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.CreatedAt)
+		"SELECT id, name, email, role, failed_attempts, locked_until, created_at FROM users WHERE id=$1", id,
+	).Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.FailedAttempts, &user.LockedUntil, &user.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
 		return nil, fmt.Errorf("querying user by id: %w", err)
 	}
-
 	return user, nil
 }
 
@@ -204,5 +222,70 @@ func (u *UserAuth) DeleteExpiredTokens() error {
 	}
 	rows, _ := res.RowsAffected()
 	log.Printf("token cleanup: deleted %d expired refresh tokens", rows)
+	return nil
+}
+
+// IncrementFailedAttempts increments the failed login counter for a user.
+func (u *UserAuth) IncrementFailedAttempts(email string) error {
+	_, err := u.db.Exec(`
+		UPDATE users SET failed_attempts = failed_attempts + 1
+		WHERE email = $1`, email)
+	if err != nil {
+		return fmt.Errorf("increment failed attempts: %w", err)
+	}
+	return nil
+}
+
+// LockAccount locks a user account for 15 minutes.
+func (u *UserAuth) LockAccount(email string) error {
+	_, err := u.db.Exec(`
+		UPDATE users SET locked_until = NOW() + INTERVAL '15 minutes'
+		WHERE email = $1`, email)
+	if err != nil {
+		return fmt.Errorf("lock account: %w", err)
+	}
+	return nil
+}
+
+// ResetFailedAttempts resets the failed counter and clears the lock on successful login.
+func (u *UserAuth) ResetFailedAttempts(email string) error {
+	_, err := u.db.Exec(`
+		UPDATE users SET failed_attempts = 0, locked_until = NULL
+		WHERE email = $1`, email)
+	if err != nil {
+		return fmt.Errorf("reset failed attempts: %w", err)
+	}
+	return nil
+}
+
+// IsAccountLocked checks if a user account is currently locked.
+func (u *UserAuth) IsAccountLocked(email string) (bool, error) {
+	var lockedUntil *time.Time
+	err := u.db.QueryRow(`
+		SELECT locked_until FROM users WHERE email = $1`, email).Scan(&lockedUntil)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, ErrUserNotFound
+		}
+		return false, fmt.Errorf("check account lock: %w", err)
+	}
+	if lockedUntil != nil && time.Now().Before(*lockedUntil) {
+		return true, nil
+	}
+	return false, nil
+}
+
+// UnlockAccount clears the lock and resets failed attempts — admin action.
+func (u *UserAuth) UnlockAccount(userID int) error {
+	res, err := u.db.Exec(`
+		UPDATE users SET failed_attempts = 0, locked_until = NULL
+		WHERE id = $1`, userID)
+	if err != nil {
+		return fmt.Errorf("unlock account: %w", err)
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return ErrUserNotFound
+	}
 	return nil
 }
