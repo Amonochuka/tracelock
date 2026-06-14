@@ -18,8 +18,8 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 	biometricService *access.BiometricService) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.RequestID)
+	r.Use(NewJSONLogger())
 
 	// Public
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
