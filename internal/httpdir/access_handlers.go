@@ -338,3 +338,21 @@ func ListZoneOccupancyHandler(service *access.ZoneService) http.HandlerFunc {
 		WriteJSON(w, http.StatusOK, zones)
 	}
 }
+
+func GetZoneAnalyticsHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		zoneID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid zone id")
+			return
+		}
+
+		analytics, err := service.GetZoneAnalytics(zoneID)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not fetch zone analytics")
+			return
+		}
+		WriteJSON(w, http.StatusOK, analytics)
+	}
+}
+	

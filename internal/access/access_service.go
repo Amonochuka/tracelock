@@ -270,3 +270,7 @@ func (s *ZoneService) GetHub() *Hub {
 func (s *ZoneService) ListZoneOccupancy() ([]*models.ZoneOccupancy, error) {
 	return s.repo.ListZoneOccupancy()
 }
+
+func (s *ZoneService) GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error) {
+	return s.repo.GetZoneAnalytics(zoneID)
+}

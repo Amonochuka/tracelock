@@ -106,6 +106,9 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 			r.Get("/admin/users/{id}/credentials", ListUserCredentialsHandler(credentialService))
 			r.Get("/admin/users/{id}/credentials/{method}", GetCredentialHandler(credentialService))
 			r.Delete("/admin/users/{id}/credentials/{method}", RevokeCredentialHandler(credentialService))
+
+			//peak analysis
+			r.Get("/admin/zones/{id}/analytics", GetZoneAnalyticsHandler(zoneService))
 		})
 	})
 

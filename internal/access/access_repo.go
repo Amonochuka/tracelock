@@ -392,12 +392,13 @@ func (z *ZoneRepo) GetActiveSessionForUser(userID int) (int, error) {
 
 //show occupancy per zone in percentages, to drive dashboard in front end
 func (z *ZoneRepo) ListZoneOccupancy() ([]*models.ZoneOccupancy, error) {
-	rows, err := z.db.Query(`SELECT z.id, z.name, z.description, z.max_capacity, z.created_at,
-	COUNT(s.user_id) AS active_count,
-    CASE 
-        WHEN z.max_capacity = 0 THEN 0
-        ELSE ROUND((COUNT(s.user_id)::decimal / z.max_capacity) * 100, 2)
-    END AS percentage
+	rows, err := z.db.Query(`
+	SELECT z.id, z.name, z.description, z.max_capacity, z.created_at,
+			COUNT(s.user_id) AS active_count,
+    		CASE 
+        		WHEN z.max_capacity = 0 THEN 0
+        		ELSE ROUND((COUNT(s.user_id)::decimal / z.max_capacity) * 100, 2)
+    		END AS percentage
 	FROM zones z
 	LEFT JOIN active_sessions s ON s.zone_id = z.id
 	GROUP BY z.id
@@ -419,4 +420,33 @@ func (z *ZoneRepo) ListZoneOccupancy() ([]*models.ZoneOccupancy, error) {
 		zones = append(zones, zo)
 	}
 	return zones, nil
+}
+
+// GetZoneAnalytics returns entry counts grouped by day of week and hour for a zone.
+func (z *ZoneRepo) GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error) {
+	rows, err := z.db.Query(`
+		SELECT 
+			EXTRACT(DOW FROM timestamp)::int  AS day_of_week,
+			EXTRACT(HOUR FROM timestamp)::int AS hour,
+			COUNT(*) AS entry_count
+		FROM access_events
+		WHERE zone_id = $1
+		  AND action = 'enter'
+		  AND status = 'allowed'
+		GROUP BY day_of_week, hour
+		ORDER BY day_of_week, hour`, zoneID)
+	if err != nil {
+		return nil, fmt.Errorf("get zone analytics: %w", err)
+	}
+	defer rows.Close()
+
+	var analytics []*models.ZoneAnalytics
+	for rows.Next() {
+		a := &models.ZoneAnalytics{}
+		if err := rows.Scan(&a.DayOfWeek, &a.Hour, &a.EntryCount); err != nil {
+			return nil, fmt.Errorf("scan analytics: %w", err)
+		}
+		analytics = append(analytics, a)
+	}
+	return analytics, nil
 }

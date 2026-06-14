@@ -58,3 +58,9 @@ type BiometricCredential struct {
 	EnrolledAt     time.Time `json:"enrolled_at"`
 	Revoked        bool      `json:"revoked"`
 }
+
+type ZoneAnalytics struct {
+	DayOfWeek  int `json:"day_of_week"`  // 0=Sunday, 6=Saturday
+	Hour       int `json:"hour"`          // 0-23
+	EntryCount int `json:"entry_count"`
+}
