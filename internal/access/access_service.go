@@ -267,7 +267,7 @@ func (s *ZoneService) GetHub() *Hub {
     return s.hub
 }
 
-func (s *ZoneService) ListZoneOccupancy() ([]*models.ZoneOccupancy, error) {
+func (s *ZoneService) ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error) {
 	return s.repo.ListZoneOccupancy()
 }
 

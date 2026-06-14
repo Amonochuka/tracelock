@@ -36,7 +36,6 @@ type ZoneOccupancy struct {
     Zone
     ActiveCount      int     `json:"active_count"`
     ActiveUsers      []*User `json:"active_users,omitempty"`
-    OccupancyPercent float64 `json:"occupancy_percent"`
 }
 
 type Device struct {
@@ -63,4 +62,10 @@ type ZoneAnalytics struct {
 	DayOfWeek  int `json:"day_of_week"`  // 0=Sunday, 6=Saturday
 	Hour       int `json:"hour"`          // 0-23
 	EntryCount int `json:"entry_count"`
+}
+
+type ZoneOccupancySnapshot struct {
+	Zone
+	ActiveCount      int     `json:"active_count"`
+	OccupancyPercent float64 `json:"occupancy_percent"`
 }

@@ -391,7 +391,7 @@ func (z *ZoneRepo) GetActiveSessionForUser(userID int) (int, error) {
 }
 
 //show occupancy per zone in percentages, to drive dashboard in front end
-func (z *ZoneRepo) ListZoneOccupancy() ([]*models.ZoneOccupancy, error) {
+func (z *ZoneRepo) ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error) {
 	rows, err := z.db.Query(`
 	SELECT z.id, z.name, z.description, z.max_capacity, z.created_at,
 			COUNT(s.user_id) AS active_count,
@@ -408,9 +408,9 @@ func (z *ZoneRepo) ListZoneOccupancy() ([]*models.ZoneOccupancy, error) {
 	}
 	defer rows.Close()
 
-	var zones []*models.ZoneOccupancy
+	var zones []*models.ZoneOccupancySnapshot
 	for rows.Next() {
-		zo := &models.ZoneOccupancy{}
+		zo := &models.ZoneOccupancySnapshot{}
 		if err := rows.Scan(
 			&zo.ID, &zo.Name, &zo.Description, &zo.MaxCapacity, &zo.CreatedAt,
 			&zo.ActiveCount, &zo.OccupancyPercent,
