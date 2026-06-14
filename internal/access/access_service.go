@@ -266,3 +266,7 @@ func (s *ZoneService) broadcastZoneState(zoneID int) {
 func (s *ZoneService) GetHub() *Hub {
     return s.hub
 }
+
+func (s *ZoneService) ListZoneOccupancy() ([]*models.ZoneOccupancy, error) {
+	return s.repo.ListZoneOccupancy()
+}

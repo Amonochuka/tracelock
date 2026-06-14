@@ -38,6 +38,9 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 	// WebSocket; live zone occupancy feed
 	r.Get("/ws/zones", zoneService.GetHub().HandleWebSocket)
 
+	//for frontend dashboard
+	r.Get("/zones/occupancy", ListZoneOccupancyHandler(zoneService))
+
 	// Authenticated
 	r.Group(func(r chi.Router) {
 		r.Use(auth.JWTMiddleware(jwtService))

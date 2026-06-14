@@ -33,9 +33,10 @@ type AccessEvent struct {
 }
 
 type ZoneOccupancy struct {
-	Zone
-	ActiveCount int     `json:"active_count"`
-	ActiveUsers []*User `json:"active_users"`
+    Zone
+    ActiveCount      int     `json:"active_count"`
+    ActiveUsers      []*User `json:"active_users,omitempty"`
+    OccupancyPercent float64 `json:"occupancy_percent"`
 }
 
 type Device struct {

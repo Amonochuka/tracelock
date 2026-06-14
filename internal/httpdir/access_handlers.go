@@ -327,3 +327,14 @@ func VerifyChainHandler(service *access.ZoneService) http.HandlerFunc {
 		})
 	}
 }
+
+func ListZoneOccupancyHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		zones, err := service.ListZoneOccupancy()
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not fetch zone occupancy")
+			return
+		}
+		WriteJSON(w, http.StatusOK, zones)
+	}
+}
