@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"tracelock/internal/models"
@@ -193,4 +194,15 @@ func (u *UserAuth) GetUserIDFromRefreshToken(token string) (int, error) {
 		return 0, fmt.Errorf("getting user from refresh token: %w", err)
 	}
 	return userID, nil
+}
+
+// DeleteExpiredTokens removes all expired refresh tokens from the DB.
+func (u *UserAuth) DeleteExpiredTokens() error {
+	res, err := u.db.Exec(`DELETE FROM refresh_tokens WHERE expires_at < NOW()`)
+	if err != nil {
+		return fmt.Errorf("delete expired tokens: %w", err)
+	}
+	rows, _ := res.RowsAffected()
+	log.Printf("token cleanup: deleted %d expired refresh tokens", rows)
+	return nil
 }

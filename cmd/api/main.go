@@ -34,6 +34,16 @@ func main() {
 	jwtService := auth.NewJWTService(cfg.JWTSecret)
 	userService := auth.NewUserService(userAuth, jwtService)
 
+	// start token cleanup job
+	go func() {
+		for {
+			time.Sleep(24 * time.Hour)
+			if err := userService.DeleteExpiredTokens(); err != nil {
+				log.Printf("token cleanup failed: %v", err)
+			}
+		}
+	}()
+
 	// access
 	zoneRepo := access.NewZoneRepo(database)
 	// create hub and start it

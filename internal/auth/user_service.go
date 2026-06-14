@@ -95,3 +95,7 @@ func (s *UserService) RefreshAccessToken(token string) (string, error) {
 func (s *UserService) Logout(token string) error {
 	return s.auth.RevokeRefreshToken(token)
 }
+
+func (s *UserService) DeleteExpiredTokens() error {
+	return s.auth.DeleteExpiredTokens()
+}
