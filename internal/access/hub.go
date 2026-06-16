@@ -19,6 +19,7 @@ func NewHub() *Hub {
 	return &Hub{
 		clients:   make(map[*websocket.Conn]bool),
 		broadcast: make(chan any, 256),
+		allowedOrigin: allowedOrigin,
 	}
 }
 
@@ -45,14 +46,18 @@ func (h *Hub) BroadcastPayload(payload any) {
 	h.broadcast <- payload
 }
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true // tighten this for production
-	},
-}
 
 // HandleWebSocket upgrades the HTTP connection to WebSocket and registers the client.
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request)bool{
+			if h.allowedOrigin == "*"{
+				return true
+			}
+			return r.Header.Get("Origin") == h.allowedOrigin
+		},
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("websocket upgrade failed: %v", err)
