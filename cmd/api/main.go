@@ -19,7 +19,8 @@ import (
 )
 
 func main() {
-	godotenv.Load() // loads .env file automatically
+	// loads .env file automatically
+	godotenv.Load() 
 
 	cfg := config.Load()
 
@@ -46,9 +47,9 @@ func main() {
 
 	// access
 	zoneRepo := access.NewZoneRepo(database)
-	// create hub and start it
 
-	hub := access.NewHub()
+	// create hub and start it
+	hub := access.NewHub(cfg.AllowedOrigin)
 	go hub.Run()
 	// pass hub to zone service
 	zoneService := access.NewZoneService(zoneRepo, hub)
