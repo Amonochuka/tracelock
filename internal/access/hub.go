@@ -12,6 +12,7 @@ type Hub struct {
 	clients   map[*websocket.Conn]bool
 	broadcast chan interface{}
 	mu        sync.Mutex
+	allowedOrigin string
 }
 
 func NewHub() *Hub {
