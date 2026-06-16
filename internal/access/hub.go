@@ -15,7 +15,7 @@ type Hub struct {
 	allowedOrigin string
 }
 
-func NewHub() *Hub {
+func NewHub(allowedOrigin string) *Hub {
 	return &Hub{
 		clients:   make(map[*websocket.Conn]bool),
 		broadcast: make(chan any, 256),
@@ -49,7 +49,7 @@ func (h *Hub) BroadcastPayload(payload any) {
 
 // HandleWebSocket upgrades the HTTP connection to WebSocket and registers the client.
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	upgrader = websocket.Upgrader{
+	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request)bool{
 			if h.allowedOrigin == "*"{
 				return true

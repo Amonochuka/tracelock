@@ -12,4 +12,8 @@ require (
 	golang.org/x/crypto v0.47.0
 )
 
-require github.com/gorilla/websocket v1.5.3 // indirect
+require (
+	github.com/golang-migrate/migrate v3.5.4+incompatible // indirect
+	github.com/golang-migrate/migrate/v4 v4.19.1 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
+)

@@ -1,4 +1,3 @@
-
 package db
 
 import (
@@ -19,7 +18,6 @@ func runMigrations(db *sql.DB) error {
 	}
 
 	// 2. Point to your local migrations directory relative to where the app runs
-	// This replaces reading the single "migrations/tables.sql" file
 	migrationPath := "file://migrations"
 
 	// 3. Initialize the migration runner instance for postgres
