@@ -10,11 +10,11 @@ import (
 )
 
 type ZoneService struct {
-	repo *ZoneRepo
+	repo ZoneRepository 
 	hub  *Hub
 }
 
-func NewZoneService(repo *ZoneRepo, hub *Hub) *ZoneService {
+func NewZoneService(repo ZoneRepository, hub *Hub) *ZoneService {
 	return &ZoneService{repo: repo, hub: hub}
 }
 
