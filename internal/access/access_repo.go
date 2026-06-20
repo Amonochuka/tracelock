@@ -338,6 +338,31 @@ func (z *ZoneRepo) ListUserEvents(userID, limit, offset int) ([]*models.AccessEv
 }
 
 // VerifyChain walks all events for a zone oldest-first and verifies hash chain integrity.
+// chainLink represents one event's hash and the hash it claims to follow.
+// Used by verifyHashChain to check chain integrity without touching the DB.
+type chainLink struct {
+	Hash         string
+	PreviousHash string
+}
+
+// verifyHashChain walks a sequence of chain links (oldest first) and checks
+// that each link's PreviousHash matches the Hash of the link before it.
+// This is pure logic with zero DB dependency — fully unit-testable.
+func verifyHashChain(links []chainLink) (bool, int) {
+	var prev string
+	count := 0
+	for _, link := range links {
+		if link.PreviousHash != prev {
+			return false, count
+		}
+		prev = link.Hash
+		count++
+	}
+	return true, count
+}
+
+// VerifyChain walks all events for a zone oldest-first and verifies hash chain integrity.
+// Fetches the raw data, then delegates the actual verification to verifyHashChain.
 func (z *ZoneRepo) VerifyChain(zoneID int) (bool, int, error) {
 	rows, err := z.db.Query(`SELECT hash, previous_hash FROM access_events
 		WHERE zone_id = $1 ORDER BY timestamp ASC, id ASC`, zoneID)
@@ -346,20 +371,17 @@ func (z *ZoneRepo) VerifyChain(zoneID int) (bool, int, error) {
 	}
 	defer rows.Close()
 
-	var prev string
-	count := 0
+	var links []chainLink
 	for rows.Next() {
-		var hash, previousHash string
-		if err := rows.Scan(&hash, &previousHash); err != nil {
-			return false, count, fmt.Errorf("scan chain row: %w", err)
+		var link chainLink
+		if err := rows.Scan(&link.Hash, &link.PreviousHash); err != nil {
+			return false, 0, fmt.Errorf("scan chain row: %w", err)
 		}
-		if previousHash != prev {
-			return false, count, nil
-		}
-		prev = hash
-		count++
+		links = append(links, link)
 	}
-	return true, count, nil
+
+	valid, count := verifyHashChain(links)
+	return valid, count, nil
 }
 
 func scanEvents(rows *sql.Rows, total int) ([]*models.AccessEvent, int, error) {
