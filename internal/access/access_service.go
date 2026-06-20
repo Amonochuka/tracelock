@@ -91,10 +91,15 @@ func (s *ZoneService) ListZoneUsers(zoneID int) ([]*models.User, error) {
 	}
 	return s.repo.ListZoneUsers(zoneID)
 }
-
-// --access events--
-func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, timestamp time.Time, 
+//--access events--
+func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, timestamp time.Time,
 	deviceID *int, entryMethod string) error {
+
+	// declared here (not inside the "enter" block) so it's still visible
+	// at the bottom when broadcasting — without this, the auto-exit zone
+	// becomes unreachable by the time we need to broadcast its updated state
+	var activeZoneID int
+
 	if action == "enter" {
 		// 1. Check permission
 		allowed, err := s.repo.HasZoneAccess(userID, zoneID, role)
@@ -108,20 +113,20 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 		}
 
 		// 2. Check if user is already in another zone (Auto-Exit Logic)
-		// Use a new variable 'activeZoneID' so we don't overwrite the target 'zoneID'
-		activeZoneID, err := s.repo.GetActiveSessionForUser(userID)
-		if err != nil && !errors.Is(err, ErrNoActiveSession) {
-			return err // Return real database errors
+		var sessionErr error
+		activeZoneID, sessionErr = s.repo.GetActiveSessionForUser(userID)
+		if sessionErr != nil && !errors.Is(sessionErr, ErrNoActiveSession) {
+			return sessionErr // real database errors
 		}
 
-		// If they have an active session in a DIFFERENT zone, auto-exit them first
-		if err == nil && activeZoneID != zoneID {
-			// Delete the old session
+		// if they have an active session in a DIFFERENT zone, auto-exit them first
+		if sessionErr == nil && activeZoneID != zoneID {
+			// delete the old session
 			if err := s.repo.DeleteSession(userID, activeZoneID); err != nil {
 				return fmt.Errorf("auto-exit delete session failed: %w", err)
 			}
 
-			// Generate hash for the auto-exit event
+			// generate hash for the auto-exit event
 			prevExitHash, err := s.repo.GetLastHash(activeZoneID)
 			if err != nil && !errors.Is(err, ErrNoHashFound) {
 				return fmt.Errorf("auto-exit get last hash failed: %w", err)
@@ -132,11 +137,15 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 
 			exitHash := GenerateHash(userID, activeZoneID, "exit", timestamp, prevExitHash, entryMethod)
 
-			// Create the audit trail for the auto-exit
-			err = s.repo.CreateEvent(userID, activeZoneID, "exit", "allowed", exitHash, prevExitHash, deviceID, entryMethod)
-			if err != nil {
+			// create the audit trail for the auto-exit
+			if err := s.repo.CreateEvent(userID, activeZoneID, "exit", "allowed", exitHash, prevExitHash, deviceID, entryMethod); err != nil {
 				return fmt.Errorf("auto-exit create event failed: %w", err)
 			}
+		} else {
+			// no auto-exit happened (user wasn't in another zone, or was
+			// already in this same zone) — reset so the broadcast logic
+			// at the bottom knows there's nothing extra to notify
+			activeZoneID = 0
 		}
 
 		// 3. Check capacity of the target zone
@@ -167,6 +176,13 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 		}
 	case "exit":
 		if err := s.repo.DeleteSession(userID, zoneID); err != nil {
+			// user tried to exit a zone they weren't actually in —
+			// duplicate exit scan, misconfigured device, replayed request,
+			// or a race condition. Rare in honest use, but a security
+			// system should log the unusual case, not just the happy path
+			if errors.Is(err, ErrNoActiveSession) {
+				s.logDeniedEvent(userID, zoneID, action, timestamp, "not_in_zone", deviceID, entryMethod)
+			}
 			return err
 		}
 	default:
@@ -191,12 +207,13 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 	// broadcast zone state change to all WebSocket clients
 	go s.broadcastZoneState(zoneID)
 
-	// if auto-exit happened, broadcast the old zone too
-	if action == "enter" {
-		activeZoneID, _ := s.repo.GetActiveSessionForUser(userID)
-		if activeZoneID != 0 && activeZoneID != zoneID {
-			go s.broadcastZoneState(activeZoneID)
-		}
+	// if auto-exit happened earlier, activeZoneID still holds that old zone's
+	// ID (captured before its session was deleted) — broadcast it too, so its
+	// WebSocket clients see the updated (lower) occupancy. We reuse the same
+	// variable from step 2 instead of querying again, since by now the
+	// session is already gone and a fresh query would just return nothing
+	if activeZoneID != 0 {
+		go s.broadcastZoneState(activeZoneID)
 	}
 
 	return nil
