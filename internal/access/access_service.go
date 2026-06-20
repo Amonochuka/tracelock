@@ -254,7 +254,7 @@ func (s *ZoneService) VerifyChain(zoneID int) (bool, int, error) {
 // broadcastZoneState fetches current zone state and broadcasts to all WebSocket clients.
 func (s *ZoneService) broadcastZoneState(zoneID int) {
 	zone, err := s.repo.GetZone(zoneID)
-	if err != nil {
+	if err != nil || zone == nil{
 		log.Printf("broadcast skipped: could not fetch zone %d: %v", zoneID, err)
 		return
 	}
