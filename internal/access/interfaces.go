@@ -29,3 +29,12 @@ type ZoneRepository interface {
 	ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error)
 	GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error)
 }
+
+type DeviceRepository interface {
+	CreateDevice(zoneID int, name, deviceType, serial string) (*models.Device, error)
+	GetDevice(deviceID int) (*models.Device, error)
+	ListZoneDevices(zoneID int) ([]*models.Device, error)
+	UpdateDevice(deviceID int, name, deviceType, serial string) (*models.Device, error)
+	DeactivateDevice(deviceID int) error
+	DeleteDevice(deviceID int) error
+}
