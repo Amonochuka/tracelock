@@ -38,3 +38,11 @@ type DeviceRepository interface {
 	DeactivateDevice(deviceID int) error
 	DeleteDevice(deviceID int) error
 }
+
+type CredentialRepository interface {
+	EnrollCredential(userID int, entryMethod, credentialHash string) (*models.BiometricCredential, error)
+	GetCredential(userID int, entryMethod string) (*models.BiometricCredential, error)
+	RevokeCredential(userID int, entryMethod string) error
+	ListUserCredentials(userID int) ([]*models.BiometricCredential, error)
+	GetCredentialByHash(hash string) (*models.BiometricCredential, error)
+}
