@@ -1,10 +1,9 @@
 CREATE TABLE IF NOT EXISTS biometric_credentials (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id         INTEGER NOT NULL,
-    entry_method    TEXT NOT NULL CHECK (entry_method IN ('fingerprint', 'face', 'iris', 'card', 'pin')),
-    credential_hash TEXT NOT NULL,
-    enrolled_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
-    revoked         INTEGER NOT NULL DEFAULT 0,
-    UNIQUE (user_id, entry_method),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    id              SERIAL PRIMARY KEY,
+    user_id         INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    entry_method    VARCHAR(20) NOT NULL CHECK (entry_method IN ('fingerprint', 'face', 'iris', 'card', 'pin')),
+    credential_hash VARCHAR(255) NOT NULL,
+    enrolled_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    revoked         BOOLEAN NOT NULL DEFAULT FALSE,
+    UNIQUE (user_id, entry_method)
 );
