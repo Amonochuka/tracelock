@@ -8,7 +8,7 @@ Built incrementally with professional backend practices: small features, clear c
 
 ## Live API
 
-**Base URL:** https://https://tracelock.onrender.com
+**Base URL:** https://tracelock.onrender.com
 
 **GitHub:** https://github.com/Amonochuka/tracelock
 
