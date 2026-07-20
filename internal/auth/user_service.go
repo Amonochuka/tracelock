@@ -64,7 +64,7 @@ func (s *UserService) UpdateRole(userID int, role string) error {
 	if role != "admin" && role != "user" {
 		return ErrInvalidRole
 	}
-	return s.UpdateRole(userID, role)
+	return s.auth.UpdateRole(userID, role)
 }
 
 func (s *UserService) ListUsers() ([]*models.User, error) {
