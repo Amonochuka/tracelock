@@ -71,7 +71,9 @@ func (c *CredentialRepo) ListUserCredentials(userID int) ([]*models.BiometricCre
 		if err := rows.Scan(&cdl.ID, &cdl.UserID, &cdl.EntryMethod, &cdl.CredentialHash, &cdl.EnrolledAt, &cdl.Revoked); err != nil {
 			return nil, fmt.Errorf("scan credentials: %w", err)
 		}
-		credentials = append(credentials, cdl)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 	return credentials, nil
 }

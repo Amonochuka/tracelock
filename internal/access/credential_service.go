@@ -3,10 +3,10 @@ package access
 import "tracelock/internal/models"
 
 type CredentialService struct {
-	repo *CredentialRepo
+	repo CredentialRepository
 }
 
-func NewCredentialService(repo *CredentialRepo) *CredentialService {
+func NewCredentialService(repo CredentialRepository) *CredentialService {
 	return &CredentialService{repo: repo}
 }
 

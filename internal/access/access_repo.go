@@ -216,6 +216,9 @@ func (z *ZoneRepo) ListUserZoneAccess(userID int) ([]*models.Zone, error) {
 		}
 		zones = append(zones, zo)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
+	}
 	return zones, nil
 }
 
@@ -237,6 +240,9 @@ func (z *ZoneRepo) ListZoneUsers(zoneID int) ([]*models.User, error) {
 		}
 		users = append(users, u)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
+	}
 	return users, nil
 }
 
@@ -256,6 +262,9 @@ func (z *ZoneRepo) ListZones() ([]*models.Zone, error) {
 			return nil, fmt.Errorf("scan zone: %w", err)
 		}
 		zones = append(zones, zo)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 	return zones, nil
 }
@@ -293,6 +302,9 @@ func (z *ZoneRepo) GetActiveUsersInZone(zoneID int) ([]*models.User, error) {
 			return nil, fmt.Errorf("scan user: %w", err)
 		}
 		users = append(users, &u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 	return users, nil
 }
@@ -379,6 +391,9 @@ func (z *ZoneRepo) VerifyChain(zoneID int) (bool, int, error) {
 		}
 		links = append(links, link)
 	}
+	if err := rows.Err(); err != nil {
+		return false, 0, fmt.Errorf("iterating rows: %w", err)
+	}
 
 	valid, count := verifyHashChain(links)
 	return valid, count, nil
@@ -395,6 +410,9 @@ func scanEvents(rows *sql.Rows, total int) ([]*models.AccessEvent, int, error) {
 			return nil, 0, fmt.Errorf("scan event: %w", err)
 		}
 		events = append(events, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterating rows: %w", err)
 	}
 	return events, total, nil
 }
@@ -468,7 +486,9 @@ func (z *ZoneRepo) GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error)
 		if err := rows.Scan(&a.DayOfWeek, &a.Hour, &a.EntryCount); err != nil {
 			return nil, fmt.Errorf("scan analytics: %w", err)
 		}
-		analytics = append(analytics, a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 	return analytics, nil
 }

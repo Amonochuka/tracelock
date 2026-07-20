@@ -60,7 +60,9 @@ func (d *DeviceRepo) ListZoneDevices(zoneID int) ([]*models.Device, error) {
 		if err := rows.Scan(&dvc.ID, &dvc.ZoneID, &dvc.Name, &dvc.Type, &dvc.Serial, &dvc.Active, &dvc.IsEntryPoint, &dvc.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan device: %w", err)
 		}
-		devices = append(devices, dvc)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 	return devices, nil
 }

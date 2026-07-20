@@ -151,7 +151,9 @@ func (u *UserAuth) ListUsers() ([]*models.User, error) {
 		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scanning users :%w", err)
 		}
-		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 	return users, nil
 }

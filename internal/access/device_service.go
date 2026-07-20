@@ -3,10 +3,10 @@ package access
 import "tracelock/internal/models"
 
 type DeviceService struct {
-	repo *DeviceRepo
+	repo DeviceRepository
 }
 
-func NewDeviceService(repo *DeviceRepo) *DeviceService {
+func NewDeviceService(repo DeviceRepository) *DeviceService {
 	return &DeviceService{repo: repo}
 }
 

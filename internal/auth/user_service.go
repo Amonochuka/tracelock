@@ -8,11 +8,11 @@ import (
 )
 
 type UserService struct {
-	auth *UserAuth
+	auth UserRepository
 	jwt  *JWTService
 }
 
-func NewUserService(auth *UserAuth, j *JWTService) *UserService {
+func NewUserService(auth UserRepository, j *JWTService) *UserService {
 	return &UserService{auth: auth, jwt: j}
 }
 
