@@ -16,6 +16,7 @@ type Config struct {
 	DBSSLMode  string
 
 	JWTSecret     string
+	DeviceAPIKey  string
 	AllowedOrigin string
 }
 
@@ -29,6 +30,7 @@ func Load() *Config {
 		DBName:        mustEnv("DB_NAME"),
 		DBSSLMode:     getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:     mustEnv("JWT_SECRET"),
+		DeviceAPIKey:  mustEnv("DEVICE_API_KEY"),
 		AllowedOrigin: getEnv("ALLOWED_ORIGIN", "*"),
 	}
 	return cfg

@@ -19,13 +19,20 @@ type UserClaims struct {
 func JWTMiddleware(j *JWTService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var tokenString string
+
 			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-				http.Error(w, "missing or invalid token authorization header", http.StatusUnauthorized)
-				return
+			if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+				tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+			} else {
+				// Fallback for WebSockets which can't easily send Authorization headers
+				tokenString = r.URL.Query().Get("token")
 			}
 
-			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+			if tokenString == "" {
+				http.Error(w, "missing or invalid token", http.StatusUnauthorized)
+				return
+			}
 
 			claims, err := j.VerifyToken(tokenString)
 			if err != nil {

@@ -15,7 +15,7 @@ import (
 
 func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService,
 	deviceService *access.DeviceService, credentialService *access.CredentialService,
-	biometricService *access.BiometricService) http.Handler {
+	biometricService *access.BiometricService, deviceAPIKey string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimiddleware.RequestID)
@@ -33,13 +33,8 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 	r.Post("/logout", LogoutHandler(authService))
 	r.Post("/refresh", RefreshHandler(authService))
 
-	r.Post("/devices/authenticate", AuthenticateBiometricHandler(biometricService))
-	// hub
-	// WebSocket; live zone occupancy feed
-	r.Get("/ws/zones", zoneService.GetHub().HandleWebSocket)
-
-	//for frontend dashboard
-	r.Get("/zones/occupancy", ListZoneOccupancyHandler(zoneService))
+	// API Key Authenticated (Devices)
+	r.With(middleware.APIKeyMiddleware(deviceAPIKey)).Post("/devices/authenticate", AuthenticateBiometricHandler(biometricService))
 
 	// Authenticated
 	r.Group(func(r chi.Router) {
@@ -58,6 +53,12 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 		r.Get("/testjwt", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("JWT middleware works!\n"))
 		})
+
+		// WebSocket; live zone occupancy feed
+		r.Get("/ws/zones", zoneService.GetHub().HandleWebSocket)
+
+		//for frontend dashboard
+		r.Get("/zones/occupancy", ListZoneOccupancyHandler(zoneService))
 
 		// Zone entry / exit
 		r.Post("/zones/enter", EnterZoneHandler(zoneService))
