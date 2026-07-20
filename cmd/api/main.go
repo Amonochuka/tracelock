@@ -20,7 +20,7 @@ import (
 
 func main() {
 	// loads .env file automatically
-	godotenv.Load() 
+	godotenv.Load()
 
 	cfg := config.Load()
 

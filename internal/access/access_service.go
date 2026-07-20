@@ -10,7 +10,7 @@ import (
 )
 
 type ZoneService struct {
-	repo ZoneRepository 
+	repo ZoneRepository
 	hub  *Hub
 }
 
@@ -91,7 +91,8 @@ func (s *ZoneService) ListZoneUsers(zoneID int) ([]*models.User, error) {
 	}
 	return s.repo.ListZoneUsers(zoneID)
 }
-//--access events--
+
+// --access events--
 func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, timestamp time.Time,
 	deviceID *int, entryMethod string) error {
 
@@ -254,7 +255,7 @@ func (s *ZoneService) VerifyChain(zoneID int) (bool, int, error) {
 // broadcastZoneState fetches current zone state and broadcasts to all WebSocket clients.
 func (s *ZoneService) broadcastZoneState(zoneID int) {
 	zone, err := s.repo.GetZone(zoneID)
-	if err != nil || zone == nil{
+	if err != nil || zone == nil {
 		log.Printf("broadcast skipped: could not fetch zone %d: %v", zoneID, err)
 		return
 	}
@@ -281,7 +282,7 @@ func (s *ZoneService) broadcastZoneState(zoneID int) {
 }
 
 func (s *ZoneService) GetHub() *Hub {
-    return s.hub
+	return s.hub
 }
 
 func (s *ZoneService) ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error) {

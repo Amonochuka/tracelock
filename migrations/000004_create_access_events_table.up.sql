@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS access_events (
     id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(id),
-    zone_id INT REFERENCES zones(id),
+    user_id INT REFERENCES users(id) ON DELETE SET NULL,
+    zone_id INT REFERENCES zones(id) ON DELETE SET NULL,
     device_id INT REFERENCES devices(id),
     entry_method VARCHAR(20) CHECK (entry_method IN ('fingerprint', 'face', 'iris', 'card', 'pin', 'api')),
     action VARCHAR(10) NOT NULL CHECK (action IN ('enter', 'exit')),
@@ -10,3 +10,6 @@ CREATE TABLE IF NOT EXISTS access_events (
     hash VARCHAR(64) NOT NULL,
     previous_hash VARCHAR(64)
 );
+
+CREATE INDEX IF NOT EXISTS idx_access_events_zone_ts ON access_events(zone_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_access_events_user_ts ON access_events(user_id, timestamp DESC);

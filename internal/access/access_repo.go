@@ -412,7 +412,7 @@ func (z *ZoneRepo) GetActiveSessionForUser(userID int) (int, error) {
 	return zoneID, nil
 }
 
-//show occupancy per zone in percentages, to drive dashboard in front end
+// show occupancy per zone in percentages, to drive dashboard in front end
 func (z *ZoneRepo) ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error) {
 	rows, err := z.db.Query(`
 	SELECT z.id, z.name, z.description, z.max_capacity, z.created_at,

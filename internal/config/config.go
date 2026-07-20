@@ -15,20 +15,20 @@ type Config struct {
 	DBName     string
 	DBSSLMode  string
 
-	JWTSecret string
+	JWTSecret     string
 	AllowedOrigin string
 }
 
 func Load() *Config {
 	cfg := &Config{
-		Port:       getEnv("PORT", "8080"),
-		DBHost:     mustEnv("DB_HOST"),
-		DBPort:     mustEnv("DB_PORT"),
-		DBUser:     mustEnv("DB_USER"),
-		DBPassword: mustEnv("DB_PASSWORD"),
-		DBName:     mustEnv("DB_NAME"),
-		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
-		JWTSecret:  mustEnv("JWT_SECRET"),
+		Port:          getEnv("PORT", "8080"),
+		DBHost:        mustEnv("DB_HOST"),
+		DBPort:        mustEnv("DB_PORT"),
+		DBUser:        mustEnv("DB_USER"),
+		DBPassword:    mustEnv("DB_PASSWORD"),
+		DBName:        mustEnv("DB_NAME"),
+		DBSSLMode:     getEnv("DB_SSLMODE", "disable"),
+		JWTSecret:     mustEnv("JWT_SECRET"),
 		AllowedOrigin: getEnv("ALLOWED_ORIGIN", "*"),
 	}
 	return cfg

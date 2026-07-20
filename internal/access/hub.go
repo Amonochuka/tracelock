@@ -9,16 +9,16 @@ import (
 )
 
 type Hub struct {
-	clients   map[*websocket.Conn]bool
-	broadcast chan interface{}
-	mu        sync.Mutex
+	clients       map[*websocket.Conn]bool
+	broadcast     chan interface{}
+	mu            sync.Mutex
 	allowedOrigin string
 }
 
 func NewHub(allowedOrigin string) *Hub {
 	return &Hub{
-		clients:   make(map[*websocket.Conn]bool),
-		broadcast: make(chan any, 256),
+		clients:       make(map[*websocket.Conn]bool),
+		broadcast:     make(chan any, 256),
 		allowedOrigin: allowedOrigin,
 	}
 }
@@ -46,12 +46,11 @@ func (h *Hub) BroadcastPayload(payload any) {
 	h.broadcast <- payload
 }
 
-
 // HandleWebSocket upgrades the HTTP connection to WebSocket and registers the client.
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{
-		CheckOrigin: func(r *http.Request)bool{
-			if h.allowedOrigin == "*"{
+		CheckOrigin: func(r *http.Request) bool {
+			if h.allowedOrigin == "*" {
 				return true
 			}
 			return r.Header.Get("Origin") == h.allowedOrigin

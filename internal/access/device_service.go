@@ -18,7 +18,7 @@ func (s *DeviceService) ListDevices(zoneID int) ([]*models.Device, error) {
 
 // get a particular device
 func (s *DeviceService) GetDevice(deviceID int) (*models.Device, error) {
-    return s.repo.GetDevice(deviceID)
+	return s.repo.GetDevice(deviceID)
 }
 
 // create a new device

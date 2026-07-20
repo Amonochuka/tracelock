@@ -328,7 +328,6 @@ func VerifyChainHandler(service *access.ZoneService) http.HandlerFunc {
 	}
 }
 
-
 func ListUserEventsHandler(service *access.ZoneService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := parseIDParam(r, "id")
@@ -434,4 +433,3 @@ func GetZoneAnalyticsHandler(service *access.ZoneService) http.HandlerFunc {
 		WriteJSON(w, http.StatusOK, analytics)
 	}
 }
-	

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 
+	"tracelock/migrations"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
 func runMigrations(db *sql.DB) error {
@@ -17,11 +19,14 @@ func runMigrations(db *sql.DB) error {
 		return fmt.Errorf("could not create postgres migration driver: %w", err)
 	}
 
-	// 2. Point to your local migrations directory relative to where the app runs
-	migrationPath := "file://migrations"
+	// 2. Create the iofs driver with the embedded filesystem
+	d, err := iofs.New(migrations.FS, ".")
+	if err != nil {
+		return fmt.Errorf("could not create iofs driver: %w", err)
+	}
 
-	// 3. Initialize the migration runner instance for postgres
-	m, err := migrate.NewWithDatabaseInstance(migrationPath, "postgres", driver)
+	// 3. Initialize the migration runner instance for postgres using iofs
+	m, err := migrate.NewWithInstance("iofs", d, "postgres", driver)
 	if err != nil {
 		return fmt.Errorf("failed to initialize migration instance: %w", err)
 	}

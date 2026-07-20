@@ -55,9 +55,9 @@ func (u *UserAuth) Authenticate(email, password string) (*models.User, error) {
 	user := &models.User{}
 	err = u.db.QueryRow(
 		`SELECT id, name, email, password_hash, role, failed_attempts, locked_until, created_at 
-			FROM users WHERE email=$1`, email,).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, 
-			&user.Role, &user.FailedAttempts, 
-			&user.LockedUntil, &user.CreatedAt)
+			FROM users WHERE email=$1`, email).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash,
+		&user.Role, &user.FailedAttempts,
+		&user.LockedUntil, &user.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrInvalidCredentials

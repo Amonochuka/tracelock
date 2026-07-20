@@ -21,7 +21,7 @@ func NewCredentialRepo(db *sql.DB) *CredentialRepo {
 func (c *CredentialRepo) EnrollCredential(userID int, entryMethod, credentialHash string) (*models.BiometricCredential, error) {
 	credential := &models.BiometricCredential{}
 	err := c.db.QueryRow(`INSERT INTO biometric_credentials(user_id, entry_method, credential_hash)VALUES($1,$2,$3)
-	RETURNING id, user_id, entry_method, credential_hash, enrolled_at, revoked`, userID, entryMethod,credentialHash ).
+	RETURNING id, user_id, entry_method, credential_hash, enrolled_at, revoked`, userID, entryMethod, credentialHash).
 		Scan(&credential.ID, &credential.UserID, &credential.EntryMethod, &credential.CredentialHash, &credential.EnrolledAt, &credential.Revoked)
 	if err != nil {
 		var pqErr *pq.Error
