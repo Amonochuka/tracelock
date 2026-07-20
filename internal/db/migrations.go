@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
@@ -34,7 +35,7 @@ func runMigrations(db *sql.DB) error {
 	// 4. Apply all pending up migrations sequentially
 	log.Println("checking for database migrations...")
 	if err := m.Up(); err != nil {
-		if err == migrate.ErrNoChange {
+		if errors.Is(err, migrate.ErrNoChange) {
 			log.Println("database schema is completely up to date")
 			return nil
 		}
