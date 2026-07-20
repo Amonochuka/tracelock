@@ -106,7 +106,7 @@ func (u *UserAuth) AdminExists() (bool, error) {
 	return exists, nil
 }
 
-// now regsiter an admin
+// now register an admin
 func (u *UserAuth) RegisterAdmin(name, email, password string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -156,7 +156,7 @@ func (u *UserAuth) ListUsers() ([]*models.User, error) {
 	return users, nil
 }
 
-// save refersh token
+// save refresh token
 func (u *UserAuth) SaveRefreshToken(userID int, token string, expiresAt time.Time) error {
 	_, err := u.db.Exec(
 		"INSERT INTO refresh_tokens(user_id, token, expires_at) VALUES($1,$2,$3)",

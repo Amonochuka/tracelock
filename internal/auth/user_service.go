@@ -42,7 +42,7 @@ func (s *UserService) VerifyUser(id int) (*models.User, error) {
 	return user, nil
 }
 
-// save refersh token
+// save refresh token
 func (s *UserService) SaveRefreshToken(userID int, token string, expiresAt time.Time) error {
 	return s.auth.SaveRefreshToken(userID, token, expiresAt)
 }

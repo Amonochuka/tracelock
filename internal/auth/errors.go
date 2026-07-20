@@ -12,6 +12,6 @@ var (
 	ErrAdminExists        = errors.New("admin already exists")
 	ErrTokenNotFound      = errors.New("refresh token not found")
 	ErrTokenRevoked       = errors.New("refresh token has been revoked")
-	ErrTokenExpired       = errors.New("refersh token has expired")
+	ErrTokenExpired       = errors.New("refresh token has expired")
 	ErrAccountLocked      = errors.New("account is temporarily locked")
 )
