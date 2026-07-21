@@ -265,16 +265,9 @@ func (s *ZoneService) broadcastZoneState(zoneID int) {
 		return
 	}
 
-	users, err := s.repo.GetActiveUsersInZone(zoneID)
-	if err != nil {
-		log.Printf("broadcast skipped: could not fetch users in zone %d: %v", zoneID, err)
-		return
-	}
-
 	payload := models.ZoneOccupancy{
 		Zone:        *zone,
 		ActiveCount: count,
-		ActiveUsers: users,
 	}
 
 	s.hub.BroadcastPayload(payload)

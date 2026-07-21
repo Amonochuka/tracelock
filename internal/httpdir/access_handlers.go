@@ -182,6 +182,9 @@ func GetZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			WriteError(w, http.StatusInternalServerError, "could not fetch zone")
 			return
 		}
+		// Occupancy is available to authenticated users, but identities of
+		// people currently in the zone are not.
+		zone.ActiveUsers = nil
 		WriteJSON(w, http.StatusOK, zone)
 	}
 }

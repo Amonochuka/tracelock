@@ -364,3 +364,28 @@ func TestHandleZoneEvent_NoAutoExitWhenEnteringSameZone(t *testing.T) {
 		t.Error("expected no auto-exit delete when entering the same zone already occupied, but DeleteSession was called")
 	}
 }
+
+func TestBroadcastZoneStateExcludesActiveUsers(t *testing.T) {
+	mockRepo := &mockZoneRepo{
+		countActiveUsersFunc: func(zoneID int) (int, error) {
+			return 2, nil
+		},
+	}
+	hub := NewHub("*")
+	service := NewZoneService(mockRepo, hub)
+
+	service.broadcastZoneState(1)
+
+	select {
+	case payload := <-hub.broadcast:
+		occupancy, ok := payload.(models.ZoneOccupancy)
+		if !ok {
+			t.Fatalf("expected ZoneOccupancy payload, got %T", payload)
+		}
+		if occupancy.ActiveUsers != nil {
+			t.Errorf("expected broadcast to omit active users, got %v", occupancy.ActiveUsers)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected occupancy broadcast")
+	}
+}
