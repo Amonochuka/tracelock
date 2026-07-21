@@ -2,7 +2,9 @@
 package httpdir
 
 import (
+	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 )
@@ -12,12 +14,16 @@ type ErrorResponse struct {
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(v); err != nil {
+		log.Printf("failed to encode JSON response: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-
-	if err := json.NewEncoder(w).Encode(v); err != nil {
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
-	}
+	_, _ = w.Write(buf.Bytes())
 }
 
 func WriteError(w http.ResponseWriter, status int, message string) {
