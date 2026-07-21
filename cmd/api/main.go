@@ -38,10 +38,10 @@ func main() {
 	// start token cleanup job
 	go func() {
 		for {
-			time.Sleep(24 * time.Hour)
 			if err := userService.DeleteExpiredTokens(); err != nil {
 				log.Printf("token cleanup failed: %v", err)
 			}
+			time.Sleep(24 * time.Hour)
 		}
 	}()
 
