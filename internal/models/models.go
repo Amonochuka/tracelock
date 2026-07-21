@@ -14,11 +14,12 @@ type User struct {
 }
 
 type Zone struct {
-	ID          int       `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	MaxCapacity int       `json:"max_capacity"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID               int       `json:"id"`
+	Name             string    `json:"name"`
+	Description      string    `json:"description"`
+	MaxCapacity      int       `json:"max_capacity"`
+	RequiresExitScan bool      `json:"requires_exit_scan"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type AccessEvent struct {

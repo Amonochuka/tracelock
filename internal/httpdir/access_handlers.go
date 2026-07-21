@@ -56,6 +56,8 @@ func EnterZoneHandler(service *access.ZoneService) http.HandlerFunc {
 				WriteError(w, http.StatusConflict, "user already in zone")
 			case errors.Is(err, access.ErrZoneNotFound):
 				WriteError(w, http.StatusNotFound, "zone not found")
+			case errors.Is(err, access.ErrRequiresExitScan):
+				WriteError(w, http.StatusForbidden, "must explicitly exit current zone first")
 			default:
 				WriteError(w, http.StatusInternalServerError, "internal server error")
 			}
@@ -126,9 +128,10 @@ func CreateZoneHandler(service *access.ZoneService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		var req struct {
-			Name        string `json:"name"`
-			Description string `json:"description"`
-			MaxCapacity int    `json:"max_capacity"`
+			Name             string `json:"name"`
+			Description      string `json:"description"`
+			MaxCapacity      int    `json:"max_capacity"`
+			RequiresExitScan bool   `json:"requires_exit_scan"`
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -156,11 +159,12 @@ func CreateZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			return
 		}
 		WriteJSON(w, http.StatusCreated, ZoneResponse{
-			ID:          zone.ID,
-			Name:        zone.Name,
-			Description: zone.Description,
-			MaxCapacity: zone.MaxCapacity,
-			CreatedAt:   zone.CreatedAt,
+			ID:               zone.ID,
+			Name:             zone.Name,
+			Description:      zone.Description,
+			MaxCapacity:      zone.MaxCapacity,
+			RequiresExitScan: zone.RequiresExitScan,
+			CreatedAt:        zone.CreatedAt,
 		})
 	}
 }
@@ -266,11 +270,12 @@ func UpdateZoneHandler(service *access.ZoneService) http.HandlerFunc {
 		}
 
 		WriteJSON(w, http.StatusOK, ZoneResponse{
-			ID:          zone.ID,
-			Name:        zone.Name,
-			Description: zone.Description,
-			MaxCapacity: zone.MaxCapacity,
-			CreatedAt:   zone.CreatedAt,
+			ID:               zone.ID,
+			Name:             zone.Name,
+			Description:      zone.Description,
+			MaxCapacity:      zone.MaxCapacity,
+			RequiresExitScan: zone.RequiresExitScan,
+			CreatedAt:        zone.CreatedAt,
 		})
 	}
 }

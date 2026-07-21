@@ -24,9 +24,9 @@ func NewZoneRepo(db *sql.DB) *ZoneRepo {
 func (z *ZoneRepo) CreateZone(name, description string, maxCapacity int) (*models.Zone, error) {
 	zone := &models.Zone{}
 	err := z.db.QueryRow(`INSERT INTO zones(name, description, max_capacity)
-		VALUES($1,$2,$3) RETURNING id, name, description, max_capacity, created_at`,
+		VALUES($1,$2,$3) RETURNING id, name, description, max_capacity, requires_exit_scan, created_at`,
 		name, description, maxCapacity).
-		Scan(&zone.ID, &zone.Name, &zone.Description, &zone.MaxCapacity, &zone.CreatedAt)
+		Scan(&zone.ID, &zone.Name, &zone.Description, &zone.MaxCapacity, &zone.RequiresExitScan, &zone.CreatedAt)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
@@ -57,9 +57,9 @@ func (z *ZoneRepo) DeleteZone(zoneID int) error {
 // get a specific zone
 func (z *ZoneRepo) GetZone(zoneID int) (*models.Zone, error) {
 	zone := &models.Zone{}
-	err := z.db.QueryRow(`SELECT id, name, description, max_capacity, created_at
+	err := z.db.QueryRow(`SELECT id, name, description, max_capacity, requires_exit_scan, created_at
 		FROM zones WHERE id = $1`, zoneID).
-		Scan(&zone.ID, &zone.Name, &zone.Description, &zone.MaxCapacity, &zone.CreatedAt)
+		Scan(&zone.ID, &zone.Name, &zone.Description, &zone.MaxCapacity, &zone.RequiresExitScan, &zone.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrZoneNotFound
@@ -80,6 +80,19 @@ func (z *ZoneRepo) GetMaximumCapacity(zoneID int) (int, error) {
 		return 0, fmt.Errorf("get max_capacity: %w", err)
 	}
 	return capacity, nil
+}
+
+// GetRequiresExitScan checks if a zone requires explicit exit scan.
+func (z *ZoneRepo) GetRequiresExitScan(zoneID int) (bool, error) {
+	var requires bool
+	err := z.db.QueryRow("SELECT requires_exit_scan FROM zones WHERE id = $1", zoneID).Scan(&requires)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, ErrZoneNotFound
+		}
+		return false, fmt.Errorf("get requires_exit_scan: %w", err)
+	}
+	return requires, nil
 }
 
 // CreateChainedEvent appends an event to a zone's hash chain atomically.
@@ -223,7 +236,7 @@ func (z *ZoneRepo) RevokeZoneAccess(userID, zoneID int) error {
 
 // lists all zones a user has been granted access to
 func (z *ZoneRepo) ListUserZoneAccess(userID int) ([]*models.Zone, error) {
-	rows, err := z.db.Query(`SELECT zo.id, zo.name, zo.description, zo.max_capacity, zo.created_at
+	rows, err := z.db.Query(`SELECT zo.id, zo.name, zo.description, zo.max_capacity, zo.requires_exit_scan, zo.created_at
 							FROM zones zo INNER JOIN user_zone_access uza ON uza.zone_id = zo.id
 							WHERE uza.user_id = $1 ORDER BY zo.id`, userID)
 	if err != nil {
@@ -234,7 +247,7 @@ func (z *ZoneRepo) ListUserZoneAccess(userID int) ([]*models.Zone, error) {
 	var zones []*models.Zone
 	for rows.Next() {
 		zo := &models.Zone{}
-		if err := rows.Scan(&zo.ID, &zo.Name, &zo.Description, &zo.MaxCapacity, &zo.CreatedAt); err != nil {
+		if err := rows.Scan(&zo.ID, &zo.Name, &zo.Description, &zo.MaxCapacity, &zo.RequiresExitScan, &zo.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan zone: %w", err)
 		}
 		zones = append(zones, zo)
@@ -271,7 +284,7 @@ func (z *ZoneRepo) ListZoneUsers(zoneID int) ([]*models.User, error) {
 
 // list all zones
 func (z *ZoneRepo) ListZones() ([]*models.Zone, error) {
-	rows, err := z.db.Query(`SELECT id, name, description, max_capacity, created_at
+	rows, err := z.db.Query(`SELECT id, name, description, max_capacity, requires_exit_scan, created_at
 		FROM zones ORDER BY id`)
 	if err != nil {
 		return nil, fmt.Errorf("list zones: %w", err)
@@ -281,7 +294,7 @@ func (z *ZoneRepo) ListZones() ([]*models.Zone, error) {
 	var zones []*models.Zone
 	for rows.Next() {
 		zo := &models.Zone{}
-		if err := rows.Scan(&zo.ID, &zo.Name, &zo.Description, &zo.MaxCapacity, &zo.CreatedAt); err != nil {
+		if err := rows.Scan(&zo.ID, &zo.Name, &zo.Description, &zo.MaxCapacity, &zo.RequiresExitScan, &zo.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan zone: %w", err)
 		}
 		zones = append(zones, zo)
@@ -296,9 +309,9 @@ func (z *ZoneRepo) ListZones() ([]*models.Zone, error) {
 func (z *ZoneRepo) UpdateZone(zoneID int, name, description string, maxCapacity int) (*models.Zone, error) {
 	zone := &models.Zone{}
 	err := z.db.QueryRow(`UPDATE zones SET name=$1, description=$2, max_capacity=$3
-		WHERE id=$4 RETURNING id, name, description, max_capacity, created_at`,
+		WHERE id=$4 RETURNING id, name, description, max_capacity, requires_exit_scan, created_at`,
 		name, description, maxCapacity, zoneID).
-		Scan(&zone.ID, &zone.Name, &zone.Description, &zone.MaxCapacity, &zone.CreatedAt)
+		Scan(&zone.ID, &zone.Name, &zone.Description, &zone.MaxCapacity, &zone.RequiresExitScan, &zone.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrZoneNotFound
@@ -456,7 +469,7 @@ func (z *ZoneRepo) GetActiveSessionForUser(userID int) (int, error) {
 // show occupancy per zone in percentages, to drive dashboard in front end
 func (z *ZoneRepo) ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error) {
 	rows, err := z.db.Query(`
-	SELECT z.id, z.name, z.description, z.max_capacity, z.created_at,
+	SELECT z.id, z.name, z.description, z.max_capacity, z.requires_exit_scan, z.created_at,
 			COUNT(s.user_id) AS active_count,
     		CASE 
         		WHEN z.max_capacity = 0 THEN 0
@@ -475,7 +488,7 @@ func (z *ZoneRepo) ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error) 
 	for rows.Next() {
 		zo := &models.ZoneOccupancySnapshot{}
 		if err := rows.Scan(
-			&zo.ID, &zo.Name, &zo.Description, &zo.MaxCapacity, &zo.CreatedAt,
+			&zo.ID, &zo.Name, &zo.Description, &zo.MaxCapacity, &zo.RequiresExitScan, &zo.CreatedAt,
 			&zo.ActiveCount, &zo.OccupancyPercent,
 		); err != nil {
 			return nil, fmt.Errorf("scan zone occupancy: %w", err)

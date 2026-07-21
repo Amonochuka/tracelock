@@ -13,6 +13,7 @@ type ZoneRepository interface {
 	DeleteZone(zoneID int) error
 	GetZone(zoneID int) (*models.Zone, error)
 	GetMaximumCapacity(zoneID int) (int, error)
+	GetRequiresExitScan(zoneID int) (bool, error)
 	CreateChainedEvent(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string) error
 	CreateSession(userID, zoneID int) error
 	DeleteSession(userID, zoneID int) error
@@ -33,6 +34,7 @@ type ZoneRepository interface {
 	GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error)
 }
 
+// DeviceRepository defines device data operations.
 type DeviceRepository interface {
 	CreateDevice(zoneID int, name, deviceType, serial string) (*models.Device, error)
 	GetDevice(deviceID int) (*models.Device, error)
@@ -42,6 +44,7 @@ type DeviceRepository interface {
 	DeleteDevice(deviceID int) error
 }
 
+// CredentialRepository defines credential data operations.
 type CredentialRepository interface {
 	EnrollCredential(userID int, entryMethod, credentialHash string) (*models.BiometricCredential, error)
 	GetCredential(userID int, entryMethod string) (*models.BiometricCredential, error)

@@ -22,6 +22,7 @@ type mockZoneRepo struct {
 	createEventFunc             func(userID, zoneID int, action, status string, reason *string, hash, previousHash string, deviceID *int, entryMethod string) error
 	createChainedEventFunc      func(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string) error
 	getActiveSessionForUserFunc func(userID int) (int, error)
+	getRequiresExitScanFunc     func(zoneID int) (bool, error)
 }
 
 func (m *mockZoneRepo) HasZoneAccess(userID, zoneID int, role string) (bool, error) {
@@ -88,6 +89,13 @@ func (m *mockZoneRepo) GetActiveSessionForUser(userID int) (int, error) {
 		return m.getActiveSessionForUserFunc(userID)
 	}
 	return 0, ErrNoActiveSession
+}
+
+func (m *mockZoneRepo) GetRequiresExitScan(zoneID int) (bool, error) {
+	if m.getRequiresExitScanFunc != nil {
+		return m.getRequiresExitScanFunc(zoneID)
+	}
+	return false, nil
 }
 
 func (m *mockZoneRepo) GetZone(zoneID int) (*models.Zone, error) {
@@ -282,6 +290,9 @@ func TestHandleZoneEvent_AutoExitOnZoneSwap(t *testing.T) {
 		getActiveSessionForUserFunc: func(userID int) (int, error) {
 			return 1, nil
 		},
+		getRequiresExitScanFunc: func(zoneID int) (bool, error) {
+			return false, nil
+		},
 		deleteSessionFunc: func(userID, zoneID int) error {
 			deletedUserID = userID
 			deletedZoneID = zoneID
@@ -398,5 +409,95 @@ func TestBroadcastZoneStateExcludesActiveUsers(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("expected occupancy broadcast")
+	}
+}
+
+// ============================================================
+// requires_exit_scan Tests
+// ============================================================
+
+func TestHandleZoneEvent_AutoExitBlockedWhenRequiresExitScan(t *testing.T) {
+	var recordedReason *string
+
+	mockRepo := &mockZoneRepo{
+		hasZoneAccessFunc: func(userID, zoneID int, role string) (bool, error) {
+			return true, nil
+		},
+		// user is currently in zone 1 (which requires_exit_scan = true)
+		getActiveSessionForUserFunc: func(userID int) (int, error) {
+			return 1, nil
+		},
+		getRequiresExitScanFunc: func(zoneID int) (bool, error) {
+			return true, nil // zone 1 requires explicit exit
+		},
+		createChainedEventFunc: func(u, z int, act, stat string, reason *string, timestamp time.Time, d *int, em string) error {
+			recordedReason = reason
+			return nil
+		},
+	}
+
+	service := NewZoneService(mockRepo, NewHub("*"))
+
+	// user in zone 1 (requires exit scan) tries to enter zone 2
+	err := service.HandleZoneEvent(99, 2, "user", "enter", time.Now(), nil, "fingerprint")
+
+	if !errors.Is(err, ErrRequiresExitScan) {
+		t.Errorf("expected ErrRequiresExitScan, got %v", err)
+	}
+	if recordedReason == nil || *recordedReason != "requires_exit_scan" {
+		t.Errorf("expected denial reason requires_exit_scan, got %v", recordedReason)
+	}
+}
+
+func TestHandleZoneEvent_NormalAutoExitWhenNoRequireExitScan(t *testing.T) {
+	var deletedZoneID int
+	var createdEventZones []int
+
+	mockRepo := &mockZoneRepo{
+		hasZoneAccessFunc: func(userID, zoneID int, role string) (bool, error) {
+			return true, nil
+		},
+		// user is currently in zone 1 (requires_exit_scan = false)
+		getActiveSessionForUserFunc: func(userID int) (int, error) {
+			return 1, nil
+		},
+		getRequiresExitScanFunc: func(zoneID int) (bool, error) {
+			return false, nil // zone 1 allows auto-exit
+		},
+		deleteSessionFunc: func(userID, zoneID int) error {
+			deletedZoneID = zoneID
+			return nil
+		},
+		getMaximumCapacityFunc: func(zoneID int) (int, error) {
+			return 0, nil
+		},
+		countActiveUsersFunc: func(zoneID int) (int, error) {
+			return 0, nil
+		},
+		createSessionFunc: func(userID, zoneID int) error {
+			return nil
+		},
+		getLastHashFunc: func(zoneID int) (string, error) {
+			return "", ErrNoHashFound
+		},
+		createEventFunc: func(u, z int, act, stat string, reason *string, h, ph string, d *int, em string) error {
+			createdEventZones = append(createdEventZones, z)
+			return nil
+		},
+	}
+
+	service := NewZoneService(mockRepo, NewHub("*"))
+
+	// user in zone 1 (no requires exit scan) tries to enter zone 2
+	err := service.HandleZoneEvent(99, 2, "user", "enter", time.Now(), nil, "fingerprint")
+
+	if err != nil {
+		t.Fatalf("expected auto-exit to succeed with no error, got: %v", err)
+	}
+	if deletedZoneID != 1 {
+		t.Errorf("expected auto-exit from zone 1, got zone %d", deletedZoneID)
+	}
+	if len(createdEventZones) != 2 {
+		t.Fatalf("expected 2 events (auto-exit + entry), got %d", len(createdEventZones))
 	}
 }

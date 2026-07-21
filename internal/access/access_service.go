@@ -120,8 +120,18 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 			return sessionErr // real database errors
 		}
 
-		// if they have an active session in a DIFFERENT zone, auto-exit them first
+		// if they have an active session in a DIFFERENT zone, check if auto-exit is allowed
 		if sessionErr == nil && activeZoneID != zoneID {
+			// Check if the current zone requires an explicit exit scan
+			requiresExit, err := s.repo.GetRequiresExitScan(activeZoneID)
+			if err != nil {
+				return err
+			}
+			if requiresExit {
+				s.logDeniedEvent(userID, zoneID, action, timestamp, "requires_exit_scan", deviceID, entryMethod)
+				return ErrRequiresExitScan
+			}
+
 			// delete the old session
 			if err := s.repo.DeleteSession(userID, activeZoneID); err != nil {
 				return fmt.Errorf("auto-exit delete session failed: %w", err)
