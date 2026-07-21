@@ -9,7 +9,7 @@ import (
 // ZoneRepository defines everything ZoneService needs from the data layer.
 // This lets tests use a mock repo instead of hitting a real database.
 type ZoneRepository interface {
-	CreateZone(name, description string, maxCapacity int) (*models.Zone, error)
+	CreateZone(name, description string, maxCapacity int, requiresExitScan bool) (*models.Zone, error)
 	DeleteZone(zoneID int) error
 	GetZone(zoneID int) (*models.Zone, error)
 	GetMaximumCapacity(zoneID int) (int, error)

@@ -104,7 +104,7 @@ func (m *mockZoneRepo) GetZone(zoneID int) (*models.Zone, error) {
 
 // --- unused-in-these-tests methods, stubbed to satisfy the ZoneRepository interface ---
 
-func (m *mockZoneRepo) CreateZone(name, description string, maxCapacity int) (*models.Zone, error) {
+func (m *mockZoneRepo) CreateZone(name, description string, maxCapacity int, requiresExitScan bool) (*models.Zone, error) {
 	return nil, nil
 }
 func (m *mockZoneRepo) DeleteZone(zoneID int) error { return nil }

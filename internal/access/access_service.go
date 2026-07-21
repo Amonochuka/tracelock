@@ -42,8 +42,8 @@ func (s *ZoneService) GetZone(zoneID int) (*models.ZoneOccupancy, error) {
 }
 
 // create a new zone
-func (s *ZoneService) CreateZone(name, description string, maxCapacity int) (*models.Zone, error) {
-	return s.repo.CreateZone(name, description, maxCapacity)
+func (s *ZoneService) CreateZone(name, description string, maxCapacity int, requiresExitScan bool) (*models.Zone, error) {
+	return s.repo.CreateZone(name, description, maxCapacity, requiresExitScan)
 }
 
 // update a zone's details

@@ -149,7 +149,7 @@ func CreateZoneHandler(service *access.ZoneService) http.HandlerFunc {
 			return
 		}
 
-		zone, err := service.CreateZone(req.Name, req.Description, req.MaxCapacity)
+		zone, err := service.CreateZone(req.Name, req.Description, req.MaxCapacity, req.RequiresExitScan)
 		if err != nil {
 			if errors.Is(err, access.ErrZoneNameExists) {
 				WriteError(w, http.StatusConflict, "zone name already exists")

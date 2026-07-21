@@ -21,11 +21,11 @@ func NewZoneRepo(db *sql.DB) *ZoneRepo {
 
 // --zone creation--
 // create a new zone
-func (z *ZoneRepo) CreateZone(name, description string, maxCapacity int) (*models.Zone, error) {
+func (z *ZoneRepo) CreateZone(name, description string, maxCapacity int, requiresExitScan bool) (*models.Zone, error) {
 	zone := &models.Zone{}
-	err := z.db.QueryRow(`INSERT INTO zones(name, description, max_capacity)
-		VALUES($1,$2,$3) RETURNING id, name, description, max_capacity, requires_exit_scan, created_at`,
-		name, description, maxCapacity).
+	err := z.db.QueryRow(`INSERT INTO zones(name, description, max_capacity, requires_exit_scan)
+		VALUES($1,$2,$3,$4) RETURNING id, name, description, max_capacity, requires_exit_scan, created_at`,
+		name, description, maxCapacity, requiresExitScan).
 		Scan(&zone.ID, &zone.Name, &zone.Description, &zone.MaxCapacity, &zone.RequiresExitScan, &zone.CreatedAt)
 	if err != nil {
 		var pqErr *pq.Error
