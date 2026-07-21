@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS access_events (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE SET NULL,
     zone_id INT REFERENCES zones(id) ON DELETE SET NULL,
-    device_id INT REFERENCES devices(id),
+    device_id INT REFERENCES devices(id) ON DELETE SET NULL,
     entry_method VARCHAR(20) CHECK (entry_method IN ('fingerprint', 'face', 'iris', 'card', 'pin', 'api')),
     action VARCHAR(10) NOT NULL CHECK (action IN ('enter', 'exit')),
     status VARCHAR(10) NOT NULL CHECK (status IN ('allowed', 'denied')),
