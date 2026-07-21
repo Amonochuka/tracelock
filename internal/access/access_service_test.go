@@ -20,6 +20,7 @@ type mockZoneRepo struct {
 	deleteSessionFunc           func(userID, zoneID int) error
 	getLastHashFunc             func(zoneID int) (string, error)
 	createEventFunc             func(userID, zoneID int, action, status string, reason *string, hash, previousHash string, deviceID *int, entryMethod string) error
+	createChainedEventFunc      func(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string) error
 	getActiveSessionForUserFunc func(userID int) (int, error)
 }
 
@@ -72,6 +73,16 @@ func (m *mockZoneRepo) CreateEvent(userID, zoneID int, action, status string, re
 	return nil
 }
 
+func (m *mockZoneRepo) CreateChainedEvent(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string) error {
+	if m.createChainedEventFunc != nil {
+		return m.createChainedEventFunc(userID, zoneID, action, status, reason, timestamp, deviceID, entryMethod)
+	}
+	if m.createEventFunc != nil {
+		return m.createEventFunc(userID, zoneID, action, status, reason, "", "", deviceID, entryMethod)
+	}
+	return nil
+}
+
 func (m *mockZoneRepo) GetActiveSessionForUser(userID int) (int, error) {
 	if m.getActiveSessionForUserFunc != nil {
 		return m.getActiveSessionForUserFunc(userID)
@@ -119,8 +130,8 @@ func TestHandleZoneEvent_AccessDenied(t *testing.T) {
 		hasZoneAccessFunc: func(userID, zoneID int, role string) (bool, error) {
 			return false, nil // user has no access
 		},
-		// access-denied path logs a denied event, so CreateEvent IS called here
-		createEventFunc: func(u, z int, act, stat string, reason *string, h, ph string, d *int, em string) error {
+		// access-denied path logs a denied event through the atomic append method.
+		createChainedEventFunc: func(u, z int, act, stat string, reason *string, timestamp time.Time, d *int, em string) error {
 			recordedReason = reason
 			return nil
 		},

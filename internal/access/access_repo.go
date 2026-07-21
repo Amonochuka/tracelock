@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"tracelock/internal/models"
 
@@ -81,32 +82,54 @@ func (z *ZoneRepo) GetMaximumCapacity(zoneID int) (int, error) {
 	return capacity, nil
 }
 
-// CreateEvent writes an access event to the audit log.
-func (z *ZoneRepo) CreateEvent(userID, zoneID int, action, status string, reason *string, hash, previousHash string,
-	deviceID *int, entryMethod string) error {
-	_, err := z.db.Exec(`
-		INSERT INTO access_events (user_id, zone_id, action, status, reason, hash, previous_hash, device_id, entry_method)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-	`, userID, zoneID, action, status, reason, hash, previousHash, deviceID, entryMethod)
+// CreateChainedEvent appends an event to a zone's hash chain atomically.
+// The zone-row lock serializes writes for the same zone, while allowing writes
+// for different zones to proceed concurrently.
+func (z *ZoneRepo) CreateChainedEvent(userID, zoneID int, action, status string, reason *string,
+	timestamp time.Time, deviceID *int, entryMethod string) error {
+	tx, err := z.db.Begin()
 	if err != nil {
-		return fmt.Errorf("create event: %w", err)
+		return fmt.Errorf("begin create chained event: %w", err)
+	}
+	defer tx.Rollback()
+
+	var lockedZoneID int
+	if err := tx.QueryRow(`SELECT id FROM zones WHERE id = $1 FOR UPDATE`, zoneID).Scan(&lockedZoneID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrZoneNotFound
+		}
+		return fmt.Errorf("lock zone for event: %w", err)
+	}
+
+	var previousHash string
+	err = tx.QueryRow(`
+		SELECT hash FROM access_events WHERE zone_id = $1
+		ORDER BY id DESC LIMIT 1`, zoneID).Scan(&previousHash)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("get last hash in transaction: %w", err)
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		previousHash = ""
+	}
+
+	hashAction := action
+	if status == "denied" {
+		hashAction += ":denied"
+	}
+	hash := GenerateHash(userID, zoneID, hashAction, timestamp, previousHash, entryMethod)
+
+	_, err = tx.Exec(`
+		INSERT INTO access_events (user_id, zone_id, action, status, reason, hash, previous_hash, device_id, entry_method, timestamp)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`, userID, zoneID, action, status, reason, hash, previousHash, deviceID, entryMethod, timestamp)
+	if err != nil {
+		return fmt.Errorf("create chained event: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit chained event: %w", err)
 	}
 	return nil
-}
-
-// GetLastHash retrieves the most recent event hash for a zone to chain the next event.
-func (z *ZoneRepo) GetLastHash(zoneID int) (string, error) {
-	var hash string
-	err := z.db.QueryRow(`
-        SELECT hash FROM access_events WHERE zone_id = $1
-        ORDER BY timestamp DESC LIMIT 1`, zoneID).Scan(&hash)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", ErrNoHashFound
-		}
-		return "", fmt.Errorf("get last hash: %w", err)
-	}
-	return hash, nil
 }
 
 // CreateSession registers a user as actively inside a zone.
@@ -377,7 +400,7 @@ func verifyHashChain(links []chainLink) (bool, int) {
 // Fetches the raw data, then delegates the actual verification to verifyHashChain.
 func (z *ZoneRepo) VerifyChain(zoneID int) (bool, int, error) {
 	rows, err := z.db.Query(`SELECT hash, previous_hash FROM access_events
-		WHERE zone_id = $1 ORDER BY timestamp ASC, id ASC`, zoneID)
+	WHERE zone_id = $1 ORDER BY id ASC`, zoneID)
 	if err != nil {
 		return false, 0, fmt.Errorf("verify chain: %w", err)
 	}

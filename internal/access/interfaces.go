@@ -1,6 +1,10 @@
 package access
 
-import "tracelock/internal/models"
+import (
+	"time"
+
+	"tracelock/internal/models"
+)
 
 // ZoneRepository defines everything ZoneService needs from the data layer.
 // This lets tests use a mock repo instead of hitting a real database.
@@ -9,8 +13,7 @@ type ZoneRepository interface {
 	DeleteZone(zoneID int) error
 	GetZone(zoneID int) (*models.Zone, error)
 	GetMaximumCapacity(zoneID int) (int, error)
-	CreateEvent(userID, zoneID int, action, status string, reason *string, hash, previousHash string, deviceID *int, entryMethod string) error
-	GetLastHash(zoneID int) (string, error)
+	CreateChainedEvent(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string) error
 	CreateSession(userID, zoneID int) error
 	DeleteSession(userID, zoneID int) error
 	CountActiveUsers(zoneID int) (int, error)
