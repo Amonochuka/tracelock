@@ -19,7 +19,7 @@ type mockZoneRepo struct {
 	createSessionFunc           func(userID, zoneID int) error
 	deleteSessionFunc           func(userID, zoneID int) error
 	getLastHashFunc             func(zoneID int) (string, error)
-	createEventFunc             func(userID, zoneID int, action, status, hash, previousHash string, deviceID *int, entryMethod string) error
+	createEventFunc             func(userID, zoneID int, action, status string, reason *string, hash, previousHash string, deviceID *int, entryMethod string) error
 	getActiveSessionForUserFunc func(userID int) (int, error)
 }
 
@@ -65,9 +65,9 @@ func (m *mockZoneRepo) GetLastHash(zoneID int) (string, error) {
 	return "", ErrNoHashFound
 }
 
-func (m *mockZoneRepo) CreateEvent(userID, zoneID int, action, status, hash, previousHash string, deviceID *int, entryMethod string) error {
+func (m *mockZoneRepo) CreateEvent(userID, zoneID int, action, status string, reason *string, hash, previousHash string, deviceID *int, entryMethod string) error {
 	if m.createEventFunc != nil {
-		return m.createEventFunc(userID, zoneID, action, status, hash, previousHash, deviceID, entryMethod)
+		return m.createEventFunc(userID, zoneID, action, status, reason, hash, previousHash, deviceID, entryMethod)
 	}
 	return nil
 }
@@ -114,12 +114,14 @@ func (m *mockZoneRepo) GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, er
 // ============================================================
 
 func TestHandleZoneEvent_AccessDenied(t *testing.T) {
+	var recordedReason *string
 	mockRepo := &mockZoneRepo{
 		hasZoneAccessFunc: func(userID, zoneID int, role string) (bool, error) {
 			return false, nil // user has no access
 		},
 		// access-denied path logs a denied event, so CreateEvent IS called here
-		createEventFunc: func(u, z int, act, stat, h, ph string, d *int, em string) error {
+		createEventFunc: func(u, z int, act, stat string, reason *string, h, ph string, d *int, em string) error {
+			recordedReason = reason
 			return nil
 		},
 		getLastHashFunc: func(zoneID int) (string, error) {
@@ -133,6 +135,9 @@ func TestHandleZoneEvent_AccessDenied(t *testing.T) {
 
 	if !errors.Is(err, ErrAccessDenied) {
 		t.Errorf("expected ErrAccessDenied, got %v", err)
+	}
+	if recordedReason == nil || *recordedReason != "no_access" {
+		t.Errorf("expected denial reason no_access, got %v", recordedReason)
 	}
 }
 
@@ -156,7 +161,7 @@ func TestHandleZoneEvent_AdminAlwaysAllowed(t *testing.T) {
 		getLastHashFunc: func(zoneID int) (string, error) {
 			return "", ErrNoHashFound // first event in this zone
 		},
-		createEventFunc: func(u, z int, act, stat, h, ph string, d *int, em string) error {
+		createEventFunc: func(u, z int, act, stat string, reason *string, h, ph string, d *int, em string) error {
 			return nil
 		},
 	}
@@ -186,7 +191,7 @@ func TestHandleZoneEvent_ZoneFull(t *testing.T) {
 		countActiveUsersFunc: func(zoneID int) (int, error) {
 			return 5, nil // already at capacity
 		},
-		createEventFunc: func(u, z int, act, stat, h, ph string, d *int, em string) error {
+		createEventFunc: func(u, z int, act, stat string, reason *string, h, ph string, d *int, em string) error {
 			return nil // zone-full path also logs a denied event
 		},
 		getLastHashFunc: func(zoneID int) (string, error) {
@@ -214,7 +219,7 @@ func TestHandleZoneEvent_ExitAccepted(t *testing.T) {
 		getLastHashFunc: func(zoneID int) (string, error) {
 			return "", ErrNoHashFound // first event for this zone — valid happy path
 		},
-		createEventFunc: func(u, z int, act, stat, h, ph string, d *int, em string) error {
+		createEventFunc: func(u, z int, act, stat string, reason *string, h, ph string, d *int, em string) error {
 			return nil // exit event logged
 		},
 	}
@@ -239,7 +244,7 @@ func TestHandleZoneEvent_ExitDeniedWhenNotInZone(t *testing.T) {
 		getLastHashFunc: func(zoneID int) (string, error) {
 			return "", ErrNoHashFound
 		},
-		createEventFunc: func(u, z int, act, stat, h, ph string, d *int, em string) error {
+		createEventFunc: func(u, z int, act, stat string, reason *string, h, ph string, d *int, em string) error {
 			return nil // denied event still gets logged
 		},
 	}
@@ -283,7 +288,7 @@ func TestHandleZoneEvent_AutoExitOnZoneSwap(t *testing.T) {
 		getLastHashFunc: func(zoneID int) (string, error) {
 			return "", ErrNoHashFound
 		},
-		createEventFunc: func(u, z int, act, stat, h, ph string, d *int, em string) error {
+		createEventFunc: func(u, z int, act, stat string, reason *string, h, ph string, d *int, em string) error {
 			createdEventZones = append(createdEventZones, z)
 			return nil
 		},
@@ -341,7 +346,7 @@ func TestHandleZoneEvent_NoAutoExitWhenEnteringSameZone(t *testing.T) {
 		getLastHashFunc: func(zoneID int) (string, error) {
 			return "", ErrNoHashFound
 		},
-		createEventFunc: func(u, z int, act, stat, h, ph string, d *int, em string) error {
+		createEventFunc: func(u, z int, act, stat string, reason *string, h, ph string, d *int, em string) error {
 			return nil // the denied event from ErrUserAlreadyInZone
 		},
 	}

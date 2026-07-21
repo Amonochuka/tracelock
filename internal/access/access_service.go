@@ -139,7 +139,7 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 			exitHash := GenerateHash(userID, activeZoneID, "exit", timestamp, prevExitHash, entryMethod)
 
 			// create the audit trail for the auto-exit
-			if err := s.repo.CreateEvent(userID, activeZoneID, "exit", "allowed", exitHash, prevExitHash, deviceID, entryMethod); err != nil {
+			if err := s.repo.CreateEvent(userID, activeZoneID, "exit", "allowed", nil, exitHash, prevExitHash, deviceID, entryMethod); err != nil {
 				return fmt.Errorf("auto-exit create event failed: %w", err)
 			}
 		} else {
@@ -201,7 +201,7 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 	}
 
 	hash := GenerateHash(userID, zoneID, action, timestamp, previousHash, entryMethod)
-	if err := s.repo.CreateEvent(userID, zoneID, action, "allowed", hash, previousHash, deviceID, entryMethod); err != nil {
+	if err := s.repo.CreateEvent(userID, zoneID, action, "allowed", nil, hash, previousHash, deviceID, entryMethod); err != nil {
 		return err
 	}
 
@@ -222,13 +222,12 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 
 // log denied entries
 func (s *ZoneService) logDeniedEvent(userID, zoneID int, action string, timestamp time.Time, reason string, deviceID *int, entryMethod string) {
-	_ = reason
 	previousHash, err := s.repo.GetLastHash(zoneID)
 	if err != nil {
 		previousHash = ""
 	}
 	hash := GenerateHash(userID, zoneID, action+":denied", timestamp, previousHash, entryMethod)
-	_ = s.repo.CreateEvent(userID, zoneID, action, "denied", hash, previousHash, deviceID, entryMethod)
+	_ = s.repo.CreateEvent(userID, zoneID, action, "denied", &reason, hash, previousHash, deviceID, entryMethod)
 }
 
 // --event queries--

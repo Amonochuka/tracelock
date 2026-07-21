@@ -9,7 +9,7 @@ type ZoneRepository interface {
 	DeleteZone(zoneID int) error
 	GetZone(zoneID int) (*models.Zone, error)
 	GetMaximumCapacity(zoneID int) (int, error)
-	CreateEvent(userID, zoneID int, action, status, hash, previousHash string, deviceID *int, entryMethod string) error
+	CreateEvent(userID, zoneID int, action, status string, reason *string, hash, previousHash string, deviceID *int, entryMethod string) error
 	GetLastHash(zoneID int) (string, error)
 	CreateSession(userID, zoneID int) error
 	DeleteSession(userID, zoneID int) error

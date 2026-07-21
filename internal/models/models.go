@@ -27,6 +27,7 @@ type AccessEvent struct {
 	ZoneID       int       `json:"zone_id"`
 	Action       string    `json:"action"`
 	Status       string    `json:"status"`
+	Reason       *string   `json:"reason,omitempty"`
 	Timestamp    time.Time `json:"timestamp"`
 	Hash         string    `json:"hash"`
 	PreviousHash string    `json:"previous_hash"`

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS access_events (
     entry_method VARCHAR(20) CHECK (entry_method IN ('fingerprint', 'face', 'iris', 'card', 'pin', 'api')),
     action VARCHAR(10) NOT NULL CHECK (action IN ('enter', 'exit')),
     status VARCHAR(10) NOT NULL CHECK (status IN ('allowed', 'denied')),
+    reason VARCHAR(50),
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     hash VARCHAR(64) NOT NULL,
     previous_hash VARCHAR(64)
