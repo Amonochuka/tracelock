@@ -495,6 +495,9 @@ func (z *ZoneRepo) ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error) 
 		}
 		zones = append(zones, zo)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
+	}
 	return zones, nil
 }
 
@@ -522,6 +525,7 @@ func (z *ZoneRepo) GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error)
 		if err := rows.Scan(&a.DayOfWeek, &a.Hour, &a.EntryCount); err != nil {
 			return nil, fmt.Errorf("scan analytics: %w", err)
 		}
+		analytics = append(analytics, a)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating rows: %w", err)
