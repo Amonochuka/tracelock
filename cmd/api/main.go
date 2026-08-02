@@ -45,6 +45,10 @@ func main() {
 		}
 	}()
 
+	if err := userService.DeleteExpiredTokens(); err != nil {
+		log.Printf("initial token cleanup failed: %v", err)
+	}
+
 	// access
 	zoneRepo := access.NewZoneRepo(database)
 
