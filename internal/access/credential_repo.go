@@ -1,9 +1,12 @@
 package access
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 
 	"tracelock/internal/models"
 
@@ -20,8 +23,9 @@ func NewCredentialRepo(db *sql.DB) *CredentialRepo {
 
 func (c *CredentialRepo) EnrollCredential(userID int, entryMethod, credentialHash string) (*models.BiometricCredential, error) {
 	credential := &models.BiometricCredential{}
+	hash := normalizeCredentialHash(credentialHash)
 	err := c.db.QueryRow(`INSERT INTO biometric_credentials(user_id, entry_method, credential_hash)VALUES($1,$2,$3)
-	RETURNING id, user_id, entry_method, credential_hash, enrolled_at, revoked`, userID, entryMethod, credentialHash).
+	RETURNING id, user_id, entry_method, credential_hash, enrolled_at, revoked`, userID, entryMethod, hash).
 		Scan(&credential.ID, &credential.UserID, &credential.EntryMethod, &credential.CredentialHash, &credential.EnrolledAt, &credential.Revoked)
 	if err != nil {
 		var pqErr *pq.Error
@@ -80,9 +84,10 @@ func (c *CredentialRepo) ListUserCredentials(userID int) ([]*models.BiometricCre
 
 // GetCredentialByHash finds a credential by its hash — used during device authentication
 func (c *CredentialRepo) GetCredentialByHash(hash string) (*models.BiometricCredential, error) {
+	normalizedHash := normalizeCredentialHash(hash)
 	cdl := &models.BiometricCredential{}
 	err := c.db.QueryRow(`SELECT id, user_id, entry_method, credential_hash, enrolled_at, revoked 
-		FROM biometric_credentials WHERE credential_hash = $1`, hash).
+		FROM biometric_credentials WHERE credential_hash = $1`, normalizedHash).
 		Scan(&cdl.ID, &cdl.UserID, &cdl.EntryMethod, &cdl.CredentialHash, &cdl.EnrolledAt, &cdl.Revoked)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -91,4 +96,32 @@ func (c *CredentialRepo) GetCredentialByHash(hash string) (*models.BiometricCred
 		return nil, fmt.Errorf("get credential by hash: %w", err)
 	}
 	return cdl, nil
+}
+
+func normalizeCredentialHash(credential string) string {
+	if isHex64(credential) {
+		return strings.ToLower(credential)
+	}
+	return hashCredential(credential)
+}
+
+func hashCredential(credential string) string {
+	h := sha256.Sum256([]byte(credential))
+	return hex.EncodeToString(h[:])
+}
+
+func isHex64(value string) bool {
+	if len(value) != 64 {
+		return false
+	}
+	for _, c := range value {
+		switch {
+		case c >= '0' && c <= '9':
+		case c >= 'a' && c <= 'f':
+		case c >= 'A' && c <= 'F':
+		default:
+			return false
+		}
+	}
+	return true
 }
