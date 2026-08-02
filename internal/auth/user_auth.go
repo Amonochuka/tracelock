@@ -169,25 +169,29 @@ func (u *UserAuth) SaveRefreshToken(userID int, tokenHash string, expiresAt time
 	return nil
 }
 
-// get the refresh token
-func (u *UserAuth) GetRefreshToken(tokenHash string) error {
+// ValidateAndGetUserIDFromRefreshToken validates the token in one query and returns the associated user ID.
+// Returns the user ID if the token is valid, not revoked, and not expired.
+func (u *UserAuth) ValidateAndGetUserIDFromRefreshToken(tokenHash string) (int, error) {
+	var userID int
 	var revoked bool
 	var expiresAt time.Time
-	err := u.db.QueryRow(`SELECT revoked, expires_at from refresh_tokens 
-				WHERE token_hash = $1`, tokenHash).Scan(&revoked, &expiresAt)
+	err := u.db.QueryRow(`
+		SELECT user_id, revoked, expires_at FROM refresh_tokens 
+		WHERE token_hash = $1
+	`, tokenHash).Scan(&userID, &revoked, &expiresAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return ErrTokenNotFound
+			return 0, ErrTokenNotFound
 		}
-		return fmt.Errorf("get refresh token: %w", err)
+		return 0, fmt.Errorf("validating refresh token: %w", err)
 	}
 	if revoked {
-		return ErrTokenRevoked
+		return 0, ErrTokenRevoked
 	}
 	if time.Now().After(expiresAt) {
-		return ErrTokenExpired
+		return 0, ErrTokenExpired
 	}
-	return nil
+	return userID, nil
 }
 
 // revoke the refresh token
@@ -201,19 +205,6 @@ func (u *UserAuth) RevokeRefreshToken(tokenHash string) error {
 		return ErrTokenNotFound
 	}
 	return nil
-}
-
-// get user using a certain refresh token
-func (u *UserAuth) GetUserIDFromRefreshToken(tokenHash string) (int, error) {
-	var userID int
-	err := u.db.QueryRow("SELECT user_id FROM refresh_tokens WHERE token_hash = $1", tokenHash).Scan(&userID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0, ErrTokenNotFound
-		}
-		return 0, fmt.Errorf("getting user from refresh token: %w", err)
-	}
-	return userID, nil
 }
 
 // DeleteExpiredTokens removes all expired refresh tokens from the DB.

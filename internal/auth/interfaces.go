@@ -14,9 +14,8 @@ type UserRepository interface {
 	UpdateRole(userID int, role string) error
 	ListUsers() ([]*models.User, error)
 	SaveRefreshToken(userID int, token string, expiresAt time.Time) error
-	GetRefreshToken(token string) error
+	ValidateAndGetUserIDFromRefreshToken(tokenHash string) (int, error)
 	RevokeRefreshToken(token string) error
-	GetUserIDFromRefreshToken(token string) (int, error)
 	DeleteExpiredTokens() error
 	IncrementFailedAttempts(email string) error
 	LockAccount(email string) error

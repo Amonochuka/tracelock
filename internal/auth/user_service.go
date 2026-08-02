@@ -75,19 +75,14 @@ func (s *UserService) ListUsers() ([]*models.User, error) {
 
 // give a user a new access token
 func (s *UserService) RefreshAccessToken(token string) (string, error) {
-	//get the refresh token
+	//validate token and get userID in one query
 	tokenHash := HashRefreshToken(token)
-	if err := s.auth.GetRefreshToken(tokenHash); err != nil {
-		return "", err
-	}
-
-	//get userID associated to a refersh token
-	userID, err := s.auth.GetUserIDFromRefreshToken(tokenHash)
+	userID, err := s.auth.ValidateAndGetUserIDFromRefreshToken(tokenHash)
 	if err != nil {
 		return "", err
 	}
 
-	//verify user
+	//verify user exists
 	user, err := s.auth.VerifyUser(userID)
 	if err != nil {
 		return "", err
