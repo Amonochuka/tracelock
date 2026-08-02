@@ -89,10 +89,13 @@ claims := jwt.MapClaims{
 
 ### Refresh token
 
-Long-lived (7 days). Stored in the `refresh_tokens` DB table. Used only to obtain a new access token via `POST /refresh`. Revoked on logout.
+Long-lived (7 days). Stored in the `refresh_tokens` DB table with a **hashed value**. Used only to obtain a new access token via `POST /refresh`. Revoked on logout.
+
+**Security note:** The raw refresh token is generated with `crypto/rand` and sent to the client. Before storage, it is hashed with SHA-256. On lookup or revocation, the incoming token is hashed and compared against the stored hash — the raw token is never persisted.
 
 ```go
 refreshToken, expiresAt, err := j.GenerateRefreshToken()
+// Token is returned to client; hashing happens in UserService
 ```
 
 ### Token flow
@@ -171,7 +174,12 @@ Devices are registered to zones by admin via `POST /admin/zones/{id}/devices`.
 
 ### Credential enrollment
 
-Admin enrolls a user's biometric credential via `POST /admin/users/{id}/credentials`. The `credential_hash` is a tokenised hash produced by the scanner SDK — raw biometric data is never stored or transmitted.
+Admin enrolls a user's biometric credential via `POST /admin/users/{id}/credentials`. The incoming `credential_hash` from the API is:
+1. **Normalized:** hex-encoded values are decoded; raw bytes are preserved
+2. **Hashed:** normalized data is SHA-256 hashed
+3. **Stored:** only the hash is persisted in the database
+
+This server-side hashing ensures multiple representations of the same biometric identity (e.g., raw vs. hex-encoded) are normalized to a single canonical hash.
 
 For testing, simulate a credential hash:
 ```bash
@@ -181,12 +189,15 @@ openssl rand -hex 32
 ### Runtime authentication
 
 The scanner sends `device_id` + `credential_hash` to `POST /devices/authenticate`. The backend:
-1. Validates the device
-2. Matches the hash to an enrolled credential
-3. Resolves the user
-4. Checks zone access
-5. Creates session and audit event
-6. Returns a JWT
+1. Validates the device exists and is active
+2. Normalizes the incoming credential hash (same process as enrollment)
+3. Hashes the normalized value
+4. Matches the hash to an enrolled credential
+5. Checks credential is not revoked
+6. Resolves the user
+7. Checks zone access and capacity
+8. Creates session and audit event
+9. Issues JWT for the authenticated user
 
 ### Interface pattern
 
@@ -216,7 +227,14 @@ data := fmt.Sprintf("%d:%d:%s:%s:%s:%s",
 hash := sha256.Sum256([]byte(data))
 ```
 
-The hash includes `entryMethod` — a fingerprint entry and a card entry for the same user produce different hashes.
+The hash includes:
+- `userID`, `zoneID` — who and where
+- `action` — enter or exit
+- `timestamp` — when
+- `previousHash` — chain linkage
+- `entryMethod` — how (biometric type or API entry)
+
+This means a fingerprint entry and a card entry for the same user produce different hashes, and any modification to a prior event breaks the chain.
 
 Verify chain integrity via `GET /admin/zones/{id}/verify-chain`.
 
@@ -224,18 +242,45 @@ Verify chain integrity via `GET /admin/zones/{id}/verify-chain`.
 
 ## 8. Rate Limiting
 
-Login and register are rate limited by IP using a token bucket algorithm:
+Login, register, and bootstrap endpoints are rate limited by IP using a token bucket algorithm:
 
 - 5 requests per minute per IP
 - Tokens refill continuously (not on a hard reset)
 - Old client state cleaned up every 3 minutes
 - `X-Forwarded-For` header used for real IP behind Render's proxy
+- Rate limit state is in-memory — does not survive server restarts
 
-Rate limit state is in-memory — does not survive server restarts. For multi-instance production use, replace with Redis.
+For multi-instance production use, replace with Redis.
 
----
+## 9. Account Lockout
 
-## 9. Database Schema
+After 5 consecutive failed login attempts on the same email, the account is automatically locked for 15 minutes.
+
+- Failed attempt increments the counter
+- Successful login resets the counter to 0 and clears the lock
+- Locked accounts return `429 Too Many Requests` with message "account is temporarily locked"
+- Admin can manually unlock via `PUT /admin/users/{id}/unlock` (clears both counter and lock timestamp)
+
+The lockout timestamp is stored in the `users.locked_until` column.
+
+## 10. Token Cleanup
+
+Expired refresh tokens are deleted from the database:
+- **Immediately on startup** — single cleanup pass before the server begins accepting requests
+- **Every 24 hours** — scheduled cleanup runs in a background goroutine
+
+This prevents the `refresh_tokens` table from growing unbounded and ensures expired tokens cannot be used.
+
+## 11. WebSocket – Live Zone Occupancy
+
+Authenticated users can subscribe to live zone occupancy updates via WebSocket at `GET /ws/zones`. The Hub broadcasts occupancy changes to all connected clients whenever a user enters or exits a zone.
+
+- Connection URL: `ws://hostname/ws/zones` (requires valid JWT in Authorization header or query parameter)
+- Message format: JSON payload with zone ID and current occupancy
+- CORS-aware: respects `ALLOWED_ORIGIN` configuration
+- Connection is kept alive; disconnections are cleaned up by the hub
+
+## 12. Database Schema
 
 ```sql
 users               — id, name, email, password_hash, role, created_at
@@ -250,13 +295,13 @@ biometric_credentials — id, user_id, entry_method, credential_hash, enrolled_a
 
 ---
 
-## 10. Graceful Shutdown
+## 13. Graceful Shutdown
 
 The server listens for `SIGTERM` (Render deploy) and `SIGINT` (Ctrl+C) and gives in-flight requests 30 seconds to complete before exiting. DB connection is closed cleanly on shutdown.
 
 ---
 
-## 11. Common Pitfalls
+## 14. Common Pitfalls
 
 - **`sql.ErrNoRows` in service layer** — move it to the repo. The service should not import `database/sql`.
 - **`pq.Error` in service layer** — move duplicate key checks to the repo.

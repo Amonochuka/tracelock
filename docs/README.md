@@ -1,19 +1,8 @@
-# TraceLock – Backend (Go + PostgreSQL)
+# TraceLock – Backend (Go + PostgreSQL
 
 TraceLock is a biometric access control backend — a production-style Go API that tracks physical zone access events in real time, enforces permissions, and maintains a tamper-evident SHA-256 hash chain on every event.
 
 Built incrementally with professional backend practices: small features, clear commits, and environment-based configuration.
-
----
-
-## Live API
-
-**Base URL:** https://tracelock.onrender.com
-
-**GitHub:** https://github.com/Amonochuka/tracelock
-
-> The API does not expose a root route — opening the base URL returns 404. Use the endpoints below.
-> Hosted on Render's free tier, so the first request may take a few seconds while the backend spins up.
 
 ---
 
@@ -31,22 +20,28 @@ Built incrementally with professional backend practices: small features, clear c
 
 ## Current Features
 
-- User registration, login and bcrypt password hashing
-- JWT authentication (15min access token + 7-day refresh token)
+- User registration, login, and bcrypt password hashing
+- JWT authentication (15min access token + 7-day refresh token with hashing)
+- Refresh token hashing: tokens are hashed before storage, compared by hash on lookup/revocation
+- Account lockout: automatic after 5 failed login attempts, 15-minute lockout window
 - Role-based access control (admin / user)
-- One-time bootstrap endpoint for first admin creation
+- One-time bootstrap endpoint for first admin creation (rate-limited, returns 404 after first use)
 - Zone management (CRUD with capacity enforcement)
 - User-zone access control (admin grants/revokes per user)
 - Zone entry and exit tracking with device and entry method attribution
-- Tamper-evident access event hash chain using SHA-256
+- Tamper-evident access event hash chain using SHA-256 (includes entry method in hash)
 - Active session management (one session per user per zone)
 - Biometric device management (fingerprint, face, iris, card, pin)
 - Biometric credential enrollment and revocation per user
+- Biometric credential hashing: values normalized and hashed server-side before storage/lookup
 - Runtime biometric authentication — device scan resolves user, verifies access, creates session and issues JWT
-- IP-based rate limiting on login and register (token bucket algorithm)
-- Chi request logging and request ID middleware
+- Live zone occupancy via WebSocket feed (`GET /ws/zones`)
+- IP-based rate limiting on login, register, and bootstrap (token bucket algorithm, 5 req/min per IP)
+- Chi request logging with request ID middleware
+- HTTP server timeouts (5s read header, 15s read, 30s write, 60s idle)
+- Automatic expired token cleanup on startup and every 24 hours
 - Graceful shutdown with 30-second drain and DB connection cleanup
-- PostgreSQL migrations run automatically on startup
+- Embedded PostgreSQL migrations that run automatically on startup
 
 ---
 
@@ -54,6 +49,7 @@ Built incrementally with professional backend practices: small features, clear c
 
 ```
 tracelock/
+├── api/                           # legacy or external API clients
 ├── cmd/
 │   └── api/
 │       └── main.go
@@ -67,8 +63,10 @@ tracelock/
 │   │   ├── credential_service.go
 │   │   ├── biometric_service.go
 │   │   ├── hash.go
+│   │   ├── hub.go
 │   │   └── errors.go
 │   ├── auth/
+│   │   ├── interfaces.go
 │   │   ├── user_auth.go
 │   │   ├── user_service.go
 │   │   ├── jwt.go
@@ -88,8 +86,10 @@ tracelock/
 │   │   ├── credential_handlers.go
 │   │   ├── biometric_handlers.go
 │   │   ├── helpers.go
+│   │   ├── logger.go
 │   │   ├── response.go
 │   │   └── middleware/
+│   │       ├── apikey.go
 │   │       ├── roles.go
 │   │       └── ratelimit.go
 │   ├── models/
@@ -97,11 +97,28 @@ tracelock/
 │   └── config/
 │       └── config.go
 ├── migrations/
-│   └── tables.sql
+│   ├── 000001_create_users_table.up.sql
+│   ├── 000001_create_users_table.down.sql
+│   ├── 000002_create_zones_table.up.sql
+│   ├── 000002_create_zones_table.down.sql
+│   ├── 000003_create_devices_table.up.sql
+│   ├── 000003_create_devices_table.down.sql
+│   ├── 000004_create_access_events_table.up.sql
+│   ├── 000004_create_access_events_table.down.sql
+│   ├── 000005_create_active_sessions_table.up.sql
+│   ├── 000005_create_active_sessions_table.down.sql
+│   ├── 000006_create_user_zone_access_table.up.sql
+│   ├── 000006_create_user_zone_access_table.down.sql
+│   ├── 000007_create_refresh_tokens_table.up.sql
+│   ├── 000007_create_refresh_tokens_table.down.sql
+│   ├── 000008_create_biometric_credentials_table.up.sql
+│   ├── 000008_create_biometric_credentials_table.down.sql
+│   └── embed.go
 ├── docs/
 │   ├── README.md
 │   ├── Developer_guide.md
 │   └── security.md
+├── .env
 ├── .gitignore
 ├── go.mod
 └── go.sum
@@ -122,9 +139,17 @@ DB_PASSWORD=yourpassword
 DB_NAME=tracelock
 DB_SSLMODE=disable
 JWT_SECRET=yoursecretkey
+DEVICE_API_KEY=your-device-api-key
+ALLOWED_ORIGIN=*
 ```
 
 godotenv loads `.env` automatically on startup — no need to source it manually.
+
+**Required fields:** `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `JWT_SECRET`, `DEVICE_API_KEY`  
+**Optional fields:** `PORT` (default: 8080), `DB_SSLMODE` (default: disable), `ALLOWED_ORIGIN` (default: *)
+
+`DEVICE_API_KEY` is required for `/devices/authenticate`.  
+`ALLOWED_ORIGIN` is used by the WebSocket origin check in the live occupancy hub.
 
 ---
 
@@ -169,6 +194,8 @@ Tracelock API running on: 8080
 | POST   | /zones/exit            | Exit a zone                          |
 | GET    | /zones                 | List all zones with live occupancy   |
 | GET    | /zones/{id}            | Zone detail with active users        |
+| GET    | /zones/occupancy       | Get current zone occupancy totals    |
+| GET    | /ws/zones              | WebSocket feed for live occupancy    |
 
 ### Admin only (requires role: admin)
 
@@ -197,6 +224,15 @@ Tracelock API running on: 8080
 | GET    | /admin/users/{id}/credentials            | List user credentials                |
 | GET    | /admin/users/{id}/credentials/{method}   | Get credential by method             |
 | DELETE | /admin/users/{id}/credentials/{method}   | Revoke credential                    |
+
+---
+
+## Notes
+
+- `/bootstrap` is self-sealing: after the initial admin is created, it returns `404 Not Found` for subsequent calls.
+- `POST /logout` and `POST /refresh` are public endpoints and do not require a JWT.
+- The project currently uses embedded SQL migrations from `migrations/*.sql` and `migrations/embed.go`.
+- There is no global CORS middleware; only WebSocket origin validation is configured through `ALLOWED_ORIGIN`.
 
 ---
 

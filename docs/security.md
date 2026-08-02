@@ -49,10 +49,13 @@ Current claims stored in token:
 ## 4. Refresh Token Security
 
 - Refresh tokens are random 32-byte hex strings generated with `crypto/rand`
-- Stored in the `refresh_tokens` table with expiry and revocation flag
-- Revoked on logout — subsequent refresh attempts return `403`
-- Expired tokens return `401`
-- Token cleanup job (purge expired tokens) is planned for a future phase
+- **Hashed before storage:** SHA-256 hash of the token is stored in `refresh_tokens.token_hash`
+- Raw token is sent to the client; the server never persists the raw value
+- On lookup or revocation, the incoming token is hashed and compared against the stored hash
+- This prevents plaintext token exposure if the database is compromised
+- Revoked on logout — subsequent refresh attempts return `401 Unauthorized` with `ErrTokenRevoked`
+- Expired tokens return `401 Unauthorized` with `ErrTokenExpired`
+- **Automatic token cleanup:** expired tokens are deleted immediately on startup and every 24 hours
 
 ---
 
@@ -60,10 +63,15 @@ Current claims stored in token:
 
 Raw biometric data (fingerprints, face scans, iris patterns) is **never stored or transmitted** by TraceLock.
 
-The scanner SDK processes the biometric locally and produces a tokenised feature vector. Only the hash of this token is stored in `biometric_credentials.credential_hash`. This means:
+The scanner SDK processes the biometric locally and produces a tokenised feature vector. This token is:
+1. **Normalized** on the server (hex values decoded; raw bytes preserved)
+2. **Hashed with SHA-256** before storage
+3. Stored only as the hash in `biometric_credentials.credential_hash`
 
-- A database breach does not expose biometric data
-- Hashes cannot be reversed to reconstruct the original biometric
+This means:
+- A database breach does not expose raw biometric data or scanner tokens
+- Hashes cannot be reversed to reconstruct the original biometric or token
+- Multiple representations of the same credential are normalized to a single canonical hash
 - Each credential is unique per user per method
 
 For testing, credential hashes are simulated with:
@@ -109,24 +117,31 @@ The hash includes: `userID`, `zoneID`, `action`, `timestamp`, `previousHash`, `e
 
 ## 9. Rate Limiting
 
-Login and register endpoints are rate limited to 5 requests per minute per IP using a token bucket algorithm. Exceeding the limit returns `429 Too Many Requests`.
+Login, register, and bootstrap endpoints are rate limited to 5 requests per minute per IP using a token bucket algorithm. Exceeding the limit returns `429 Too Many Requests`.
 
 Known limitations:
 - State is in-memory — resets on server restart
 - `X-Forwarded-For` can be spoofed by a sophisticated attacker
 - Does not prevent slow distributed brute force attacks
 
-Planned hardening: account lockout after repeated failed attempts, Redis-backed rate limiting for multi-instance deployments.
+Planned hardening: Redis-backed rate limiting for multi-instance deployments.
 
----
+## 10. Account Lockout
 
-## 10. Bootstrap Security
+After 5 failed login attempts on the same email, the account is automatically locked for 15 minutes:
+- Subsequent login attempts return `429 Too Many Requests` with "account is temporarily locked"
+- Successful login resets the counter and unlocks the account
+- Admin can manually unlock via `PUT /admin/users/{id}/unlock`
+- Lockout timestamp is stored in `users.locked_until` and checked on every authentication attempt
 
-`POST /bootstrap` is a public endpoint but self-sealing — it checks for any existing admin before creating one. After the first successful call it permanently returns `403`. This prevents privilege escalation on a fresh deploy.
+## 11. Bootstrap Security
 
----
+`POST /bootstrap` is a public endpoint but hardened with:
+- **Rate limiting:** same 5 req/min per IP limit as login/register
+- **Self-sealing:** checks for any existing admin before creating one
+- **After first use:** returns `404 Not Found` (misleading response) instead of `403` to avoid revealing admin existence
 
-## 11. PostgreSQL Authentication
+## 12. PostgreSQL Authentication
 
 - `peer` → authenticates via Linux username, no password required for local socket connections
 - `scram-sha-256` → TCP connections require password
@@ -134,14 +149,17 @@ Planned hardening: account lockout after repeated failed attempts, Redis-backed 
 
 ---
 
-## 12. Production Checklist
+## 13. Production Checklist
 
 - [ ] Rotate `JWT_SECRET` before going live
+- [ ] Rotate `DEVICE_API_KEY` and secure its distribution to devices
 - [ ] Use a dedicated DB user with least privileges
 - [ ] Ensure `.env` is in `.gitignore` and not in git history
 - [ ] Run migrations as superuser, app connects as restricted user
-- [ ] Use HTTPS — JWT tokens in plain HTTP are exposed in transit
-- [ ] Enable account lockout after repeated failed login attempts
-- [ ] Set up token cleanup job for expired refresh tokens
+- [ ] Use HTTPS — JWT tokens and refresh tokens in plain HTTP are exposed in transit
+- [ ] Verify account lockout is working (5 failed attempts → 15 min lockout)
+- [ ] Verify token cleanup runs on startup and every 24 hours
 - [ ] Replace in-memory rate limiter with Redis for multi-instance deployments
 - [ ] Consider 2FA for admin accounts
+- [ ] Enable WebSocket over WSS (WebSocket Secure) in production
+- [ ] Test graceful shutdown (30 sec drain) with in-flight requests
