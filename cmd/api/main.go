@@ -18,6 +18,24 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const (
+	serverReadHeaderTimeout = 5 * time.Second
+	serverReadTimeout       = 15 * time.Second
+	serverWriteTimeout      = 30 * time.Second
+	serverIdleTimeout       = 60 * time.Second
+)
+
+func newHTTPServer(addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: serverReadHeaderTimeout,
+		ReadTimeout:       serverReadTimeout,
+		WriteTimeout:      serverWriteTimeout,
+		IdleTimeout:       serverIdleTimeout,
+	}
+}
+
 func main() {
 	// loads .env file automatically
 	godotenv.Load()
@@ -71,10 +89,7 @@ func main() {
 
 	handler := httpdir.New(userService, jwtService, zoneService, deviceService, credentialService, biometricService, cfg.DeviceAPIKey)
 
-	srv := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: handler,
-	}
+	srv := newHTTPServer(":"+cfg.Port, handler)
 
 	// run server in the background
 	go func() {
