@@ -179,7 +179,7 @@ func BootStrapHandler(s *auth.UserService) http.HandlerFunc {
 		}
 		if err := s.BootStrapAdmin(req.Name, req.Email, req.Password); err != nil {
 			if errors.Is(err, auth.ErrAdminExists) {
-				WriteError(w, http.StatusForbidden, "admin already exists")
+				WriteError(w, http.StatusNotFound, "not found")
 				return
 			}
 			if errors.Is(err, auth.ErrEmailExists) {

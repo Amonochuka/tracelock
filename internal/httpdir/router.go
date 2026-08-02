@@ -29,7 +29,7 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 
 	r.With(limiter.Middleware).Post("/register", RegisterHandler(authService))
 	r.With(limiter.Middleware).Post("/login", LoginHandler(authService, jwtService))
-	r.Post("/bootstrap", BootStrapHandler(authService))
+	r.With(limiter.Middleware).Post("/bootstrap", BootStrapHandler(authService))
 	r.Post("/logout", LogoutHandler(authService))
 	r.Post("/refresh", RefreshHandler(authService))
 
