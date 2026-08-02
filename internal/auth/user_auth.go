@@ -17,7 +17,7 @@ type UserAuth struct {
 	db *sql.DB
 }
 
-func NewUserAuth(db *sql.DB) *UserAuth {
+func NewUserAuth(db *sql.DB) UserRepository {
 	return &UserAuth{db: db}
 }
 
