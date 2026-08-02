@@ -52,51 +52,57 @@ tracelock/
 ├── api/                           # legacy or external API clients
 ├── cmd/
 │   └── api/
-│       └── main.go
+│       ├── main.go
+│       └── main_test.go
 ├── internal/
 │   ├── access/
 │   │   ├── access_repo.go
+│   │   ├── access_repo_test.go
 │   │   ├── access_service.go
+│   │   ├── access_service_test.go
+│   │   ├── biometric_service.go
+│   │   ├── credential_repo.go
+│   │   ├── credential_repo_test.go
+│   │   ├── credential_service.go
 │   │   ├── device_repo.go
 │   │   ├── device_service.go
-│   │   ├── credential_repo.go
-│   │   ├── credential_service.go
-│   │   ├── biometric_service.go
+│   │   ├── errors.go
 │   │   ├── hash.go
+│   │   ├── hash_test.go
+│   │   ├── hash_chain_test.go
 │   │   ├── hub.go
-│   │   └── errors.go
+│   │   └── interfaces.go
 │   ├── auth/
+│   │   ├── errors.go
 │   │   ├── interfaces.go
-│   │   ├── user_auth.go
-│   │   ├── user_service.go
 │   │   ├── jwt.go
 │   │   ├── middleware.go
-│   │   └── errors.go
+│   │   ├── user_auth.go
+│   │   └── user_service.go
+│   ├── config/
+│   │   └── config.go
 │   ├── db/
 │   │   ├── db.go
 │   │   └── migrations.go
 │   ├── httpdir/
-│   │   ├── router.go
-│   │   ├── auth_handlers.go
 │   │   ├── access_handlers.go
-│   │   ├── zone_handlers.go
-│   │   ├── permissions_handlers.go
-│   │   ├── user_handlers.go
-│   │   ├── device_handlers.go
-│   │   ├── credential_handlers.go
+│   │   ├── auth_handlers.go
 │   │   ├── biometric_handlers.go
+│   │   ├── credential_handler.go
+│   │   ├── device_handlers.go
 │   │   ├── helpers.go
 │   │   ├── logger.go
+│   │   ├── permissions_handlers.go
 │   │   ├── response.go
+│   │   ├── router.go
 │   │   └── middleware/
 │   │       ├── apikey.go
-│   │       ├── roles.go
-│   │       └── ratelimit.go
-│   ├── models/
-│   │   └── models.go
-│   └── config/
-│       └── config.go
+│   │       ├── ratelimit.go
+│   │       └── roles.go
+│   └── models/
+│       └── models.go
 ├── migrations/
+│   ├── embed.go
 │   ├── 000001_create_users_table.up.sql
 │   ├── 000001_create_users_table.down.sql
 │   ├── 000002_create_zones_table.up.sql
@@ -112,8 +118,7 @@ tracelock/
 │   ├── 000007_create_refresh_tokens_table.up.sql
 │   ├── 000007_create_refresh_tokens_table.down.sql
 │   ├── 000008_create_biometric_credentials_table.up.sql
-│   ├── 000008_create_biometric_credentials_table.down.sql
-│   └── embed.go
+│   └── 000008_create_biometric_credentials_table.down.sql
 ├── docs/
 │   ├── README.md
 │   ├── Developer_guide.md
