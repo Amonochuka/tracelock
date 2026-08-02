@@ -159,10 +159,10 @@ func (u *UserAuth) ListUsers() ([]*models.User, error) {
 }
 
 // save refresh token
-func (u *UserAuth) SaveRefreshToken(userID int, token string, expiresAt time.Time) error {
+func (u *UserAuth) SaveRefreshToken(userID int, tokenHash string, expiresAt time.Time) error {
 	_, err := u.db.Exec(
-		"INSERT INTO refresh_tokens(user_id, token, expires_at) VALUES($1,$2,$3)",
-		userID, token, expiresAt)
+		"INSERT INTO refresh_tokens(user_id, token_hash, expires_at) VALUES($1,$2,$3)",
+		userID, tokenHash, expiresAt)
 	if err != nil {
 		return fmt.Errorf("saving refresh token: %w", err)
 	}
@@ -170,11 +170,11 @@ func (u *UserAuth) SaveRefreshToken(userID int, token string, expiresAt time.Tim
 }
 
 // get the refresh token
-func (u *UserAuth) GetRefreshToken(token string) error {
+func (u *UserAuth) GetRefreshToken(tokenHash string) error {
 	var revoked bool
 	var expiresAt time.Time
 	err := u.db.QueryRow(`SELECT revoked, expires_at from refresh_tokens 
-				WHERE token = $1`, token).Scan(&revoked, &expiresAt)
+				WHERE token_hash = $1`, tokenHash).Scan(&revoked, &expiresAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrTokenNotFound
@@ -191,8 +191,8 @@ func (u *UserAuth) GetRefreshToken(token string) error {
 }
 
 // revoke the refresh token
-func (u *UserAuth) RevokeRefreshToken(token string) error {
-	res, err := u.db.Exec("UPDATE refresh_tokens SET revoked = true WHERE token = $1", token)
+func (u *UserAuth) RevokeRefreshToken(tokenHash string) error {
+	res, err := u.db.Exec("UPDATE refresh_tokens SET revoked = true WHERE token_hash = $1", tokenHash)
 	if err != nil {
 		return fmt.Errorf("revoke refresh tokens: %w", err)
 	}
@@ -204,9 +204,9 @@ func (u *UserAuth) RevokeRefreshToken(token string) error {
 }
 
 // get user using a certain refresh token
-func (u *UserAuth) GetUserIDFromRefreshToken(token string) (int, error) {
+func (u *UserAuth) GetUserIDFromRefreshToken(tokenHash string) (int, error) {
 	var userID int
-	err := u.db.QueryRow("SELECT user_id FROM refresh_tokens WHERE token = $1", token).Scan(&userID)
+	err := u.db.QueryRow("SELECT user_id FROM refresh_tokens WHERE token_hash = $1", tokenHash).Scan(&userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, ErrTokenNotFound

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -65,4 +66,9 @@ func (j *JWTService) GenerateRefreshToken() (string, time.Time, error) {
 	token := hex.EncodeToString(b)
 	expiresAt := time.Now().Add(time.Hour * 24 * 7)
 	return token, expiresAt, nil
+}
+
+func HashRefreshToken(tokenString string) string {
+	hash := sha256.Sum256([]byte(tokenString))
+	return hex.EncodeToString(hash[:])
 }

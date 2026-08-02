@@ -45,7 +45,8 @@ func (s *UserService) VerifyUser(id int) (*models.User, error) {
 
 // save refresh token
 func (s *UserService) SaveRefreshToken(userID int, token string, expiresAt time.Time) error {
-	return s.auth.SaveRefreshToken(userID, token, expiresAt)
+	tokenHash := HashRefreshToken(token)
+	return s.auth.SaveRefreshToken(userID, tokenHash, expiresAt)
 }
 
 // bootstrap admin
@@ -75,12 +76,13 @@ func (s *UserService) ListUsers() ([]*models.User, error) {
 // give a user a new access token
 func (s *UserService) RefreshAccessToken(token string) (string, error) {
 	//get the refresh token
-	if err := s.auth.GetRefreshToken(token); err != nil {
+	tokenHash := HashRefreshToken(token)
+	if err := s.auth.GetRefreshToken(tokenHash); err != nil {
 		return "", err
 	}
 
 	//get userID associated to a refersh token
-	userID, err := s.auth.GetUserIDFromRefreshToken(token)
+	userID, err := s.auth.GetUserIDFromRefreshToken(tokenHash)
 	if err != nil {
 		return "", err
 	}
@@ -94,7 +96,8 @@ func (s *UserService) RefreshAccessToken(token string) (string, error) {
 }
 
 func (s *UserService) Logout(token string) error {
-	return s.auth.RevokeRefreshToken(token)
+	tokenHash := HashRefreshToken(token)
+	return s.auth.RevokeRefreshToken(tokenHash)
 }
 
 func (s *UserService) DeleteExpiredTokens() error {

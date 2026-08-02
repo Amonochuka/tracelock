@@ -1,8 +1,13 @@
 CREATE TABLE IF NOT EXISTS refresh_tokens (
-    id         SERIAL PRIMARY KEY,
-    user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token      VARCHAR(255) UNIQUE NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
     revoked    BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX idx_refresh_tokens_user
+ON refresh_tokens(user_id);
