@@ -6,6 +6,12 @@ import (
 	"tracelock/internal/models"
 )
 
+// StaleSession represents an active session that has exceeded its time threshold.
+type StaleSession struct {
+	UserID int
+	ZoneID int
+}
+
 // ZoneRepository defines everything ZoneService needs from the data layer.
 // This lets tests use a mock repo instead of hitting a real database.
 type ZoneRepository interface {
@@ -30,6 +36,7 @@ type ZoneRepository interface {
 	ListUserEvents(userID, limit, offset int) ([]*models.AccessEvent, int, error)
 	VerifyChain(zoneID int) (bool, int, error)
 	GetActiveSessionForUser(userID int) (int, error)
+	GetStaleSessions(threshold time.Time) ([]StaleSession, error)
 	ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error)
 	GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error)
 }

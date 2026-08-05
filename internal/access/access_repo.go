@@ -466,6 +466,28 @@ func (z *ZoneRepo) GetActiveSessionForUser(userID int) (int, error) {
 	return zoneID, nil
 }
 
+// GetStaleSessions returns all active sessions with an entered_at older than threshold.
+func (z *ZoneRepo) GetStaleSessions(threshold time.Time) ([]StaleSession, error) {
+	rows, err := z.db.Query(`SELECT user_id, zone_id FROM active_sessions WHERE entered_at < $1`, threshold)
+	if err != nil {
+		return nil, fmt.Errorf("get stale sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []StaleSession
+	for rows.Next() {
+		var s StaleSession
+		if err := rows.Scan(&s.UserID, &s.ZoneID); err != nil {
+			return nil, fmt.Errorf("scan stale session: %w", err)
+		}
+		sessions = append(sessions, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating rows: %w", err)
+	}
+	return sessions, nil
+}
+
 // show occupancy per zone in percentages, to drive dashboard in front end
 func (z *ZoneRepo) ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error) {
 	rows, err := z.db.Query(`

@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -16,8 +17,9 @@ type Config struct {
 	DBSSLMode  string
 
 	JWTSecret     string
-	DeviceAPIKey  string
-	AllowedOrigin string
+	DeviceAPIKey        string
+	AllowedOrigin      string
+	SessionTimeoutHours int
 }
 
 func Load() *Config {
@@ -30,8 +32,9 @@ func Load() *Config {
 		DBName:        mustEnv("DB_NAME"),
 		DBSSLMode:     getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:     mustEnv("JWT_SECRET"),
-		DeviceAPIKey:  mustEnv("DEVICE_API_KEY"),
-		AllowedOrigin: getEnv("ALLOWED_ORIGIN", "*"),
+		DeviceAPIKey:        mustEnv("DEVICE_API_KEY"),
+		AllowedOrigin:      getEnv("ALLOWED_ORIGIN", "*"),
+		SessionTimeoutHours: getEnvInt("SESSION_TIMEOUT_HOURS", 12),
 	}
 	return cfg
 }
@@ -50,4 +53,17 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return val
+}
+
+func getEnvInt(key string, fallback int) int {
+	val := os.Getenv(key)
+	if val == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(val)
+	if err != nil {
+		log.Printf("invalid %s value %q, using default %d", key, val, fallback)
+		return fallback
+	}
+	return n
 }

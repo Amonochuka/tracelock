@@ -268,3 +268,41 @@ func (s *ZoneService) ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, erro
 func (s *ZoneService) GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error) {
 	return s.repo.GetZoneAnalytics(zoneID)
 }
+
+// CleanupStaleSessions force-closes active sessions older than the given threshold.
+// Each closed session gets a "system_timeout" exit event logged in the hash chain
+// and its zone's occupancy is broadcast to WebSocket clients.
+func (s *ZoneService) CleanupStaleSessions(threshold time.Duration) (int, error) {
+	cutoff := time.Now().Add(-threshold)
+	stale, err := s.repo.GetStaleSessions(cutoff)
+	if err != nil {
+		return 0, err
+	}
+
+	closed := 0
+	now := time.Now()
+	for _, session := range stale {
+		// delete the stale session
+		if err := s.repo.DeleteSession(session.UserID, session.ZoneID); err != nil {
+			log.Printf("stale session cleanup: failed to delete session user=%d zone=%d: %v",
+				session.UserID, session.ZoneID, err)
+			continue
+		}
+
+		// log a system_timeout exit event in the hash chain
+		if err := s.repo.CreateChainedEvent(
+			session.UserID, session.ZoneID,
+			"exit", "allowed", nil, now, nil, "system_timeout",
+		); err != nil {
+			log.Printf("stale session cleanup: failed to log exit event user=%d zone=%d: %v",
+				session.UserID, session.ZoneID, err)
+			continue
+		}
+
+		// broadcast updated zone state
+		go s.broadcastZoneState(session.ZoneID)
+		closed++
+	}
+
+	return closed, nil
+}

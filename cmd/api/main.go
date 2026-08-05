@@ -76,6 +76,20 @@ func main() {
 	// pass hub to zone service
 	zoneService := access.NewZoneService(zoneRepo, hub)
 
+	// start stale session cleanup job
+	sessionTimeout := time.Duration(cfg.SessionTimeoutHours) * time.Hour
+	go func() {
+		for {
+			closed, err := zoneService.CleanupStaleSessions(sessionTimeout)
+			if err != nil {
+				log.Printf("stale session cleanup failed: %v", err)
+			} else if closed > 0 {
+				log.Printf("stale session cleanup: force-closed %d sessions", closed)
+			}
+			time.Sleep(1 * time.Hour)
+		}
+	}()
+
 	// device management
 	deviceRepo := access.NewDeviceRepo(database)
 	deviceService := access.NewDeviceService(deviceRepo)
