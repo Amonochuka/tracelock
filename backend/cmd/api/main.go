@@ -101,7 +101,7 @@ func main() {
 	//biometrics
 	biometricService := access.NewBiometricService(credentialRepo, deviceRepo, zoneService, userAuth, jwtService)
 
-	handler := httpdir.New(userService, jwtService, zoneService, deviceService, credentialService, biometricService, cfg.DeviceAPIKey)
+	handler := httpdir.New(userService, jwtService, zoneService, deviceService, credentialService, biometricService, cfg.DeviceAPIKey, cfg.AllowedOrigin)
 
 	srv := newHTTPServer(":"+cfg.Port, handler)
 

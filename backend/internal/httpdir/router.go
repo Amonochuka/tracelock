@@ -8,18 +8,29 @@ import (
 	"tracelock/internal/auth"
 	"tracelock/internal/httpdir/middleware"
 
-	chimiddleware "github.com/go-chi/chi/v5/middleware"
-
 	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService,
 	deviceService *access.DeviceService, credentialService *access.CredentialService,
-	biometricService *access.BiometricService, deviceAPIKey string) http.Handler {
+	biometricService *access.BiometricService, deviceAPIKey string, allowedOrigin string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimiddleware.RequestID)
 	r.Use(NewJSONLogger())
+
+	// Basic CORS
+	// for more ideas, see: https://developer.github.com/v3/#cross-origin-resource-sharing
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{allowedOrigin},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Device-API-Key"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
 
 	// Public
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
