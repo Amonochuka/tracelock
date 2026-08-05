@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"strings"
 )
 
 func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService,
@@ -23,7 +24,6 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 	r.Use(NewJSONLogger())
 
 	// Basic CORS
-	// for more ideas, see: https://developer.github.com/v3/#cross-origin-resource-sharing
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{allowedOrigin, "http://localhost:3000", "http://192.168.89.64:3000"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
