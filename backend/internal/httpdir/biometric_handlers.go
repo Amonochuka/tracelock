@@ -54,6 +54,8 @@ func AuthenticateBiometricHandler(service *access.BiometricService) http.Handler
 				WriteError(w, http.StatusForbidden, "zone is full")
 			case errors.Is(err, access.ErrUserAlreadyInZone):
 				WriteError(w, http.StatusConflict, "user already in zone")
+			case errors.Is(err, access.ErrRequiresExitScan):
+				WriteError(w, http.StatusForbidden, "must explicitly exit current zone first")
 			default:
 				WriteError(w, http.StatusInternalServerError, "authentication failed")
 			}
