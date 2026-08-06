@@ -48,23 +48,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  // Protect routes
+  // Protect routes based on role
   useEffect(() => {
     if (!isLoading) {
-      if (!token && pathname.startsWith('/admin')) {
-        router.push('/login');
-      } else if (token && pathname === '/login') {
-        router.push('/admin');
+      const isAdmin = user?.role === 'admin';
+      const isAuthPage = pathname === '/login' || pathname === '/bootstrap';
+      const isAdminRoute = pathname.startsWith('/admin');
+      const isDashboardRoute = pathname.startsWith('/dashboard');
+
+      if (!token) {
+        // Not logged in — redirect to login if trying to access protected pages
+        if (isAdminRoute || isDashboardRoute) {
+          router.push('/login');
+        }
+      } else {
+        // Logged in — redirect away from auth pages
+        if (isAuthPage) {
+          router.push(isAdmin ? '/admin' : '/dashboard');
+        }
+        // Non-admin trying to access admin routes
+        if (!isAdmin && isAdminRoute) {
+          router.push('/dashboard');
+        }
       }
     }
-  }, [token, isLoading, pathname, router]);
+  }, [token, user, isLoading, pathname, router]);
 
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));
-    router.push('/admin');
+    router.push(newUser.role === 'admin' ? '/admin' : '/dashboard');
   };
 
   const logout = () => {
