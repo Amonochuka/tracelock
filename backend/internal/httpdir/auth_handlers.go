@@ -119,6 +119,7 @@ func LoginHandler(s *auth.UserService, j *auth.JWTService) http.HandlerFunc {
 
 		err = s.SaveRefreshToken(user.ID, refreshToken, expiresAt)
 		if err != nil {
+			log.Print("SaveRefreshToken failed: %w", err)
 			WriteError(w, http.StatusInternalServerError, "could not save refresh token")
 			return
 		}
