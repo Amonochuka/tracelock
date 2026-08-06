@@ -26,6 +26,7 @@ export default function SimulatorPage() {
 
   // Step 2: Credential Enrollment
   const [credUserId, setCredUserId] = useState('');
+  const [credMethod, setCredMethod] = useState('fingerprint');
   const [credHash, setCredHash] = useState('');
   const [credLoading, setCredLoading] = useState(false);
   const [credFeedback, setCredFeedback] = useState({ type: '', msg: '' });
@@ -87,7 +88,7 @@ export default function SimulatorPage() {
       const res = await fetch(`${API_URL}/admin/users/${credUserId}/credentials`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ entry_method: 'biometric', credential_hash: credHash })
+        body: JSON.stringify({ entry_method: credMethod, credential_hash: credHash })
       });
       const data = await res.json();
       
@@ -206,6 +207,16 @@ export default function SimulatorPage() {
               <select className="input" value={credUserId} onChange={(e) => setCredUserId(e.target.value)} required>
                 <option value="">Select a user...</option>
                 {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Entry Method</label>
+              <select className="input" value={credMethod} onChange={(e) => setCredMethod(e.target.value)}>
+                <option value="fingerprint">Fingerprint</option>
+                <option value="face">Face Recognition</option>
+                <option value="iris">Iris Scanner</option>
+                <option value="card">Card Reader</option>
+                <option value="pin">PIN Pad</option>
               </select>
             </div>
             <div className="form-group">
