@@ -24,7 +24,7 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 	// Basic CORS
 	// for more ideas, see: https://developer.github.com/v3/#cross-origin-resource-sharing
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{allowedOrigin},
+		AllowedOrigins:   []string{"http://localhost:3000", "http://192.168.89.64:3000"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Device-API-Key"},
 		ExposedHeaders:   []string{"Link"},

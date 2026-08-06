@@ -53,7 +53,11 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			if h.allowedOrigin == "*" {
 				return true
 			}
-			return r.Header.Get("Origin") == h.allowedOrigin
+			origin := r.Header.Get("Origin")
+			if origin == h.allowedOrigin || origin == "http://localhost:3000" || origin == "http://192.168.89.64:3000" {
+				return true
+			}
+			return false
 		},
 	}
 
