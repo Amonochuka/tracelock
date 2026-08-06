@@ -124,6 +124,9 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 
 			// unlock a locked account
 			r.Put("/admin/users/{id}/unlock", UnlockAccountHandler(authService))
+
+			// Simulator proxy
+			r.Post("/admin/simulate-device", AdminSimulateBiometricHandler(biometricService))
 		})
 	})
 

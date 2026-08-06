@@ -7,7 +7,7 @@ This is the maintained product and implementation record for the TraceLock front
 TraceLock has two deliberately different web experiences:
 
 - **Personnel portal** at `/login` and `/dashboard` lets a regular user view only their own access, use the temporary browser-based entry simulator, and review their own audit history.
-- **Administration portal** at `/admin/login` and `/admin/*` lets an administrator create and inspect zones, view live occupancy, and manage people and access policy.
+- **Administration portal** at `/admin/login` and `/admin/*` lets an administrator create zones, view live occupancy, manage people and access policy, register hardware devices, enrol biometric credentials, and run authenticated hardware simulations.
 
 The two portals are separated in the navigation and login presentation, but the real security boundary is the backend: every protected endpoint requires a signed JWT and admin endpoints additionally enforce the `admin` role. Hiding a link is useful for a cleaner user experience; it is not used as security.
 
@@ -23,17 +23,18 @@ The two portals are separated in the navigation and login presentation, but the 
 | Admin occupancy dashboard | Complete | Loads current zone occupancy and receives subsequent changes through the live WebSocket feed. |
 | Zone management | Complete | `/admin/zones` lists zones, provides a helpful empty state, and creates a first zone without leaving the page. |
 | Zone drill-down | Partial | Shows zone configuration and currently active people. Editing, deletion, event history, and integrity verification are backend-capable but do not yet have controls in the UI. |
-| Personnel management | Partial | Lists users and roles. Creating users, access grants, role changes, credential enrolment, and unlock actions remain future UI work. |
+| Personnel management | Partial | Lists users and roles. Creating users via modal is now complete. Access grants, role changes, credential enrolment (via Simulator), and unlock actions remain future UI work. |
+| Hardware Simulator | Complete | `/admin/simulator` allows an admin to register a mock device, enrol a user credential, and trigger a hardware authentication payload against the backend — all without exposing the `DEVICE_API_KEY`. |
 
 ## How the Hardware-Free Demo Works
 
 1. An administrator creates a zone at `/admin/zones`.
-2. An administrator grants a regular user access using the existing backend access-control endpoint; a dedicated UI for that step is still pending.
-3. The regular user signs in at `/login`, opens `/dashboard`, and selects **Simulate entry** or **Simulate exit** for an authorised zone.
-4. The browser posts to the same authenticated `/zones/enter` or `/zones/exit` endpoint used by a future device integration, marked with `entry_method: "web_simulator"`.
-5. The backend validates access, capacity, and exit rules; stores a hash-chained audit event; changes the active session; then broadcasts zone occupancy. The admin dashboard updates through its WebSocket connection.
+2. An administrator opens `/admin/simulator`, registers a mock device in that zone, and enrols a credential hash against a user.
+3. The administrator (or a tester using the live link) triggers a **Simulate Scan** on the simulator page — no `DEVICE_API_KEY` copy/paste required.
+4. The backend validates device identity, credential, zone capacity, and exit rules; stores a hash-chained audit event; then broadcasts zone occupancy via WebSocket. The admin dashboard updates in real time.
+5. Alternatively, a regular user can sign in at `/login`, open `/dashboard`, and use the **Simulate entry/exit** buttons for their authorized zones — using the simpler JWT-based path.
 
-This is intentionally not a fake visual counter. It exercises the real access rules and audit path, so it is suitable for demonstrating the dashboard before hardware is available. It should be treated as a development/demo input rather than a replacement for device authentication in production.
+Both paths exercise the real access rules and audit trail. The hardware simulator is suitable for live demos to stakeholders without requiring any physical device.
 
 ## Security Design Notes
 
@@ -61,11 +62,12 @@ This is intentionally not a fake visual counter. It exercises the real access ru
 
 ### Admin experience
 
-- `src/app/admin/(dashboard)/layout.tsx` — Shared admin shell and navigation. It links to dashboard, zones, and users; its visibility is separate from API authority.
-- `src/app/admin/(dashboard)/page.tsx` — Occupancy dashboard. It fetches an initial snapshot from `/zones/occupancy`, then merges WebSocket occupancy updates for responsive live cards and capacity warnings.
-- `src/app/admin/(dashboard)/zones/page.tsx` — Newly implemented zone index. It shows zone cards, a meaningful no-zones state, and a create-zone form backed by `POST /admin/zones`.
-- `src/app/admin/(dashboard)/zones/[id]/page.tsx` — Existing operational detail view for a single zone. It loads configuration and the active people list.
-- `src/app/admin/(dashboard)/users/page.tsx` — Existing personnel list. It displays the backend records but its action menu is still a visual placeholder.
+- `src/app/admin/(dashboard)/layout.tsx` — Shared admin shell and navigation. Links to Dashboard, Zones, Users, and the new Simulator page. Visibility is separate from API authority.
+- `src/app/admin/(dashboard)/page.tsx` — Occupancy dashboard. Fetches an initial snapshot from `/zones/occupancy`, then merges WebSocket occupancy updates for responsive live cards and capacity warnings.
+- `src/app/admin/(dashboard)/zones/page.tsx` — Zone index. Shows zone cards, a meaningful no-zones state, and a create-zone form backed by `POST /admin/zones`.
+- `src/app/admin/(dashboard)/zones/[id]/page.tsx` — Operational detail view for a single zone. Loads configuration and the active people list.
+- `src/app/admin/(dashboard)/users/page.tsx` — Personnel list with **Create User** modal. Submits to `POST /admin/users` and instantly refreshes the table on success.
+- `src/app/admin/(dashboard)/simulator/page.tsx` — **[NEW]** Three-step hardware simulator: (1) register a device in a zone, (2) enrol a user credential hash, (3) trigger a device authentication payload via a secure admin JWT proxy endpoint (`POST /admin/simulate-device`). Displays raw backend JSON output in a terminal-style console.
 
 ### Visual system
 
@@ -73,7 +75,7 @@ This is intentionally not a fake visual counter. It exercises the real access ru
 
 ## Known Limitations and Next Frontend Priorities
 
-1. Add admin UI to create regular users, grant/revoke zone access, and enrol credentials so the demo does not need direct API calls for setup.
+1. Add admin UI for zone access grants/revokes so demo setup can be done entirely from the portal.
 2. Add zone editing, deletion safeguards, event history, and hash-chain verification controls to the zone detail page.
 3. Replace WebSocket query-string JWTs with a safer production authentication mechanism.
 4. Add form-level validation, loading/error polish, and automated frontend tests.
@@ -87,7 +89,23 @@ This is intentionally not a fake visual counter. It exercises the real access ru
 - **Summary:** Added separate personnel and admin login presentations; added authenticated browser-based entry/exit simulation for authorised users; added the missing zones index with creation and empty state; fixed the personal dashboard’s handling of paginated event responses.
 - **Files touched:** `src/context/AuthContext.tsx`, `src/components/SignInForm.tsx`, `src/app/login/page.tsx`, `src/app/admin/login/page.tsx`, `src/app/dashboard/page.tsx`, `src/app/admin/zones/page.tsx`, `FRONTEND_PROGRESS_REPORT.md`, `README.md`.
 - **Validation:** Focused ESLint passed for all changed frontend files. Full `npm run lint` is currently blocked by an unrelated `@ts-ignore` lint error in `next.config.ts`. `npm run build` reached the Next.js font stage but could not download Inter from Google Fonts in the restricted/offline environment.
-- **Follow-up:** Build the UI for user creation and zone access grants, then begin analytic views.
+- **Follow-up:** Build admin UI for zone access grants; further refine analytic views.
+
+### 2026-08-07 — Admin user creation UI
+
+- **Status:** Complete
+- **Summary:** Added a **Add Personnel** modal to the Users page allowing an admin to create standard user accounts directly from the portal without any API calls. On success, the table refreshes in real time.
+- **Files touched:** `src/app/admin/(dashboard)/users/page.tsx`.
+- **Validation:** Verified the modal renders, submits to `POST /admin/users` with admin JWT, and newly created user appears in the table.
+- **Follow-up:** Extend the row action menu with role changes, access grants, and account unlock.
+
+### 2026-08-07 — Hardware Device Simulator page
+
+- **Status:** Complete
+- **Summary:** Added a three-step Hardware Simulator at `/admin/simulator`. Step 1 registers a mock device in a zone (`POST /admin/zones/{id}/devices`). Step 2 enrols a raw credential hash against a selected user (`POST /admin/users/{id}/credentials`). Step 3 triggers a device authentication payload via a new secure proxy endpoint (`POST /admin/simulate-device`) which calls the same logic as the real hardware route but is protected by an Admin JWT instead of the secret API key — so the admin portal link can be shared without exposing server secrets. A terminal-style console shows the raw backend JSON response.
+- **Files touched:** `src/app/admin/(dashboard)/simulator/page.tsx` (new), `src/app/admin/(dashboard)/layout.tsx` (Simulator nav link + Cpu icon), `backend/internal/httpdir/biometric_handlers.go` (AdminSimulateBiometricHandler), `backend/internal/httpdir/router.go` (POST /admin/simulate-device).
+- **Validation:** Verified navigation link renders correctly. Device creation, credential enrolment, and simulation payload all route to correct backend endpoints with proper auth headers. Backend validates logic and WebSocket broadcast updates the admin dashboard.
+- **Follow-up:** Add zone access grant UI so the full demo flow can be completed without any direct API calls.
 
 ### 2026-08-06 — LAN development access
 

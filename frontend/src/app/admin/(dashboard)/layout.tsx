@@ -3,7 +3,7 @@
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, LayoutDashboard, Users, Map, Shield } from 'lucide-react';
+import { LogOut, LayoutDashboard, Users, Map, Shield, Cpu } from 'lucide-react';
 
 export default function AdminLayout({
   children,
@@ -47,6 +47,14 @@ export default function AdminLayout({
             >
               <Users size={18} />
               <span className="text-sm">Users</span>
+            </Link>
+
+            <Link 
+              href="/admin/simulator" 
+              className={`nav-link flex items-center gap-2 ${pathname.startsWith('/admin/simulator') ? 'active' : ''}`}
+            >
+              <Cpu size={18} />
+              <span className="text-sm">Simulator</span>
             </Link>
           </nav>
 

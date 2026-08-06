@@ -66,3 +66,10 @@ func AuthenticateBiometricHandler(service *access.BiometricService) http.Handler
 		})
 	}
 }
+
+func AdminSimulateBiometricHandler(service *access.BiometricService) http.HandlerFunc {
+	// Reuses the exact same logic but is mounted under an Admin JWT route
+	// instead of the API key route.
+	return AuthenticateBiometricHandler(service)
+}
+
