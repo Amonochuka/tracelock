@@ -61,11 +61,11 @@ This is intentionally not a fake visual counter. It exercises the real access ru
 
 ### Admin experience
 
-- `src/app/admin/layout.tsx` — Shared admin shell and navigation. It links to dashboard, zones, and users; its visibility is separate from API authority.
-- `src/app/admin/page.tsx` — Occupancy dashboard. It fetches an initial snapshot from `/zones/occupancy`, then merges WebSocket occupancy updates for responsive live cards and capacity warnings.
-- `src/app/admin/zones/page.tsx` — Newly implemented zone index. It shows zone cards, a meaningful no-zones state, and a create-zone form backed by `POST /admin/zones`.
-- `src/app/admin/zones/[id]/page.tsx` — Existing operational detail view for a single zone. It loads configuration and the active people list.
-- `src/app/admin/users/page.tsx` — Existing personnel list. It displays the backend records but its action menu is still a visual placeholder.
+- `src/app/admin/(dashboard)/layout.tsx` — Shared admin shell and navigation. It links to dashboard, zones, and users; its visibility is separate from API authority.
+- `src/app/admin/(dashboard)/page.tsx` — Occupancy dashboard. It fetches an initial snapshot from `/zones/occupancy`, then merges WebSocket occupancy updates for responsive live cards and capacity warnings.
+- `src/app/admin/(dashboard)/zones/page.tsx` — Newly implemented zone index. It shows zone cards, a meaningful no-zones state, and a create-zone form backed by `POST /admin/zones`.
+- `src/app/admin/(dashboard)/zones/[id]/page.tsx` — Existing operational detail view for a single zone. It loads configuration and the active people list.
+- `src/app/admin/(dashboard)/users/page.tsx` — Existing personnel list. It displays the backend records but its action menu is still a visual placeholder.
 
 ### Visual system
 
@@ -115,6 +115,13 @@ This is intentionally not a fake visual counter. It exercises the real access ru
 - **Status:** Complete
 - **Summary:** Corrected the bootstrap page's existing-admin sign-in link so it leads to the separate administrator portal instead of the personnel portal.
 - **Files touched:** `src/app/bootstrap/page.tsx`, `FRONTEND_PROGRESS_REPORT.md`.
+
+### 2026-08-06 — Fix admin login layout using Next.js Route Groups
+
+- **Status:** Complete
+- **Summary:** Fixed an issue where the unauthenticated `/admin/login` route returned a blank screen due to inheriting the protected `app/admin/layout.tsx`. Moved the protected admin pages and layout into an `(dashboard)` Route Group so the login page renders independently of the dashboard shell.
+- **Files touched:** Moved `src/app/admin/layout.tsx`, `page.tsx`, `users/`, and `zones/` into `src/app/admin/(dashboard)/`.
+- **Validation:** Verified `/admin/login` correctly mounts without rendering a blank screen and `(dashboard)` routes still display the dashboard shell.
 
 ## Pre-Commit Checklist
 
