@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Shield, User, MoreVertical } from 'lucide-react';
+import { Shield, User, MoreVertical, Plus, UserPlus, X } from 'lucide-react';
 import { API_URL } from '@/lib/api';
 
 interface UserObj {
@@ -19,30 +19,72 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Create User State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState('');
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/users`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch users');
+      const data = await res.json();
+      setUsers(data || []);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
   useEffect(() => {
     if (!token) return;
-
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch(`${API_URL}/admin/users`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error('Failed to fetch users');
-        const data = await res.json();
-        setUsers(data || []);
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError('An unknown error occurred');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUsers();
-  }, [token]);
+  }, [token, fetchUsers]);
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError('');
+    setCreateLoading(true);
+
+    try {
+      const res = await fetch(`${API_URL}/admin/users`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ name: newName, email: newEmail, password: newPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create user');
+
+      await fetchUsers(); // Refresh list
+      
+      setShowCreateModal(false);
+      setNewName('');
+      setNewEmail('');
+      setNewPassword('');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setCreateError(err.message);
+      } else {
+        setCreateError('An unknown error occurred');
+      }
+    } finally {
+      setCreateLoading(false);
+    }
+  };
 
   if (loading) return <div className="text-secondary">Loading personnel data...</div>;
 
@@ -53,6 +95,13 @@ export default function UsersPage() {
           <h1>Personnel Access</h1>
           <p className="text-secondary mt-2">Manage user identities and roles</p>
         </div>
+        <button 
+          onClick={() => setShowCreateModal(true)}
+          className="btn btn-primary flex items-center gap-2"
+        >
+          <UserPlus size={18} />
+          <span>Add Personnel</span>
+        </button>
       </div>
 
       {error && (
@@ -114,6 +163,94 @@ export default function UsersPage() {
           </tbody>
         </table>
       </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="card w-full max-w-md relative">
+            <button 
+              onClick={() => setShowCreateModal(false)}
+              className="absolute top-4 right-4 text-secondary hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-lg bg-[rgba(0,212,170,0.1)] flex items-center justify-center border border-[rgba(0,212,170,0.3)]">
+                <UserPlus size={20} className="text-accent" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">New Personnel</h2>
+                <p className="text-sm text-secondary">Create a standard user account</p>
+              </div>
+            </div>
+
+            {createError && (
+              <div className="p-3 mb-4 text-sm bg-[rgba(255,77,106,0.1)] border border-[var(--danger-primary)] rounded text-danger">
+                {createError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div className="form-group">
+                <label className="form-label" htmlFor="name">Full Name</label>
+                <input
+                  id="name"
+                  type="text"
+                  className="input"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Jane Doe"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="email">Email Address</label>
+                <input
+                  id="email"
+                  type="email"
+                  className="input mono"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="jane.doe@tracelock.local"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="password">Initial Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  className="input mono"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={8}
+                />
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateModal(false)}
+                  className="btn bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-white"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={createLoading}
+                >
+                  {createLoading ? 'Creating...' : 'Create Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
