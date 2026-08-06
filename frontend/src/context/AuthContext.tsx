@@ -36,7 +36,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setToken(storedToken);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setUser(JSON.parse(storedUser));
       } catch {
         // Handle parse error
@@ -52,13 +51,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading) {
       const isAdmin = user?.role === 'admin';
-      const isAuthPage = pathname === '/login' || pathname === '/bootstrap';
+      const isAuthPage = pathname === '/login' || pathname === '/bootstrap' || pathname === '/admin/login';
       const isAdminRoute = pathname.startsWith('/admin');
+      const isAdminLogin = pathname === '/admin/login';
       const isDashboardRoute = pathname.startsWith('/dashboard');
 
       if (!token) {
         // Not logged in — redirect to login if trying to access protected pages
-        if (isAdminRoute || isDashboardRoute) {
+        if ((isAdminRoute && !isAdminLogin) || isDashboardRoute) {
           router.push('/login');
         }
       } else {
