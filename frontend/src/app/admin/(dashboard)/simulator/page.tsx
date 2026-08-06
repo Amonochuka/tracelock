@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/lib/api';
-import { Cpu, Fingerprint, Activity, TerminalSquare, Plus, Save, ShieldCheck } from 'lucide-react';
+import { Cpu, Fingerprint, Activity, TerminalSquare, Plus, Save, ShieldCheck, Trash2 } from 'lucide-react';
 
 export default function SimulatorPage() {
   const { token } = useAuth();
@@ -41,6 +41,11 @@ export default function SimulatorPage() {
   const [simAction, setSimAction] = useState('enter');
   const [simLoading, setSimLoading] = useState(false);
   const [simOutput, setSimOutput] = useState('');
+
+  // Step 5: Device Cleanup
+  const [deleteDeviceId, setDeleteDeviceId] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteFeedback, setDeleteFeedback] = useState({ type: '', msg: '' });
 
   useEffect(() => {
     if (!token) return;
@@ -161,6 +166,32 @@ export default function SimulatorPage() {
       setSimOutput(`ERROR:\n${err.message}`);
     } finally {
       setSimLoading(false);
+    }
+  };
+
+  const handleDeleteDevice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deleteDeviceId) return setDeleteFeedback({ type: 'error', msg: 'Please enter a device ID' });
+    
+    setDeleteLoading(true);
+    setDeleteFeedback({ type: '', msg: '' });
+    
+    try {
+      const res = await fetch(`${API_URL}/admin/devices/${deleteDeviceId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || 'Failed to delete device');
+      
+      setDeleteFeedback({ type: 'success', msg: `Device ${deleteDeviceId} deleted successfully` });
+      setDeleteDeviceId('');
+      if (activeDeviceId === deleteDeviceId) setActiveDeviceId('');
+    } catch (err: any) {
+      setDeleteFeedback({ type: 'error', msg: err.message });
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -341,8 +372,34 @@ export default function SimulatorPage() {
             <div className="text-[rgba(255,255,255,0.3)]">Ready for payload test...</div>
           )}
         </div>
-
       </div>
+
+      {/* Step 5: Device Cleanup */}
+      <div className="card mt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Trash2 size={20} className="text-danger" />
+          <h3 className="m-0">5. Delete Device</h3>
+        </div>
+        <p className="text-secondary text-sm mb-4">Clean up test devices from the database.</p>
+
+        {deleteFeedback.msg && (
+          <div className={`p-3 mb-4 text-sm rounded border ${deleteFeedback.type === 'error' ? 'bg-[rgba(255,77,106,0.1)] border-[var(--danger-primary)] text-danger' : 'bg-[rgba(0,212,170,0.1)] border-accent text-accent'}`}>
+            {deleteFeedback.msg}
+          </div>
+        )}
+
+        <form onSubmit={handleDeleteDevice} className="flex gap-4 items-end">
+          <div className="form-group flex-1 max-w-xs">
+            <label className="form-label">Device ID</label>
+            <input type="number" className="input mono" value={deleteDeviceId} onChange={(e) => setDeleteDeviceId(e.target.value)} placeholder="e.g. 5" required />
+          </div>
+          <button type="submit" className="btn h-11 bg-[rgba(255,77,106,0.1)] text-danger hover:bg-[rgba(255,77,106,0.2)]" disabled={deleteLoading}>
+            <Trash2 size={16} className="mr-2" />
+            {deleteLoading ? 'Deleting...' : 'Delete Device'}
+          </button>
+        </form>
+      </div>
+
     </div>
   );
 }
