@@ -23,7 +23,7 @@ export default function UsersPage() {
 
     const fetchUsers = async () => {
       try {
-        const res = await fetch('http://localhost:8080/admin/users', {
+        const res = await fetch(`http://${window.location.hostname}:8080/admin/users`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch users');

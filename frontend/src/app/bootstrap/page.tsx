@@ -19,8 +19,7 @@ export default function BootstrapPage() {
     setLoading(true);
 
     try {
-      // Step 1: Bootstrap the admin
-      const res = await fetch('http://localhost:8080/bootstrap', {
+      const res = await fetch(`http://${window.location.hostname}:8080/bootstrap`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
@@ -37,7 +36,7 @@ export default function BootstrapPage() {
       }
 
       // Step 2: Log in with the new credentials
-      const loginRes = await fetch('http://localhost:8080/login', {
+      const loginRes = await fetch(`http://${window.location.hostname}:8080/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -52,7 +51,7 @@ export default function BootstrapPage() {
       const jwt = loginData.token;
 
       // Step 3: Fetch user profile
-      const meRes = await fetch('http://localhost:8080/me', {
+      const meRes = await fetch(`http://${window.location.hostname}:8080/me`, {
         headers: { 'Authorization': `Bearer ${jwt}` }
       });
 

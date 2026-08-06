@@ -18,7 +18,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8080/login', {
+      const res = await fetch(`http://${window.location.hostname}:8080/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -33,7 +33,7 @@ export default function LoginPage() {
       const jwt = data.token;
 
       // Fetch user profile with the new token
-      const meRes = await fetch('http://localhost:8080/me', {
+      const meRes = await fetch(`http://${window.location.hostname}:8080/me`, {
         headers: { 'Authorization': `Bearer ${jwt}` }
       });
 

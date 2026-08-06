@@ -36,7 +36,7 @@ export default function ZoneDetailPage() {
     const fetchData = async () => {
       try {
         // Fetch zone details
-        const zRes = await fetch(`http://localhost:8080/zones/${id}`, {
+        const zRes = await fetch(`http://${window.location.hostname}:8080/zones/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!zRes.ok) throw new Error('Failed to fetch zone details');
@@ -44,7 +44,7 @@ export default function ZoneDetailPage() {
         setZone(zData);
 
         // Fetch active users in this zone
-        const uRes = await fetch(`http://localhost:8080/admin/zones/${id}/users`, {
+        const uRes = await fetch(`http://${window.location.hostname}:8080/admin/zones/${id}/users`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!uRes.ok) throw new Error('Failed to fetch active users');
