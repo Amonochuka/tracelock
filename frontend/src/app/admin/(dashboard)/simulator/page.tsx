@@ -19,7 +19,7 @@ export default function SimulatorPage() {
   // Step 1: Device Registration
   const [devZoneId, setDevZoneId] = useState('');
   const [devName, setDevName] = useState('');
-  const [devType, setDevType] = useState('biometric_scanner');
+  const [devType, setDevType] = useState('fingerprint');
   const [devSerial, setDevSerial] = useState('');
   const [devLoading, setDevLoading] = useState(false);
   const [devFeedback, setDevFeedback] = useState({ type: '', msg: '' });
@@ -165,6 +165,16 @@ export default function SimulatorPage() {
             <div className="form-group">
               <label className="form-label">Device Name</label>
               <input type="text" className="input" value={devName} onChange={(e) => setDevName(e.target.value)} placeholder="Main Entrance Scanner" required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Device Type</label>
+              <select className="input" value={devType} onChange={(e) => setDevType(e.target.value)}>
+                <option value="fingerprint">Fingerprint</option>
+                <option value="face">Face Recognition</option>
+                <option value="iris">Iris Scanner</option>
+                <option value="card">Card Reader</option>
+                <option value="pin">PIN Pad</option>
+              </select>
             </div>
             <div className="form-group">
               <label className="form-label">Serial Number</label>
