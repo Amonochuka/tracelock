@@ -157,7 +157,7 @@ export default function BootstrapPage() {
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-          <Link href="/login" className="text-secondary text-sm" style={{ textDecoration: 'none' }}>
+          <Link href="/admin/login" className="text-secondary text-sm" style={{ textDecoration: 'none' }}>
             Already bootstrapped? <span className="text-accent">Sign in</span>
           </Link>
         </div>
