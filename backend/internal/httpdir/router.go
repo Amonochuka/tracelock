@@ -15,7 +15,8 @@ import (
 
 func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService,
 	deviceService *access.DeviceService, credentialService *access.CredentialService,
-	biometricService *access.BiometricService, deviceAPIKey string, allowedOrigin string) http.Handler {
+	biometricService *access.BiometricService, deviceAPIKey string, allowedOrigin string,
+) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimiddleware.RequestID)
@@ -24,7 +25,7 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 	// Basic CORS
 	// for more ideas, see: https://developer.github.com/v3/#cross-origin-resource-sharing
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://192.168.89.64:3000"},
+		AllowedOrigins:   []string{allowedOrigin, "http://localhost:3000", "http://192.168.89.64:3000"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Device-API-Key"},
 		ExposedHeaders:   []string{"Link"},
@@ -68,7 +69,7 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 		// WebSocket; live zone occupancy feed
 		r.Get("/ws/zones", zoneService.GetHub().HandleWebSocket)
 
-		//for frontend dashboard
+		// for frontend dashboard
 		r.Get("/zones/occupancy", ListZoneOccupancyHandler(zoneService))
 
 		// Zone entry / exit
@@ -119,10 +120,10 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 			r.Get("/admin/users/{id}/credentials/{method}", GetCredentialHandler(credentialService))
 			r.Delete("/admin/users/{id}/credentials/{method}", RevokeCredentialHandler(credentialService))
 
-			//peak analysis
+			// peak analysis
 			r.Get("/admin/zones/{id}/analytics", GetZoneAnalyticsHandler(zoneService))
 
-			//unlock a locked account
+			// unlock a locked account
 			r.Put("/admin/users/{id}/unlock", UnlockAccountHandler(authService))
 		})
 	})
