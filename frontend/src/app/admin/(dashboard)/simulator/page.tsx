@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/lib/api';
-import { Cpu, Fingerprint, Activity, TerminalSquare, Plus, Save } from 'lucide-react';
+import { Cpu, Fingerprint, Activity, TerminalSquare, Plus, Save, ShieldCheck } from 'lucide-react';
 
 export default function SimulatorPage() {
   const { token } = useAuth();
@@ -31,7 +31,13 @@ export default function SimulatorPage() {
   const [credLoading, setCredLoading] = useState(false);
   const [credFeedback, setCredFeedback] = useState({ type: '', msg: '' });
 
-  // Step 3: Simulation
+  // Step 3: Grant Zone Access
+  const [accessUserId, setAccessUserId] = useState('');
+  const [accessZoneId, setAccessZoneId] = useState('');
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessFeedback, setAccessFeedback] = useState({ type: '', msg: '' });
+
+  // Step 4: Simulation
   const [simAction, setSimAction] = useState('enter');
   const [simLoading, setSimLoading] = useState(false);
   const [simOutput, setSimOutput] = useState('');
@@ -101,6 +107,31 @@ export default function SimulatorPage() {
       setCredFeedback({ type: 'error', msg: err.message });
     } finally {
       setCredLoading(false);
+    }
+  };
+
+  const handleGrantAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAccessLoading(true);
+    setAccessFeedback({ type: '', msg: '' });
+
+    try {
+      const res = await fetch(`${API_URL}/admin/access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ user_id: parseInt(accessUserId, 10), zone_id: parseInt(accessZoneId, 10) })
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Failed to grant access');
+
+      const userName = users.find(u => u.id === parseInt(accessUserId, 10))?.name || accessUserId;
+      const zoneName = zones.find(z => z.id === parseInt(accessZoneId, 10))?.name || accessZoneId;
+      setAccessFeedback({ type: 'success', msg: `${userName} now has access to ${zoneName}` });
+    } catch (err: any) {
+      setAccessFeedback({ type: 'error', msg: err.message });
+    } finally {
+      setAccessLoading(false);
     }
   };
 
@@ -233,11 +264,47 @@ export default function SimulatorPage() {
 
       </div>
 
-      {/* Step 3: Simulation execution */}
+      {/* Step 3: Grant Zone Access */}
+      <div className="card mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <ShieldCheck size={20} className="text-accent" />
+          <h3 className="m-0">3. Grant Zone Access</h3>
+        </div>
+        <p className="text-secondary text-sm mb-4">Authorize a user to enter a specific zone. Without this, the device scan will return &quot;access denied&quot;.</p>
+
+        {accessFeedback.msg && (
+          <div className={`p-3 mb-4 text-sm rounded border ${accessFeedback.type === 'error' ? 'bg-[rgba(255,77,106,0.1)] border-[var(--danger-primary)] text-danger' : 'bg-[rgba(0,212,170,0.1)] border-accent text-accent'}`}>
+            {accessFeedback.msg}
+          </div>
+        )}
+
+        <form onSubmit={handleGrantAccess} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="form-group">
+            <label className="form-label">Personnel</label>
+            <select className="input" value={accessUserId} onChange={(e) => setAccessUserId(e.target.value)} required>
+              <option value="">Select a user...</option>
+              {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Zone</label>
+            <select className="input" value={accessZoneId} onChange={(e) => setAccessZoneId(e.target.value)} required>
+              <option value="">Select a zone...</option>
+              {zones.map(z => <option key={z.id} value={z.id}>{z.name} (ID: {z.id})</option>)}
+            </select>
+          </div>
+          <button type="submit" className="btn btn-primary h-11" disabled={accessLoading}>
+            <ShieldCheck size={16} className="mr-2" />
+            {accessLoading ? 'Granting...' : 'Grant Access'}
+          </button>
+        </form>
+      </div>
+
+      {/* Step 4: Simulation execution */}
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <Activity size={20} className="text-accent" />
-          <h3 className="m-0">3. Hardware Authentication Payload Test</h3>
+          <h3 className="m-0">4. Hardware Authentication Payload Test</h3>
         </div>
         <p className="text-secondary text-sm mb-6">
           This secure proxy tests the backend `POST /devices/authenticate` logic without exposing the server`&apos;`s `DEVICE_API_KEY` to the browser.
