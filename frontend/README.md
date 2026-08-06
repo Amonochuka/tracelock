@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TraceLock Frontend
+
+A **Next.js 16** admin and user portal for the TraceLock physical access control system. Built with TypeScript and the App Router.
+
+---
+
+## Tech Stack
+
+- **Next.js 16** (App Router, Turbopack)
+- **TypeScript**
+- **React Context API** for auth state
+- **Vanilla CSS** with CSS custom properties (dark SOC theme)
+- **lucide-react** for icons
+- **WebSocket** for live zone occupancy feed
+
+---
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+cd frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App runs at `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **Prerequisite:** The backend API must be running on port `8080`. See [`backend/docs/README.md`](../backend/docs/README.md).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Pages
 
-To learn more about Next.js, take a look at the following resources:
+| Route | Role | Description |
+|---|---|---|
+| `/bootstrap` | Public | First-time admin account creation |
+| `/login` | Public | Login for all users |
+| `/admin` | Admin | Live zone occupancy dashboard (WebSocket) |
+| `/admin/zones/:id` | Admin | Zone drilldown — occupancy, active personnel |
+| `/admin/users` | Admin | Personnel list with role badges |
+| `/dashboard` | User | Personal access history and authorized zones |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Role-Based Access
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Authentication and routing is managed by `AuthContext`:
+- **Admin** accounts (`role: "admin"`) are redirected to `/admin` after login
+- **Regular user** accounts (`role: "user"`) are redirected to `/dashboard` after login
+- Attempting to visit `/admin` as a non-admin silently redirects to `/dashboard`
+- Unauthenticated access to any protected route redirects to `/login`
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## API
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+All API calls use `window.location.hostname` so the app works on both `localhost` and local network IPs (192.168.x.x) without changes.
+
+The backend is expected at port `8080` on the same host.
+
+---
+
+## Network Testing
+
+To access the app from other devices on your local network, add your machine's IP to `next.config.ts`:
+
+```ts
+allowedDevOrigins: ['192.168.x.x'],
+```

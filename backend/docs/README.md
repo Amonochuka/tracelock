@@ -145,7 +145,7 @@ DB_NAME=tracelock
 DB_SSLMODE=disable
 JWT_SECRET=yoursecretkey
 DEVICE_API_KEY=your-device-api-key
-ALLOWED_ORIGIN=*
+ALLOWED_ORIGIN=http://localhost:3000
 ```
 
 godotenv loads `.env` automatically on startup — no need to source it manually.
@@ -154,7 +154,7 @@ godotenv loads `.env` automatically on startup — no need to source it manually
 **Optional fields:** `PORT` (default: 8080), `DB_SSLMODE` (default: disable), `ALLOWED_ORIGIN` (default: *)
 
 `DEVICE_API_KEY` is required for `/devices/authenticate`.  
-`ALLOWED_ORIGIN` is used by the WebSocket origin check in the live occupancy hub.
+`ALLOWED_ORIGIN` must be set to the exact frontend origin (e.g. `http://localhost:3000`). A wildcard (`*`) is not valid alongside `Authorization` headers and will cause browser CORS rejections.
 
 ---
 
@@ -237,7 +237,7 @@ Tracelock API running on: 8080
 - `/bootstrap` is self-sealing: after the initial admin is created, it returns `404 Not Found` for subsequent calls.
 - `POST /logout` and `POST /refresh` are public endpoints and do not require a JWT.
 - The project currently uses embedded SQL migrations from `migrations/*.sql` and `migrations/embed.go`.
-- There is no global CORS middleware; only WebSocket origin validation is configured through `ALLOWED_ORIGIN`.
+- There is a global CORS middleware (chi `cors.Handler`) as well as WebSocket origin validation, both controlled by `ALLOWED_ORIGIN`.
 
 ---
 
