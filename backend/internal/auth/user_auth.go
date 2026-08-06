@@ -173,10 +173,11 @@ func (u *UserAuth) ListUsers() ([]*models.User, error) {
 	defer rows.Close()
 	var users []*models.User
 	for rows.Next() {
-		u := &models.User{}
-		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.CreatedAt); err != nil {
+		usr := &models.User{}
+		if err := rows.Scan(&usr.ID, &usr.Name, &usr.Email, &usr.Role, &usr.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scanning users :%w", err)
 		}
+		users = append(users, usr) // ← was missing; caused empty list
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating rows: %w", err)
