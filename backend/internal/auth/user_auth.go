@@ -125,6 +125,32 @@ func (u *UserAuth) RegisterAdmin(name, email, password string) error {
 	return nil
 }
 
+func (u *UserAuth) ResetAdminPassword(email, password string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hashing password: %w", err)
+	}
+
+	var userID int
+	err = u.db.QueryRow(`
+		UPDATE users
+		SET password_hash = $1, failed_attempts = 0, locked_until = NULL
+		WHERE email = $2 AND role = 'admin'
+		RETURNING id`, string(hash), email).Scan(&userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return fmt.Errorf("resetting admin password: %w", err)
+	}
+
+	if _, err := u.db.Exec("UPDATE refresh_tokens SET revoked = true WHERE user_id = $1", userID); err != nil {
+		return fmt.Errorf("revoking admin refresh tokens: %w", err)
+	}
+
+	return nil
+}
+
 // admin duty; update
 func (u *UserAuth) UpdateRole(userID int, role string) error {
 	res, err := u.db.Exec("UPDATE users SET role = $1 WHERE id = $2", role, userID)

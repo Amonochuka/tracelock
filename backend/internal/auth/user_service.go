@@ -61,6 +61,13 @@ func (s *UserService) BootStrapAdmin(name, email, password string) error {
 	return s.auth.RegisterAdmin(name, email, password)
 }
 
+func (s *UserService) ResetAdminPassword(email, password string) error {
+	if len(password) < 8 {
+		return errors.New("password must be at least 8 characters")
+	}
+	return s.auth.ResetAdminPassword(email, password)
+}
+
 // admin duties; update roles and list users
 func (s *UserService) UpdateRole(userID int, role string) error {
 	if role != "admin" && role != "user" {

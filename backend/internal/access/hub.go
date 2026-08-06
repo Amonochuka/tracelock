@@ -3,6 +3,7 @@ package access
 import (
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -54,7 +55,7 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 				return true
 			}
 			origin := r.Header.Get("Origin")
-			if origin == h.allowedOrigin || origin == "http://localhost:3000" || origin == "http://192.168.89.64:3000" {
+			if origin == h.allowedOrigin || origin == "http://localhost:3000" || isPrivateLANOrigin(origin) {
 				return true
 			}
 			return false
@@ -86,4 +87,8 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
+}
+
+func isPrivateLANOrigin(origin string) bool {
+	return strings.HasPrefix(origin, "http://192.168.") && strings.HasSuffix(origin, ":3000")
 }

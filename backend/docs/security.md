@@ -117,7 +117,7 @@ The hash includes: `userID`, `zoneID`, `action`, `timestamp`, `previousHash`, `e
 
 ## 9. Rate Limiting
 
-Login, register, and bootstrap endpoints are rate limited to 5 requests per minute per IP using a token bucket algorithm. Exceeding the limit returns `429 Too Many Requests`.
+Login, bootstrap, and admin user-creation endpoints are rate limited to 5 requests per minute per IP using a token bucket algorithm. Exceeding the limit returns `429 Too Many Requests`.
 
 Known limitations:
 - State is in-memory — resets on server restart
@@ -137,11 +137,19 @@ After 5 failed login attempts on the same email, the account is automatically lo
 ## 11. Bootstrap Security
 
 `POST /bootstrap` is a public endpoint but hardened with:
-- **Rate limiting:** same 5 req/min per IP limit as login/register
+- **Rate limiting:** same 5 req/min per IP limit as login
 - **Self-sealing:** checks for any existing admin before creating one
 - **After first use:** returns `404 Not Found` (misleading response) instead of `403` to avoid revealing admin existence
 
-## 12. PostgreSQL Authentication
+## 12. User Provisioning
+
+Regular-user self-registration is disabled. `POST /admin/users` requires both a valid JWT and the `admin` role, so only an administrator can create a user account. The public account-creation path is limited to the self-sealing first-admin bootstrap flow.
+
+## 13. Admin Password Recovery
+
+There is no public password-reset endpoint. A deployment operator with direct server and database access can run `go run ./cmd/reset-admin-password`, which securely prompts for an existing admin email and new password. It resets the password, clears lockout state, and revokes the admin's active refresh sessions without deleting users, zones, or access history.
+
+## 14. PostgreSQL Authentication
 
 - `peer` → authenticates via Linux username, no password required for local socket connections
 - `scram-sha-256` → TCP connections require password
@@ -149,7 +157,7 @@ After 5 failed login attempts on the same email, the account is automatically lo
 
 ---
 
-## 13. Production Checklist
+## 15. Production Checklist
 
 - [ ] Rotate `JWT_SECRET` before going live
 - [ ] Rotate `DEVICE_API_KEY` and secure its distribution to devices

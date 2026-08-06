@@ -11,6 +11,7 @@ type UserRepository interface {
 	VerifyUser(id int) (*models.User, error)
 	AdminExists() (bool, error)
 	RegisterAdmin(name, email, password string) error
+	ResetAdminPassword(email, password string) error
 	UpdateRole(userID int, role string) error
 	ListUsers() ([]*models.User, error)
 	SaveRefreshToken(userID int, token string, expiresAt time.Time) error

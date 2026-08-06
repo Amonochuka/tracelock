@@ -20,7 +20,7 @@ Built incrementally with professional backend practices: small features, clear c
 
 ## Current Features
 
-- User registration, login, and bcrypt password hashing
+- Admin-managed user provisioning, login, and bcrypt password hashing
 - JWT authentication (15min access token + 7-day refresh token with hashing)
 - Refresh token hashing: tokens are hashed before storage, compared by hash on lookup/revocation
 - Account lockout: automatic after 5 failed login attempts, 15-minute lockout window
@@ -36,7 +36,7 @@ Built incrementally with professional backend practices: small features, clear c
 - Biometric credential hashing: values normalized and hashed server-side before storage/lookup
 - Runtime biometric authentication — device scan resolves user, verifies access, creates session and issues JWT
 - Live zone occupancy via WebSocket feed (`GET /ws/zones`)
-- IP-based rate limiting on login, register, and bootstrap (token bucket algorithm, 5 req/min per IP)
+- IP-based rate limiting on login, bootstrap, and admin user creation (token bucket algorithm, 5 req/min per IP)
 - Chi request logging with request ID middleware
 - HTTP server timeouts (5s read header, 15s read, 30s write, 60s idle)
 - Automatic expired token cleanup on startup and every 24 hours
@@ -154,7 +154,7 @@ godotenv loads `.env` automatically on startup — no need to source it manually
 **Optional fields:** `PORT` (default: 8080), `DB_SSLMODE` (default: disable), `ALLOWED_ORIGIN` (default: *)
 
 `DEVICE_API_KEY` is required for `/devices/authenticate`.  
-`ALLOWED_ORIGIN` must be set to the exact frontend origin (e.g. `http://localhost:3000`). A wildcard (`*`) is not valid alongside `Authorization` headers and will cause browser CORS rejections.
+`ALLOWED_ORIGIN` must be set to the exact frontend origin in production (e.g. `https://app.example.com`). Local development also accepts `localhost` and private `192.168.x.x:3000` frontend origins. A wildcard (`*`) is not valid alongside `Authorization` headers and will cause browser CORS rejections.
 
 ---
 
@@ -170,6 +170,16 @@ If successful:
 Tracelock API running on: 8080
 ```
 
+## Recovering an Admin Password
+
+To reset an existing admin password without deleting any TraceLock data, run this command on the server that has the backend `.env` and database access:
+
+```bash
+go run ./cmd/reset-admin-password
+```
+
+The command prompts for the admin email and new password without echoing the password to the terminal. It resets only that admin account, clears lockout state, and revokes its refresh sessions.
+
 ---
 
 ## Endpoints
@@ -180,7 +190,6 @@ Tracelock API running on: 8080
 |--------|-------------------------|--------------------------------------------------|
 | GET    | /health                 | Health check                                     |
 | POST   | /bootstrap              | Create first admin (self-sealing, one-time only) |
-| POST   | /register               | Register a new user                              |
 | POST   | /login                  | Login — returns access token + refresh token     |
 | POST   | /refresh                | Get new access token using refresh token         |
 | POST   | /logout                 | Revoke refresh token                             |
@@ -207,6 +216,7 @@ Tracelock API running on: 8080
 | Method | Route                                    | Description                          |
 |--------|------------------------------------------|--------------------------------------|
 | GET    | /admin/ping                              | Admin access test                    |
+| POST   | /admin/users                             | Create a regular user                |
 | GET    | /admin/users                             | List all users                       |
 | PUT    | /admin/users/{id}/role                   | Update user role                     |
 | GET    | /users/{id}/events                       | User access history                  |

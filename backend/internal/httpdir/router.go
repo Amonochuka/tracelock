@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"strings"
 )
 
 func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService,
@@ -25,7 +24,7 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 
 	// Basic CORS
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{allowedOrigin, "http://localhost:3000", "http://192.168.89.64:3000"},
+		AllowedOrigins:   []string{allowedOrigin, "http://localhost:3000", "http://192.168.*:3000"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Device-API-Key"},
 		ExposedHeaders:   []string{"Link"},
@@ -39,7 +38,6 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 	})
 	limiter := middleware.NewRateLimiter(5) // 5 requests per minute
 
-	r.With(limiter.Middleware).Post("/register", RegisterHandler(authService))
 	r.With(limiter.Middleware).Post("/login", LoginHandler(authService, jwtService))
 	r.With(limiter.Middleware).Post("/bootstrap", BootStrapHandler(authService))
 	r.Post("/logout", LogoutHandler(authService))
@@ -89,6 +87,7 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 			})
 
 			// User management
+			r.With(limiter.Middleware).Post("/admin/users", RegisterHandler(authService))
 			r.Get("/admin/users", ListUsersHandler(authService))
 			r.Put("/admin/users/{id}/role", UpdateRoleHandler(authService))
 			r.Get("/users/{id}/events", ListUserEventsHandler(zoneService))
