@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Users, AlertTriangle } from 'lucide-react';
+import { API_URL, WS_URL } from '@/lib/api';
 
 interface Zone {
   id: number;
@@ -28,7 +29,7 @@ export default function AdminDashboard() {
 
     const fetchOccupancy = async () => {
       try {
-        const res = await fetch(`http://${window.location.hostname}:8080/zones/occupancy`, {
+        const res = await fetch(`${API_URL}/zones/occupancy`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch occupancy');
@@ -70,7 +71,7 @@ export default function AdminDashboard() {
     // We would need the backend to support picking up token from query param, or use cookie.
     // Assuming backend ws endpoint might need auth. If it's authenticated via router, 
     // we must pass token in query param for standard WebSocket.
-    const ws = new WebSocket(`ws://${window.location.hostname}:8080/ws/zones?token=${token}`);
+    const ws = new WebSocket(`${WS_URL}/ws/zones?token=${token}`);
 
     ws.onopen = () => {
       setWsConnected(true);

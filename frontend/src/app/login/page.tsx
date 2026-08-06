@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { ShieldAlert, LogIn, Lock } from 'lucide-react';
 import Link from 'next/link';
+import { API_URL } from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,7 +19,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`http://${window.location.hostname}:8080/login`, {
+      const res = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -33,7 +34,7 @@ export default function LoginPage() {
       const jwt = data.token;
 
       // Fetch user profile with the new token
-      const meRes = await fetch(`http://${window.location.hostname}:8080/me`, {
+      const meRes = await fetch(`${API_URL}/me`, {
         headers: { 'Authorization': `Bearer ${jwt}` }
       });
 

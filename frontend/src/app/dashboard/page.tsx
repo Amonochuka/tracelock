@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { LogOut, Shield, Clock, CheckCircle, XCircle, MapPin } from 'lucide-react';
+import { API_URL } from '@/lib/api';
 
 interface AccessEvent {
   id: number;
@@ -29,7 +30,7 @@ export default function UserDashboard() {
   useEffect(() => {
     if (!token) return;
 
-    const base = `http://${window.location.hostname}:8080`;
+    const base = `${API_URL}`;
 
     Promise.all([
       fetch(`${base}/me/events`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),

@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, User, Activity, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { API_URL } from '@/lib/api';
 
 interface UserObj {
   id: number;
@@ -36,7 +37,7 @@ export default function ZoneDetailPage() {
     const fetchData = async () => {
       try {
         // Fetch zone details
-        const zRes = await fetch(`http://${window.location.hostname}:8080/zones/${id}`, {
+        const zRes = await fetch(`${API_URL}/zones/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!zRes.ok) throw new Error('Failed to fetch zone details');
@@ -44,7 +45,7 @@ export default function ZoneDetailPage() {
         setZone(zData);
 
         // Fetch active users in this zone
-        const uRes = await fetch(`http://${window.location.hostname}:8080/admin/zones/${id}/users`, {
+        const uRes = await fetch(`${API_URL}/admin/zones/${id}/users`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!uRes.ok) throw new Error('Failed to fetch active users');

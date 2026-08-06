@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { ShieldCheck, UserPlus } from 'lucide-react';
 import Link from 'next/link';
+import { API_URL } from '@/lib/api';
 
 export default function BootstrapPage() {
   const [name, setName] = useState('');
@@ -19,7 +20,7 @@ export default function BootstrapPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`http://${window.location.hostname}:8080/bootstrap`, {
+      const res = await fetch(`${API_URL}/bootstrap`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
@@ -36,7 +37,7 @@ export default function BootstrapPage() {
       }
 
       // Step 2: Log in with the new credentials
-      const loginRes = await fetch(`http://${window.location.hostname}:8080/login`, {
+      const loginRes = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -51,7 +52,7 @@ export default function BootstrapPage() {
       const jwt = loginData.token;
 
       // Step 3: Fetch user profile
-      const meRes = await fetch(`http://${window.location.hostname}:8080/me`, {
+      const meRes = await fetch(`${API_URL}/me`, {
         headers: { 'Authorization': `Bearer ${jwt}` }
       });
 

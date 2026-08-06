@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Shield, User, MoreVertical } from 'lucide-react';
+import { API_URL } from '@/lib/api';
 
 interface UserObj {
   id: number;
@@ -23,7 +24,7 @@ export default function UsersPage() {
 
     const fetchUsers = async () => {
       try {
-        const res = await fetch(`http://${window.location.hostname}:8080/admin/users`, {
+        const res = await fetch(`${API_URL}/admin/users`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch users');
