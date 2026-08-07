@@ -20,7 +20,7 @@ type mockZoneRepo struct {
 	deleteSessionFunc           func(userID, zoneID int) error
 	getLastHashFunc             func(zoneID int) (string, error)
 	createEventFunc             func(userID, zoneID int, action, status string, reason *string, hash, previousHash string, deviceID *int, entryMethod string) error
-	createChainedEventFunc      func(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string) error
+	createChainedEventFunc      func(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string, updateSession bool) error
 	getActiveSessionForUserFunc func(userID int) (int, error)
 	getRequiresExitScanFunc     func(zoneID int) (bool, error)
 }
@@ -74,9 +74,26 @@ func (m *mockZoneRepo) CreateEvent(userID, zoneID int, action, status string, re
 	return nil
 }
 
-func (m *mockZoneRepo) CreateChainedEvent(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string) error {
+func (m *mockZoneRepo) CreateChainedEvent(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string, updateSession bool) error {
+	if updateSession && status == "allowed" {
+		switch action {
+		case "enter":
+			if m.createSessionFunc != nil {
+				if err := m.createSessionFunc(userID, zoneID); err != nil {
+					return err
+				}
+			}
+		case "exit":
+			if m.deleteSessionFunc != nil {
+				if err := m.deleteSessionFunc(userID, zoneID); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	if m.createChainedEventFunc != nil {
-		return m.createChainedEventFunc(userID, zoneID, action, status, reason, timestamp, deviceID, entryMethod)
+		return m.createChainedEventFunc(userID, zoneID, action, status, reason, timestamp, deviceID, entryMethod, updateSession)
 	}
 	if m.createEventFunc != nil {
 		return m.createEventFunc(userID, zoneID, action, status, reason, "", "", deviceID, entryMethod)
@@ -140,7 +157,7 @@ func TestHandleZoneEvent_AccessDenied(t *testing.T) {
 			return false, nil // user has no access
 		},
 		// access-denied path logs a denied event through the atomic append method.
-		createChainedEventFunc: func(u, z int, act, stat string, reason *string, timestamp time.Time, d *int, em string) error {
+		createChainedEventFunc: func(u, z int, act, stat string, reason *string, timestamp time.Time, d *int, em string, us bool) error {
 			recordedReason = reason
 			return nil
 		},
@@ -431,7 +448,7 @@ func TestHandleZoneEvent_AutoExitBlockedWhenRequiresExitScan(t *testing.T) {
 		getRequiresExitScanFunc: func(zoneID int) (bool, error) {
 			return true, nil // zone 1 requires explicit exit
 		},
-		createChainedEventFunc: func(u, z int, act, stat string, reason *string, timestamp time.Time, d *int, em string) error {
+		createChainedEventFunc: func(u, z int, act, stat string, reason *string, timestamp time.Time, d *int, em string, us bool) error {
 			recordedReason = reason
 			return nil
 		},

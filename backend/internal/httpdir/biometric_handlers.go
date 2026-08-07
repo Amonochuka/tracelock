@@ -56,6 +56,8 @@ func AuthenticateBiometricHandler(service *access.BiometricService) http.Handler
 				WriteError(w, http.StatusConflict, "user already in zone")
 			case errors.Is(err, access.ErrRequiresExitScan):
 				WriteError(w, http.StatusForbidden, "must explicitly exit current zone first")
+			case errors.Is(err, access.ErrTypeMismatch):
+				WriteError(w, http.StatusBadRequest, "device type does not match credential method")
 			default:
 				WriteError(w, http.StatusInternalServerError, "authentication failed")
 			}

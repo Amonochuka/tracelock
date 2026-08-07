@@ -19,4 +19,5 @@ var (
 	ErrDeviceInactive     = errors.New("device not active")
 	ErrCredentialRevoked  = errors.New("credentials have been revoked")
 	ErrRequiresExitScan   = errors.New("must explicitly exit current zone first")
+	ErrTypeMismatch       = errors.New("device type does not match credential method")
 )

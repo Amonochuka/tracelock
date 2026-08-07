@@ -20,7 +20,7 @@ type ZoneRepository interface {
 	GetZone(zoneID int) (*models.Zone, error)
 	GetMaximumCapacity(zoneID int) (int, error)
 	GetRequiresExitScan(zoneID int) (bool, error)
-	CreateChainedEvent(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string) error
+	CreateChainedEvent(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string, updateSession bool) error
 	CreateSession(userID, zoneID int) error
 	DeleteSession(userID, zoneID int) error
 	CountActiveUsers(zoneID int) (int, error)

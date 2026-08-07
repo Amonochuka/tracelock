@@ -132,13 +132,8 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 				return ErrRequiresExitScan
 			}
 
-			// delete the old session
-			if err := s.repo.DeleteSession(userID, activeZoneID); err != nil {
-				return fmt.Errorf("auto-exit delete session failed: %w", err)
-			}
-
 			// Append the auto-exit event atomically so it cannot fork the hash chain.
-			if err := s.repo.CreateChainedEvent(userID, activeZoneID, "exit", "allowed", nil, timestamp, deviceID, entryMethod); err != nil {
+			if err := s.repo.CreateChainedEvent(userID, activeZoneID, "exit", "allowed", nil, timestamp, deviceID, entryMethod, true); err != nil {
 				return fmt.Errorf("auto-exit create event failed: %w", err)
 			}
 		} else {
@@ -165,32 +160,13 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 		}
 	}
 
-	// 4. Mutate sessions based on incoming action
-	switch action {
-	case "enter":
-		if err := s.repo.CreateSession(userID, zoneID); err != nil {
-			if errors.Is(err, ErrUserAlreadyInZone) {
-				s.logDeniedEvent(userID, zoneID, action, timestamp, "already_in_zone", deviceID, entryMethod)
-			}
-			return err
+	// 4. Log the main event atomically with its hash-chain predecessor and update session.
+	if err := s.repo.CreateChainedEvent(userID, zoneID, action, "allowed", nil, timestamp, deviceID, entryMethod, true); err != nil {
+		if errors.Is(err, ErrUserAlreadyInZone) {
+			s.logDeniedEvent(userID, zoneID, action, timestamp, "already_in_zone", deviceID, entryMethod)
+		} else if errors.Is(err, ErrNoActiveSession) {
+			s.logDeniedEvent(userID, zoneID, action, timestamp, "not_in_zone", deviceID, entryMethod)
 		}
-	case "exit":
-		if err := s.repo.DeleteSession(userID, zoneID); err != nil {
-			// user tried to exit a zone they weren't actually in —
-			// duplicate exit scan, misconfigured device, replayed request,
-			// or a race condition. Rare in honest use, but a security
-			// system should log the unusual case, not just the happy path
-			if errors.Is(err, ErrNoActiveSession) {
-				s.logDeniedEvent(userID, zoneID, action, timestamp, "not_in_zone", deviceID, entryMethod)
-			}
-			return err
-		}
-	default:
-		return fmt.Errorf("invalid action: %s", action)
-	}
-
-	// 5. Log the main event atomically with its hash-chain predecessor.
-	if err := s.repo.CreateChainedEvent(userID, zoneID, action, "allowed", nil, timestamp, deviceID, entryMethod); err != nil {
 		return err
 	}
 
@@ -211,7 +187,7 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 
 // log denied entries
 func (s *ZoneService) logDeniedEvent(userID, zoneID int, action string, timestamp time.Time, reason string, deviceID *int, entryMethod string) {
-	_ = s.repo.CreateChainedEvent(userID, zoneID, action, "denied", &reason, timestamp, deviceID, entryMethod)
+	_ = s.repo.CreateChainedEvent(userID, zoneID, action, "denied", &reason, timestamp, deviceID, entryMethod, false)
 }
 
 // --event queries--
@@ -282,17 +258,10 @@ func (s *ZoneService) CleanupStaleSessions(threshold time.Duration) (int, error)
 	closed := 0
 	now := time.Now()
 	for _, session := range stale {
-		// delete the stale session
-		if err := s.repo.DeleteSession(session.UserID, session.ZoneID); err != nil {
-			log.Printf("stale session cleanup: failed to delete session user=%d zone=%d: %v",
-				session.UserID, session.ZoneID, err)
-			continue
-		}
-
-		// log a system_timeout exit event in the hash chain
+		// log a system_timeout exit event in the hash chain and cleanly remove session
 		if err := s.repo.CreateChainedEvent(
 			session.UserID, session.ZoneID,
-			"exit", "allowed", nil, now, nil, "system_timeout",
+			"exit", "allowed", nil, now, nil, "system_timeout", true,
 		); err != nil {
 			log.Printf("stale session cleanup: failed to log exit event user=%d zone=%d: %v",
 				session.UserID, session.ZoneID, err)

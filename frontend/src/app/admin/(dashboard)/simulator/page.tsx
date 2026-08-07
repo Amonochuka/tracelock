@@ -14,7 +14,9 @@ export default function SimulatorPage() {
   
   // Shared state between steps
   const [activeDeviceId, setActiveDeviceId] = useState('');
+  const [activeDeviceType, setActiveDeviceType] = useState('');
   const [activeCredentialHash, setActiveCredentialHash] = useState('');
+  const [activeCredentialMethod, setActiveCredentialMethod] = useState('');
 
   // Step 1: Device Registration
   const [devZoneId, setDevZoneId] = useState('');
@@ -78,6 +80,7 @@ export default function SimulatorPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to create device');
       
       setActiveDeviceId(data.id.toString());
+      setActiveDeviceType(devType);
       setDevFeedback({ type: 'success', msg: `Device created successfully (ID: ${data.id})` });
       setDevName('');
       setDevSerial('');
@@ -106,6 +109,7 @@ export default function SimulatorPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to enrol credential');
       
       setActiveCredentialHash(credHash);
+      setActiveCredentialMethod(credMethod);
       setCredFeedback({ type: 'success', msg: 'Credential enrolled successfully' });
       setCredHash('');
     } catch (err: any) {
@@ -143,6 +147,13 @@ export default function SimulatorPage() {
   const handleSimulate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSimLoading(true);
+
+    if (activeDeviceType && activeCredentialMethod && activeDeviceType !== activeCredentialMethod) {
+      setSimOutput(`ERROR: Type Mismatch\n\nThe selected device is a '${activeDeviceType}' scanner, but the credential was enrolled as '${activeCredentialMethod}'. TraceLock blocks mismatched biometric scans.`);
+      setSimLoading(false);
+      return;
+    }
+
     setSimOutput('Sending request to backend...');
     
     try {

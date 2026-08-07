@@ -2,6 +2,7 @@ package access
 
 import (
 	"time"
+
 	"tracelock/internal/models"
 )
 
@@ -50,6 +51,11 @@ func (s *BiometricService) AuthenticateBiometric(deviceID int, credentialHash st
 	}
 	if credential.Revoked {
 		return "", ErrCredentialRevoked
+	}
+
+	// validate device type matches credential entry method
+	if device.Type != credential.EntryMethod {
+		return "", ErrTypeMismatch
 	}
 
 	// resolve user

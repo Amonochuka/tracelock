@@ -99,7 +99,7 @@ func (z *ZoneRepo) GetRequiresExitScan(zoneID int) (bool, error) {
 // The zone-row lock serializes writes for the same zone, while allowing writes
 // for different zones to proceed concurrently.
 func (z *ZoneRepo) CreateChainedEvent(userID, zoneID int, action, status string, reason *string,
-	timestamp time.Time, deviceID *int, entryMethod string) error {
+	timestamp time.Time, deviceID *int, entryMethod string, updateSession bool) error {
 	tx, err := z.db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin create chained event: %w", err)
@@ -112,6 +112,37 @@ func (z *ZoneRepo) CreateChainedEvent(userID, zoneID int, action, status string,
 			return ErrZoneNotFound
 		}
 		return fmt.Errorf("lock zone for event: %w", err)
+	}
+
+	if updateSession && status == "allowed" {
+		switch action {
+		case "enter":
+			_, err := tx.Exec(`
+				INSERT INTO active_sessions (user_id, zone_id)
+				VALUES ($1, $2)
+			`, userID, zoneID)
+			if err != nil {
+				var pqErr *pq.Error
+				if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+					return ErrUserAlreadyInZone
+				}
+				return fmt.Errorf("create session: %w", err)
+			}
+		case "exit":
+			res, err := tx.Exec(`
+				DELETE FROM active_sessions WHERE user_id = $1 AND zone_id = $2`, userID, zoneID)
+			if err != nil {
+				return fmt.Errorf("delete session: %w", err)
+			}
+
+			rows, err := res.RowsAffected()
+			if err != nil {
+				return fmt.Errorf("rows affected: %w", err)
+			}
+			if rows == 0 {
+				return ErrNoActiveSession
+			}
+		}
 	}
 
 	var previousHash string
