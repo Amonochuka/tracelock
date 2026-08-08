@@ -78,10 +78,10 @@ export default function SimulatorPage() {
   const fetchEvents = useCallback(async (zoneId: string) => {
     if (!token || !zoneId) return;
     const res = await fetch(`${API_URL}/zones/${zoneId}/events`, { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) {
-      const data = await res.json();
-      setRecentEvents((data || []).slice(0, 15));
-    }
+	if (res.ok) {
+	  const data = await res.json();
+	  setRecentEvents((data.events || []).slice(0, 15));
+	}
   }, [token]);
 
   useEffect(() => {
