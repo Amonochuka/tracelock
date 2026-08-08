@@ -219,8 +219,8 @@ export default function SimulatorPage() {
           onClick={() => setActiveTab('setup')}
           type="button"
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'setup'
-              ? 'bg-[#00ff88] text-black font-semibold'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
+            ? 'bg-[#00ff88] text-black font-semibold'
+            : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
         >
           <Settings size={14} />
@@ -231,8 +231,8 @@ export default function SimulatorPage() {
           onClick={() => setActiveTab('records')}
           type="button"
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'records'
-              ? 'bg-[#00ff88] text-black font-semibold'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
+            ? 'bg-[#00ff88] text-black font-semibold'
+            : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
         >
           <Database size={14} />
@@ -243,7 +243,7 @@ export default function SimulatorPage() {
 
       {activeTab === 'setup' && <>
         {/* Setup grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-6">
 
           {/* Step 1 */}
           <div className="card">
@@ -392,7 +392,7 @@ export default function SimulatorPage() {
 
       {activeTab === 'records' && <>
         {/* Data panels */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-6">
 
           {/* Registered Devices */}
           <div className="card">
