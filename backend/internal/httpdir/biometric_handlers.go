@@ -59,7 +59,7 @@ func AuthenticateBiometricHandler(service *access.BiometricService) http.Handler
 			case errors.Is(err, access.ErrTypeMismatch):
 				WriteError(w, http.StatusBadRequest, "device type does not match credential method")
 			default:
-				WriteError(w, http.StatusInternalServerError, "authentication failed")
+				WriteError(w, http.StatusInternalServerError, "authentication failed: "+err.Error())
 			}
 			return
 		}
