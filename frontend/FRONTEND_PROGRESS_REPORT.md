@@ -99,6 +99,14 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 - **Validation:** Verified the modal renders, submits to `POST /admin/users` with admin JWT, and newly created user appears in the table.
 - **Follow-up:** Extend the row action menu with role changes, access grants, and account unlock.
 
+### 2026-08-08 — Simulator data panels: device list, credential list, hash chain log
+
+- **Status:** Complete
+- **Summary:** Overhauled the Hardware Simulator page with three new live data panels below the setup steps. (1) **Registered Devices** table shows every device across all zones with ID, name, type, zone, serial, and active status — a **Use** button auto-loads the device into Step 4, and a **Delete** button removes it inline (replacing the old standalone Step 5 delete form). (2) **Enrolled Credentials** table shows every user credential with user name, entry method, truncated stored hash, and revoked status — a **Use** button loads it into Step 4. (3) **Hash Chain Events** log shows the last 15 access events for a selected zone including timestamp, user, action, entry method, status, reason, and truncated hash — auto-refreshes after a successful simulation. All three panels have a manual refresh button. Steps 1 and 2 still auto-fill Step 4 on success.
+- **Files touched:** `src/app/admin/(dashboard)/simulator/page.tsx`.
+- **Validation:** `npm run build` passed with exit code 0, no TypeScript errors.
+- **Follow-up:** Consider paginating the events log; add credential revoke action from the credentials table.
+
 ### 2026-08-07 — Hardware Device Simulator page
 
 - **Status:** Complete
