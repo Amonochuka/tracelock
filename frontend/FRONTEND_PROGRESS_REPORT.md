@@ -99,6 +99,14 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 - **Validation:** Verified the modal renders, submits to `POST /admin/users` with admin JWT, and newly created user appears in the table.
 - **Follow-up:** Extend the row action menu with role changes, access grants, and account unlock.
 
+### 2026-08-08 — Scalable layout: search, scrollable grids, simulator tabs
+
+- **Status:** Complete
+- **Summary:** Three pages updated to handle large numbers of zones/records without the page growing infinitely. (1) **Dashboard** — added real-time search filter, compacted occupancy cards, wrapped grid in `max-height` scrollable container, cards now show 4 per row on wide screens. (2) **Zones page** — added search/filter bar, compact zone cards with description clamp and inline lock/unlock icon, scrollable card grid, "New Zone" button toggles inline create form instead of having the form always visible at the bottom. (3) **Simulator** — split into **Setup** and **Records** tabs. Setup tab holds the 4 workflow steps; Records tab holds the Devices list, Credentials list, and Hash Chain Events log. The **Use** button in Records auto-populates Step 4 fields *and* switches back to the Setup tab, preserving the one-click workflow.
+- **Files touched:** `src/app/admin/(dashboard)/page.tsx`, `src/app/admin/(dashboard)/zones/page.tsx`, `src/app/admin/(dashboard)/simulator/page.tsx`.
+- **Validation:** `npm run build` passed, exit code 0, no TypeScript errors across all 12 routes.
+- **Follow-up:** Consider server-side search + pagination at 500+ zones.
+
 ### 2026-08-08 — Simulator data panels: device list, credential list, hash chain log
 
 - **Status:** Complete

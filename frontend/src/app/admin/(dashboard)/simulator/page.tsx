@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/lib/api';
-import { Cpu, Fingerprint, Activity, TerminalSquare, Plus, Save, ShieldCheck, Trash2, RefreshCw, Key, Link } from 'lucide-react';
+import { Cpu, Fingerprint, Activity, TerminalSquare, Plus, Save, ShieldCheck, Trash2, RefreshCw, Key, Link, Settings, Database } from 'lucide-react';
 
 type Zone = { id: number; name: string };
 type User = { id: number; name: string; email: string };
@@ -14,6 +14,7 @@ type AccessEvent = { id: number; user_id: number; zone_id: number; action: strin
 export default function SimulatorPage() {
   const { token } = useAuth();
 
+  const [activeTab, setActiveTab] = useState<'setup' | 'records'>('setup');
   const [zones, setZones] = useState<Zone[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [allDevices, setAllDevices] = useState<Device[]>([]);
@@ -207,11 +208,32 @@ export default function SimulatorPage() {
 
   return (
     <div>
-      <div className="mb-8">
+      {/* Header + Tabs */}
+      <div className="mb-6">
         <h1>Hardware Simulator</h1>
-        <p className="text-secondary mt-2">Set up mock hardware and test backend device integration securely.</p>
+        <p className="text-secondary mt-1">Set up mock hardware and test backend device integration securely.</p>
       </div>
 
+      <div className="flex gap-1 mb-6 p-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg w-fit">
+        <button
+          onClick={() => setActiveTab('setup')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'setup' ? 'bg-accent text-black' : 'text-secondary hover:text-primary'
+          }`}
+        >
+          <Settings size={14} />Setup
+        </button>
+        <button
+          onClick={() => setActiveTab('records')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'records' ? 'bg-accent text-black' : 'text-secondary hover:text-primary'
+          }`}
+        >
+          <Database size={14} />Records
+        </button>
+      </div>
+
+      {activeTab === 'setup' && <>
       {/* Setup grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
@@ -358,6 +380,9 @@ export default function SimulatorPage() {
         </div>
       </div>
 
+      </> /* end setup tab */}
+
+      {activeTab === 'records' && <>
       {/* Data panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
@@ -398,9 +423,9 @@ export default function SimulatorPage() {
                       <td>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => { setActiveDeviceId(d.id.toString()); setActiveDeviceType(d.type); }}
+                            onClick={() => { setActiveDeviceId(d.id.toString()); setActiveDeviceType(d.type); setActiveTab('setup'); }}
                             className="btn text-xs px-2 py-1 h-auto text-accent"
-                            title="Load into Step 4"
+                            title="Load into Setup"
                           >Use</button>
                           <button
                             onClick={() => handleDeleteDevice(d.id)}
@@ -451,9 +476,9 @@ export default function SimulatorPage() {
                       </td>
                       <td>
                         <button
-                          onClick={() => { setActiveCredentialHash(c.credential_hash); setActiveCredentialMethod(c.entry_method); }}
+                          onClick={() => { setActiveCredentialHash(c.credential_hash); setActiveCredentialMethod(c.entry_method); setActiveTab('setup'); }}
                           className="btn text-xs px-2 py-1 h-auto text-accent"
-                          title="Load into Step 4"
+                          title="Load into Setup"
                         >Use</button>
                       </td>
                     </tr>
@@ -512,6 +537,7 @@ export default function SimulatorPage() {
           </div>
         )}
       </div>
+      </> /* end records tab */}
     </div>
   );
 }
