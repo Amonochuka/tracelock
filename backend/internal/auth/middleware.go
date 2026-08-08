@@ -2,9 +2,16 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 )
+
+func writeJSONError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
 
 type contextKey string
 
@@ -30,20 +37,20 @@ func JWTMiddleware(j *JWTService) func(http.Handler) http.Handler {
 			}
 
 			if tokenString == "" {
-				http.Error(w, "missing or invalid token", http.StatusUnauthorized)
+				writeJSONError(w, http.StatusUnauthorized, "missing or invalid token")
 				return
 			}
 
 			claims, err := j.VerifyToken(tokenString)
 			if err != nil {
-				http.Error(w, "invalid token", http.StatusUnauthorized)
+				writeJSONError(w, http.StatusUnauthorized, "session expired, please log in again")
 				return
 			}
 
 			userID, ok := claims["sub"].(float64)
 			role, ok2 := claims["role"].(string)
 			if !ok || !ok2 {
-				http.Error(w, "invalid token payload", http.StatusUnauthorized)
+				writeJSONError(w, http.StatusUnauthorized, "invalid token payload")
 				return
 			}
 

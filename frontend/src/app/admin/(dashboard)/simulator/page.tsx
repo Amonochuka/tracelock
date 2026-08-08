@@ -180,7 +180,12 @@ export default function SimulatorPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
+      let data: any;
+      try { data = await res.json(); } catch { data = { error: res.statusText }; }
+      if (res.status === 401) {
+        setSimOutput(`ERROR: Session Expired\n\nYour login session has expired. Please log out and log back in.`);
+        setSimLoading(false); return;
+      }
       setSimOutput(`STATUS: ${res.status} ${res.statusText}\n\nPAYLOAD:\n${JSON.stringify(payload, null, 2)}\n\nRESPONSE:\n${JSON.stringify(data, null, 2)}`);
       if (res.ok && eventsZoneId) setTimeout(() => fetchEvents(eventsZoneId), 800);
     } catch (err: any) { setSimOutput(`ERROR:\n${err.message}`); }
