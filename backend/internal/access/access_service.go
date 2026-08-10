@@ -245,6 +245,13 @@ func (s *ZoneService) GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, err
 	return s.repo.GetZoneAnalytics(zoneID)
 }
 
+func (s *ZoneService) GetActiveUsersInZone(zoneID int) ([]*models.User, error) {
+	if _, err := s.repo.GetZone(zoneID); err != nil {
+		return nil, err
+	}
+	return s.repo.GetActiveUsersInZone(zoneID)
+}
+
 // CleanupStaleSessions force-closes active sessions older than the given threshold.
 // Each closed session gets a "system_timeout" exit event logged in the hash chain
 // and its zone's occupancy is broadcast to WebSocket clients.

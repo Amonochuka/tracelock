@@ -98,6 +98,7 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 			r.Put("/admin/zones/{id}", UpdateZoneHandler(zoneService))
 			r.Delete("/admin/zones/{id}", DeleteZoneHandler(zoneService))
 			r.Get("/admin/zones/{id}/users", ListZoneUsersHandler(zoneService))
+			r.Get("/admin/zones/{id}/active-users", GetActiveZoneUsersHandler(zoneService))
 			r.Get("/zones/{id}/events", ListZoneEventsHandler(zoneService))
 			r.Get("/admin/zones/{id}/verify-chain", VerifyChainHandler(zoneService))
 

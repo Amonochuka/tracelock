@@ -45,7 +45,7 @@ export default function ZoneDetailPage() {
         setZone(zData);
 
         // Fetch active users in this zone
-        const uRes = await fetch(`${API_URL}/admin/zones/${id}/users`, {
+        const uRes = await fetch(`${API_URL}/admin/zones/${id}/active-users`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!uRes.ok) throw new Error('Failed to fetch active users');

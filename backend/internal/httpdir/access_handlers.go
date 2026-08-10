@@ -441,3 +441,35 @@ func GetZoneAnalyticsHandler(service *access.ZoneService) http.HandlerFunc {
 		WriteJSON(w, http.StatusOK, analytics)
 	}
 }
+
+func GetActiveZoneUsersHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		zoneID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid zone id")
+			return
+		}
+
+		users, err := service.GetActiveUsersInZone(zoneID)
+		if err != nil {
+			if errors.Is(err, access.ErrZoneNotFound) {
+				WriteError(w, http.StatusNotFound, "zone not found")
+				return
+			}
+			WriteError(w, http.StatusInternalServerError, "could not fetch active zone users")
+			return
+		}
+
+		resp := make([]UserResponse, 0, len(users))
+		for _, u := range users {
+			resp = append(resp, UserResponse{
+				ID:        u.ID,
+				Name:      u.Name,
+				Email:     u.Email,
+				Role:      u.Role,
+				CreatedAt: u.CreatedAt,
+			})
+		}
+		WriteJSON(w, http.StatusOK, resp)
+	}
+}
