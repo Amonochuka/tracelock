@@ -75,12 +75,19 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 
 ## Known Limitations and Next Frontend Priorities
 
-1. Add zone editing, deletion safeguards, event history, and hash-chain verification controls to the zone detail page.
-2. Replace WebSocket query-string JWTs with a safer production authentication mechanism.
-3. Add form-level validation, loading/error polish, and automated frontend tests.
-4. Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.
+1. Replace WebSocket query-string JWTs with a safer production authentication mechanism.
+2. Add form-level validation, loading/error polish, and automated frontend tests.
+3. Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.
 
 ## Feature Change Log
+
+### 2026-08-11 — Zone detail page: tabbed UI, event history, chain verify, edit and delete
+
+- **Status:** Complete
+- **Summary:** Completely overhauled the zone detail page (`/admin/zones/[id]`) with a three-tab layout. (1) **Overview** — active personnel table, now accurately showing users with real active sessions (fixed previous session). (2) **Event History** — full paginated access event log (15 events/page) with prev/next controls, plus a **Verify Chain** button that calls `GET /admin/zones/{id}/verify-chain` and displays a clear pass/fail result with event count. (3) **Settings** — inline edit form backed by `PUT /admin/zones/{id}` with success/error feedback; a Danger Zone section requires the admin to type the exact zone name before the permanent delete button (`DELETE /admin/zones/{id}`) becomes enabled, guarding against accidental removal. Status card updated to reflect OCCUPIED vs SECURE dynamically based on actual occupancy.
+- **Files touched:** `src/app/admin/(dashboard)/zones/[id]/page.tsx`, `frontend/FRONTEND_PROGRESS_REPORT.md`.
+- **Validation:** `npm run build` exit code 0, TypeScript clean, all 12 routes generated.
+- **Follow-up:** Replace WebSocket query-string JWTs with a safer token mechanism before production deployment.
 
 ### 2026-08-10 — Admin UI for zone access grants and personnel list fix
 
