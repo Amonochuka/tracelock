@@ -188,7 +188,7 @@ export default function ZoneDetailPage() {
   if (!zone) return <div className="text-danger">Zone not found</div>;
 
   const tabClass = (t: Tab) =>
-    `flex items-center gap-2 px-1 pb-3 text-sm font-medium border-b-2 transition-all ${
+    `px-1 pb-3 text-sm font-medium border-b-2 transition-all ${
       tab === t
         ? 'border-[var(--accent-primary)] text-white'
         : 'border-transparent text-gray-500 hover:text-gray-300'
@@ -251,16 +251,10 @@ export default function ZoneDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-6 mb-6 border-b border-[var(--border-color)]">
-        <button type="button" onClick={() => setTab('overview')} className={tabClass('overview')}>
-          <User size={14} /> Overview
-        </button>
-        <button type="button" onClick={() => setTab('events')} className={tabClass('events')}>
-          <List size={14} /> Event History
-        </button>
-        <button type="button" onClick={() => setTab('settings')} className={tabClass('settings')}>
-          <Settings size={14} /> Settings
-        </button>
+      <div className="flex gap-8 mb-6 border-b border-[var(--border-color)]">
+        <button type="button" onClick={() => setTab('overview')} className={tabClass('overview')}>Overview</button>
+        <button type="button" onClick={() => setTab('events')} className={tabClass('events')}>Event History</button>
+        <button type="button" onClick={() => setTab('settings')} className={tabClass('settings')}>Settings</button>
       </div>
 
       {/* ── Overview Tab ── */}

@@ -214,31 +214,25 @@ export default function SimulatorPage() {
       </p>
 
       {/* Tabs */}
-      <div className="flex gap-6 mb-6 border-b border-[var(--border-color)]">
+      <div className="flex gap-8 mb-6 border-b border-[var(--border-color)]">
         <button
           onClick={() => setActiveTab('setup')}
           type="button"
-          className={`flex items-center gap-2 px-1 pb-3 text-sm font-medium border-b-2 transition-all ${
+          className={`px-1 pb-3 text-sm font-medium border-b-2 transition-all ${
             activeTab === 'setup'
               ? 'border-[var(--accent-primary)] text-white'
               : 'border-transparent text-gray-500 hover:text-gray-300'
           }`}
-        >
-          <Settings size={14} />
-          Setup
-        </button>
+        >Setup</button>
         <button
           onClick={() => setActiveTab('records')}
           type="button"
-          className={`flex items-center gap-2 px-1 pb-3 text-sm font-medium border-b-2 transition-all ${
+          className={`px-1 pb-3 text-sm font-medium border-b-2 transition-all ${
             activeTab === 'records'
               ? 'border-[var(--accent-primary)] text-white'
               : 'border-transparent text-gray-500 hover:text-gray-300'
           }`}
-        >
-          <Database size={14} />
-          Records
-        </button>
+        >Records</button>
       </div>
 
 
