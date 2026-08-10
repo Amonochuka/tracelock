@@ -213,27 +213,28 @@ export default function SimulatorPage() {
         Set up mock hardware and test backend device integration securely.
       </p>
 
-      {/* Upgraded Modern Tab Container */}
-      <div className="flex gap-1 mb-6 p-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg w-fit">
+      {/* Tabs */}
+      <div className="flex gap-6 mb-6 border-b border-[var(--border-color)]">
         <button
           onClick={() => setActiveTab('setup')}
           type="button"
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'setup'
-            ? 'bg-[#00ff88] text-black font-semibold'
-            : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
+          className={`flex items-center gap-2 px-1 pb-3 text-sm font-medium border-b-2 transition-all ${
+            activeTab === 'setup'
+              ? 'border-[var(--accent-primary)] text-white'
+              : 'border-transparent text-gray-500 hover:text-gray-300'
+          }`}
         >
           <Settings size={14} />
           Setup
         </button>
-
         <button
           onClick={() => setActiveTab('records')}
           type="button"
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'records'
-            ? 'bg-[#00ff88] text-black font-semibold'
-            : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
+          className={`flex items-center gap-2 px-1 pb-3 text-sm font-medium border-b-2 transition-all ${
+            activeTab === 'records'
+              ? 'border-[var(--accent-primary)] text-white'
+              : 'border-transparent text-gray-500 hover:text-gray-300'
+          }`}
         >
           <Database size={14} />
           Records

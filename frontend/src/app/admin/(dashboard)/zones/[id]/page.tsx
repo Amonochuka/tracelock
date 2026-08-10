@@ -188,9 +188,10 @@ export default function ZoneDetailPage() {
   if (!zone) return <div className="text-danger">Zone not found</div>;
 
   const tabClass = (t: Tab) =>
-    `flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === t
-      ? 'bg-[#00ff88] text-black font-semibold'
-      : 'text-gray-400 hover:text-white hover:bg-white/5'
+    `flex items-center gap-2 px-1 pb-3 text-sm font-medium border-b-2 transition-all ${
+      tab === t
+        ? 'border-[var(--accent-primary)] text-white'
+        : 'border-transparent text-gray-500 hover:text-gray-300'
     }`;
 
   return (
@@ -250,7 +251,7 @@ export default function ZoneDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 p-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg w-fit">
+      <div className="flex gap-6 mb-6 border-b border-[var(--border-color)]">
         <button type="button" onClick={() => setTab('overview')} className={tabClass('overview')}>
           <User size={14} /> Overview
         </button>
