@@ -75,13 +75,20 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 
 ## Known Limitations and Next Frontend Priorities
 
-1. Add admin UI for zone access grants/revokes so demo setup can be done entirely from the portal.
-2. Add zone editing, deletion safeguards, event history, and hash-chain verification controls to the zone detail page.
-3. Replace WebSocket query-string JWTs with a safer production authentication mechanism.
-4. Add form-level validation, loading/error polish, and automated frontend tests.
-5. Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.
+1. Add zone editing, deletion safeguards, event history, and hash-chain verification controls to the zone detail page.
+2. Replace WebSocket query-string JWTs with a safer production authentication mechanism.
+3. Add form-level validation, loading/error polish, and automated frontend tests.
+4. Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.
 
 ## Feature Change Log
+
+### 2026-08-10 — Admin UI for zone access grants and personnel list fix
+
+- **Status:** Complete
+- **Summary:** Added a "Manage Access" modal to the Users page, allowing an admin to toggle user access for individual zones. Also fixed a bug on the Zone details page where the "Active Personnel" list mistakenly displayed all users with access rather than users currently physically in the zone, by adding and switching to a new `/active-users` endpoint.
+- **Files touched:** `src/app/admin/(dashboard)/users/page.tsx`, `src/app/admin/(dashboard)/zones/[id]/page.tsx`, `backend/internal/access/access_service.go`, `backend/internal/httpdir/access_handlers.go`, `backend/internal/httpdir/router.go`.
+- **Validation:** Verified "Manage Access" modal correctly retrieves and modifies user permissions, reflecting changes instantly in the database via the REST API. Confirmed successful build.
+- **Follow-up:** Add zone editing, deletion safeguards, event history, and hash-chain verification controls to the zone detail page.
 
 ### 2026-08-06 — Role-separated portals, browser simulator, and zone management
 
