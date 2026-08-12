@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Shield, User, MoreVertical, Plus, UserPlus, X, Key, Map } from 'lucide-react';
+import { Shield, User, MoreVertical, Plus, UserPlus, X, Key, Map, Fingerprint, Trash2, PlusCircle } from 'lucide-react';
 import { API_URL } from '@/lib/api';
 
 interface UserObj {
@@ -43,6 +43,16 @@ export default function UsersPage() {
   const [userAccess, setUserAccess] = useState<Set<number>>(new Set());
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessError, setAccessError] = useState('');
+
+  // Credential Modal State
+  const [credentialModalUser, setCredentialModalUser] = useState<UserObj | null>(null);
+  const [userCredentials, setUserCredentials] = useState<any[]>([]);
+  const [credLoading, setCredLoading] = useState(false);
+  const [credError, setCredError] = useState('');
+  
+  const [newCredMethod, setNewCredMethod] = useState('fingerprint');
+  const [newCredHash, setNewCredHash] = useState('');
+  const [enrollingCred, setEnrollingCred] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -166,6 +176,67 @@ export default function UsersPage() {
     }
   };
 
+  const loadCredentials = async (user: UserObj) => {
+    if (!token) return;
+    setCredLoading(true);
+    setCredError('');
+    try {
+      const res = await fetch(`${API_URL}/admin/users/${user.id}/credentials`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) throw new Error('Failed to fetch credentials');
+      const data = await res.json();
+      setUserCredentials(data || []);
+    } catch (e: unknown) {
+      if (e instanceof Error) setCredError(e.message);
+      else setCredError('Error loading credentials');
+    } finally {
+      setCredLoading(false);
+    }
+  };
+
+  const handleManageCredentials = async (user: UserObj) => {
+    setDropdownOpenId(null);
+    setCredentialModalUser(user);
+    await loadCredentials(user);
+  };
+
+  const handleEnrollCredential = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!credentialModalUser || !token) return;
+    setEnrollingCred(true);
+    setCredError('');
+    try {
+      const res = await fetch(`${API_URL}/admin/users/${credentialModalUser.id}/credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ entry_method: newCredMethod, credential_hash: newCredHash })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to enroll credential');
+      setNewCredHash('');
+      await loadCredentials(credentialModalUser);
+    } catch (e: unknown) {
+      if (e instanceof Error) setCredError(e.message);
+      else setCredError('Error enrolling credential');
+    } finally {
+      setEnrollingCred(false);
+    }
+  };
+
+  const handleRevokeCredential = async (method: string) => {
+    if (!credentialModalUser || !token) return;
+    try {
+      const res = await fetch(`${API_URL}/admin/users/${credentialModalUser.id}/credentials/${method}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to revoke credential');
+      await loadCredentials(credentialModalUser);
+    } catch (e: unknown) {
+      if (e instanceof Error) setCredError(e.message);
+      else setCredError('Error revoking credential');
+    }
+  };
+
   if (loading) return <div className="text-secondary">Loading personnel data...</div>;
 
   return (
@@ -250,6 +321,16 @@ export default function UsersPage() {
                       >
                         <Key size={14} className="text-accent" />
                         Manage Access
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleManageCredentials(u);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-[rgba(255,255,255,0.05)] flex items-center gap-2 border-t border-[rgba(255,255,255,0.05)]"
+                      >
+                        <Fingerprint size={14} className="text-accent" />
+                        Manage Credentials
                       </button>
                     </div>
                   )}
@@ -435,6 +516,114 @@ export default function UsersPage() {
               <button 
                 type="button" 
                 onClick={() => setAccessModalUser(null)}
+                className="btn bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-white"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Credentials Modal */}
+      {credentialModalUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="card w-full max-w-lg relative max-h-[85vh] flex flex-col">
+            <button 
+              onClick={() => setCredentialModalUser(null)}
+              className="absolute top-4 right-4 text-secondary hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-6 flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-[rgba(0,212,170,0.1)] flex items-center justify-center border border-[rgba(0,212,170,0.3)]">
+                <Fingerprint size={20} className="text-accent" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Manage Credentials</h2>
+                <p className="text-sm text-secondary">Operator: <span className="text-white">{credentialModalUser.name}</span></p>
+              </div>
+            </div>
+
+            {credError && (
+              <div className="p-3 mb-4 text-sm bg-[rgba(255,77,106,0.1)] border border-[var(--danger-primary)] rounded text-danger flex-shrink-0">
+                {credError}
+              </div>
+            )}
+
+            {credLoading ? (
+              <div className="py-10 text-center text-secondary">Loading credentials...</div>
+            ) : (
+              <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+                <div>
+                  <h3 className="text-sm font-semibold mb-3">Enrolled Credentials</h3>
+                  {userCredentials.length === 0 ? (
+                    <div className="text-center text-secondary py-4 text-sm border border-dashed border-[var(--border-color)] rounded-lg">
+                      No credentials enrolled for this user.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {userCredentials.map(cred => (
+                        <div key={cred.id} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border-color)] bg-[rgba(255,255,255,0.02)]">
+                          <div className="flex items-center gap-3">
+                            <Fingerprint size={16} className="text-secondary" />
+                            <div>
+                              <div className="text-sm font-semibold capitalize">{cred.entry_method}</div>
+                              <div className="text-xs text-secondary mono" title={cred.credential_hash}>
+                                Hash: {cred.credential_hash.slice(0, 12)}…
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRevokeCredential(cred.entry_method)}
+                            className="p-1.5 text-danger hover:bg-[rgba(255,77,106,0.1)] rounded transition-colors"
+                            title="Revoke Credential"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-[var(--border-color)] pt-4">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <PlusCircle size={16} className="text-accent" />
+                    Enroll New Credential
+                  </h3>
+                  <form onSubmit={handleEnrollCredential} className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="form-group mb-0">
+                        <label className="form-label text-xs">Method</label>
+                        <select className="input h-9 text-sm" value={newCredMethod} onChange={e => setNewCredMethod(e.target.value)}>
+                          <option value="fingerprint">Fingerprint</option>
+                          <option value="face">Face Recognition</option>
+                          <option value="iris">Iris Scanner</option>
+                          <option value="card">Card Reader</option>
+                          <option value="pin">PIN Pad</option>
+                        </select>
+                      </div>
+                      <div className="form-group mb-0">
+                        <label className="form-label text-xs">Raw Value / Hash</label>
+                        <input className="input h-9 text-sm mono" value={newCredHash} onChange={e => setNewCredHash(e.target.value)} required placeholder="e.g. hash_123" />
+                      </div>
+                    </div>
+                    <div className="flex justify-end pt-1">
+                      <button type="submit" className="btn btn-primary text-sm px-4 h-9" disabled={enrollingCred}>
+                        {enrollingCred ? 'Enrolling...' : 'Enroll Credential'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+            
+            <div className="pt-6 flex justify-end flex-shrink-0">
+              <button 
+                type="button" 
+                onClick={() => setCredentialModalUser(null)}
                 className="btn bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-white"
               >
                 Close

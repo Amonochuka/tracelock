@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Users, AlertTriangle, Search } from 'lucide-react';
+import { Users, AlertTriangle, Search, BarChart2 } from 'lucide-react';
 import { API_URL, WS_URL } from '@/lib/api';
+import ZoneAnalyticsChart from '@/components/ZoneAnalyticsChart';
 
 interface Zone {
   id: number;
@@ -23,6 +24,13 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [wsConnected, setWsConnected] = useState(false);
   const [search, setSearch] = useState('');
+  const [analyticsZoneId, setAnalyticsZoneId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (analyticsZoneId === null && Object.keys(occupancy).length > 0) {
+      setAnalyticsZoneId(Number(Object.keys(occupancy)[0]));
+    }
+  }, [occupancy, analyticsZoneId]);
 
   useEffect(() => {
     if (!token) return;
@@ -90,69 +98,105 @@ export default function AdminDashboard() {
         <div className="p-4 mb-6 bg-red-500/10 border border-red-500 rounded-lg text-red-500">{error}</div>
       )}
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
-        <input
-          className="input pl-9 h-9 text-sm w-full max-w-xs"
-          placeholder="Filter zones..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-        {Object.keys(occupancy).length > 0 && (
-          <span className="ml-3 text-xs text-secondary">
-            {filtered.length} / {Object.keys(occupancy).length} zones
-          </span>
-        )}
-      </div>
-
-      {/* Scrollable zone grid */}
-      <div
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 overflow-y-auto pr-1"
-        style={{ maxHeight: 'calc(100vh - 260px)' }}
-      >
-        {filtered.map((occ) => {
-          const isAtCapacity = occ.zone.max_capacity > 0 && occ.active_count >= occ.zone.max_capacity;
-          const isNearCapacity = occ.zone.max_capacity > 0 && (occ.active_count / occ.zone.max_capacity) > 0.8;
-          const statusColor = isAtCapacity ? 'var(--danger-primary)' : isNearCapacity ? 'var(--warning-primary)' : 'var(--accent-primary)';
-          const percent = occ.zone.max_capacity > 0 ? Math.min(100, Math.round((occ.active_count / occ.zone.max_capacity) * 100)) : 0;
-
-          return (
-            <div key={occ.zone.id} className="card flex flex-col gap-3 relative overflow-hidden py-4">
-              {isAtCapacity && (
-                <div className="absolute top-3 right-3 animate-pulse">
-                  <AlertTriangle size={16} className="text-danger" />
-                </div>
-              )}
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-semibold mb-0.5">{occ.zone.name}</h3>
-                  <span className="text-[10px] text-secondary font-medium px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                    ZONE {occ.zone.id}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-end gap-2">
-                <Users size={13} className="text-secondary mb-0.5" />
-                <span className="text-2xl font-bold mono" style={{ color: statusColor }}>{occ.active_count}</span>
-                {occ.zone.max_capacity > 0 && (
-                  <span className="text-secondary mono text-xs mb-0.5">/ {occ.zone.max_capacity}</span>
-                )}
-              </div>
-              {occ.zone.max_capacity > 0 && (
-                <div className="progress-bg">
-                  <div className="progress-fill" style={{ width: `${percent}%`, backgroundColor: statusColor }} />
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {filtered.length === 0 && !loading && (
-          <div className="col-span-full p-8 text-center text-secondary border border-dashed border-[var(--border-color)] rounded-xl">
-            {search ? `No zones matching "${search}"` : 'No zones configured in the system.'}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left Column: Live Grid */}
+        <div className="flex-1 min-w-0">
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
+            <input
+              className="input pl-9 h-9 text-sm w-full max-w-xs"
+              placeholder="Filter zones..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {Object.keys(occupancy).length > 0 && (
+              <span className="ml-3 text-xs text-secondary">
+                {filtered.length} / {Object.keys(occupancy).length} zones
+              </span>
+            )}
           </div>
-        )}
+
+          {/* Scrollable zone grid */}
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 overflow-y-auto pr-1"
+            style={{ maxHeight: 'calc(100vh - 260px)' }}
+          >
+            {filtered.map((occ) => {
+              const isAtCapacity = occ.zone.max_capacity > 0 && occ.active_count >= occ.zone.max_capacity;
+              const isNearCapacity = occ.zone.max_capacity > 0 && (occ.active_count / occ.zone.max_capacity) > 0.8;
+              const statusColor = isAtCapacity ? 'var(--danger-primary)' : isNearCapacity ? 'var(--warning-primary)' : 'var(--accent-primary)';
+              const percent = occ.zone.max_capacity > 0 ? Math.min(100, Math.round((occ.active_count / occ.zone.max_capacity) * 100)) : 0;
+
+              return (
+                <div key={occ.zone.id} className="card flex flex-col gap-3 relative overflow-hidden py-4">
+                  {isAtCapacity && (
+                    <div className="absolute top-3 right-3 animate-pulse">
+                      <AlertTriangle size={16} className="text-danger" />
+                    </div>
+                  )}
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-sm font-semibold mb-0.5">{occ.zone.name}</h3>
+                      <span className="text-[10px] text-secondary font-medium px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        ZONE {occ.zone.id}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <Users size={13} className="text-secondary mb-0.5" />
+                    <span className="text-2xl font-bold mono" style={{ color: statusColor }}>{occ.active_count}</span>
+                    {occ.zone.max_capacity > 0 && (
+                      <span className="text-secondary mono text-xs mb-0.5">/ {occ.zone.max_capacity}</span>
+                    )}
+                  </div>
+                  {occ.zone.max_capacity > 0 && (
+                    <div className="progress-bg">
+                      <div className="progress-fill" style={{ width: `${percent}%`, backgroundColor: statusColor }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {filtered.length === 0 && !loading && (
+              <div className="col-span-full p-8 text-center text-secondary border border-dashed border-[var(--border-color)] rounded-xl">
+                {search ? `No zones matching "${search}"` : 'No zones configured in the system.'}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Analytics */}
+        <div className="w-full lg:w-[450px] flex-shrink-0 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold flex items-center gap-2 m-0">
+              <BarChart2 size={18} className="text-accent" />
+              Zone Analytics
+            </h2>
+            {Object.keys(occupancy).length > 0 && (
+              <select 
+                className="input h-9 text-sm py-0 w-40"
+                value={analyticsZoneId || ''}
+                onChange={e => setAnalyticsZoneId(Number(e.target.value))}
+              >
+                {Object.values(occupancy).map(occ => (
+                  <option key={occ.zone.id} value={occ.zone.id}>{occ.zone.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          
+          <div className="flex-1 min-h-[350px]">
+            {analyticsZoneId ? (
+              <ZoneAnalyticsChart zoneId={analyticsZoneId} />
+            ) : (
+              <div className="h-full flex items-center justify-center text-secondary text-sm border border-dashed border-[var(--border-color)] rounded-xl">
+                No zones available for analytics
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
