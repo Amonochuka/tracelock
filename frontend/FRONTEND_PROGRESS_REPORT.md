@@ -75,11 +75,19 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 
 ## Known Limitations and Next Frontend Priorities
 
-1. Replace WebSocket query-string JWTs with a safer production authentication mechanism.
+1. ~Replace WebSocket query-string JWTs with a safer production authentication mechanism.~ (Complete)
 2. Add form-level validation, loading/error polish, and automated frontend tests.
 3. Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.
 
 ## Feature Change Log
+
+### 2026-08-13 — Secure WebSocket Ticket Authentication
+
+- **Status:** Complete
+- **Summary:** Replaced the vulnerable query-string JWT WebSocket authentication with a short-lived ticket-based handshake. The frontend now makes an authenticated `POST /ws/ticket` request to retrieve a single-use ticket before opening the WebSocket connection. This prevents the long-lived JWT from being permanently recorded in server or proxy URL access logs.
+- **Files touched:** `src/app/admin/(dashboard)/page.tsx`, `backend/internal/access/ws_ticket.go` (new), `backend/internal/access/hub.go`, `backend/internal/auth/middleware.go`.
+- **Validation:** Tests pass. Admin dashboard correctly fetches a ticket and establishes a WebSocket connection.
+- **Follow-up:** Add form-level validation and automated frontend tests.
 
 ### 2026-08-13 — Credential management from Users page
 
