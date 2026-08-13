@@ -14,13 +14,15 @@ type Hub struct {
 	broadcast     chan interface{}
 	mu            sync.Mutex
 	allowedOrigin string
+	ticketStore   *TicketStore
 }
 
-func NewHub(allowedOrigin string) *Hub {
+func NewHub(allowedOrigin string, ticketStore *TicketStore) *Hub {
 	return &Hub{
 		clients:       make(map[*websocket.Conn]bool),
 		broadcast:     make(chan any, 256),
 		allowedOrigin: allowedOrigin,
+		ticketStore:   ticketStore,
 	}
 }
 
@@ -60,6 +62,20 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 			return false
 		},
+	}
+
+	ticket := r.URL.Query().Get("ticket")
+	if ticket == "" {
+		log.Printf("websocket connection rejected: missing ticket")
+		http.Error(w, "missing ticket", http.StatusUnauthorized)
+		return
+	}
+
+	_, valid := h.ticketStore.ConsumeTicket(ticket)
+	if !valid {
+		log.Printf("websocket connection rejected: invalid or expired ticket")
+		http.Error(w, "invalid ticket", http.StatusUnauthorized)
+		return
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)

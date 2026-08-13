@@ -15,7 +15,7 @@ import (
 
 func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService *access.ZoneService,
 	deviceService *access.DeviceService, credentialService *access.CredentialService,
-	biometricService *access.BiometricService, deviceAPIKey string, allowedOrigin string,
+	biometricService *access.BiometricService, ticketStore *access.TicketStore, deviceAPIKey string, allowedOrigin string,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -46,9 +46,27 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 	// API Key Authenticated (Devices)
 	r.With(middleware.APIKeyMiddleware(deviceAPIKey)).Post("/devices/authenticate", AuthenticateBiometricHandler(biometricService))
 
+	// WebSocket connection (unauthenticated route, protected by ticket)
+	r.Get("/ws/zones", zoneService.GetHub().HandleWebSocket)
+
 	// Authenticated
 	r.Group(func(r chi.Router) {
 		r.Use(auth.JWTMiddleware(jwtService))
+
+		// Ticket generation for WebSockets
+		r.Post("/ws/ticket", func(w http.ResponseWriter, r *http.Request) {
+			user := auth.GetUserClaims(r)
+			if user == nil {
+				WriteError(w, http.StatusUnauthorized, "unauthorized")
+				return
+			}
+			ticket, err := ticketStore.GenerateTicket(user.UserID, user.Role)
+			if err != nil {
+				WriteError(w, http.StatusInternalServerError, "failed to generate ticket")
+				return
+			}
+			WriteJSON(w, http.StatusCreated, map[string]string{"ticket": ticket})
+		})
 
 		r.Get("/me", MeHandler(authService))
 		// Me routes; users can see their own data
@@ -63,9 +81,6 @@ func New(authService *auth.UserService, jwtService *auth.JWTService, zoneService
 		r.Get("/testjwt", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("JWT middleware works!\n"))
 		})
-
-		// WebSocket; live zone occupancy feed
-		r.Get("/ws/zones", zoneService.GetHub().HandleWebSocket)
 
 		// for frontend dashboard
 		r.Get("/zones/occupancy", ListZoneOccupancyHandler(zoneService))

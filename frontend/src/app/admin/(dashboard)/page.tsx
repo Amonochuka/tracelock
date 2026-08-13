@@ -59,18 +59,35 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!token) return;
-    const ws = new WebSocket(`${WS_URL}/ws/zones?token=${token}`);
-    ws.onopen = () => setWsConnected(true);
-    ws.onmessage = (event) => {
+    let ws: WebSocket;
+    const connectWs = async () => {
       try {
-        const update: ZoneOccupancy = JSON.parse(event.data);
-        if (update?.zone?.id) {
-          setOccupancy(prev => ({ ...prev, [update.zone.id]: update }));
-        }
-      } catch (e) { console.error('Failed to parse WS message', e); }
+        const res = await fetch(`${API_URL}/ws/ticket`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('failed to get ws ticket');
+        const data = await res.json();
+        
+        ws = new WebSocket(`${WS_URL}/ws/zones?ticket=${data.ticket}`);
+        ws.onopen = () => setWsConnected(true);
+        ws.onmessage = (event) => {
+          try {
+            const update: ZoneOccupancy = JSON.parse(event.data);
+            if (update?.zone?.id) {
+              setOccupancy(prev => ({ ...prev, [update.zone.id]: update }));
+            }
+          } catch (e) { console.error('Failed to parse WS message', e); }
+        };
+        ws.onclose = () => setWsConnected(false);
+      } catch (err) {
+        console.error('WS connection failed:', err);
+      }
     };
-    ws.onclose = () => setWsConnected(false);
-    return () => ws.close();
+    connectWs();
+    return () => {
+      if (ws) ws.close();
+    };
   }, [token]);
 
   const filtered = Object.values(occupancy).filter(occ =>

@@ -31,9 +31,6 @@ func JWTMiddleware(j *JWTService) func(http.Handler) http.Handler {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
 				tokenString = strings.TrimPrefix(authHeader, "Bearer ")
-			} else {
-				// Fallback for WebSockets which can't easily send Authorization headers
-				tokenString = r.URL.Query().Get("token")
 			}
 
 			if tokenString == "" {

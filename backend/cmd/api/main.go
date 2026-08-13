@@ -70,8 +70,11 @@ func main() {
 	// access
 	zoneRepo := access.NewZoneRepo(database)
 
+	// ticket store
+	ticketStore := access.NewTicketStore()
+
 	// create hub and start it
-	hub := access.NewHub(cfg.AllowedOrigin)
+	hub := access.NewHub(cfg.AllowedOrigin, ticketStore)
 	go hub.Run()
 	// pass hub to zone service
 	zoneService := access.NewZoneService(zoneRepo, hub)
@@ -101,7 +104,7 @@ func main() {
 	//biometrics
 	biometricService := access.NewBiometricService(credentialRepo, deviceRepo, zoneService, userAuth, jwtService)
 
-	handler := httpdir.New(userService, jwtService, zoneService, deviceService, credentialService, biometricService, cfg.DeviceAPIKey, cfg.AllowedOrigin)
+	handler := httpdir.New(userService, jwtService, zoneService, deviceService, credentialService, biometricService, ticketStore, cfg.DeviceAPIKey, cfg.AllowedOrigin)
 
 	srv := newHTTPServer(":"+cfg.Port, handler)
 

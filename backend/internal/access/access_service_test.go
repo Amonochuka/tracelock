@@ -166,7 +166,7 @@ func TestHandleZoneEvent_AccessDenied(t *testing.T) {
 		},
 	}
 
-	service := NewZoneService(mockRepo, NewHub("*"))
+	service := NewZoneService(mockRepo, NewHub("*", NewTicketStore()))
 
 	err := service.HandleZoneEvent(1, 1, "user", "enter", time.Now(), nil, "fingerprint")
 
@@ -203,7 +203,7 @@ func TestHandleZoneEvent_AdminAlwaysAllowed(t *testing.T) {
 		},
 	}
 
-	service := NewZoneService(mockRepo, NewHub("*"))
+	service := NewZoneService(mockRepo, NewHub("*", NewTicketStore()))
 
 	err := service.HandleZoneEvent(1, 1, "admin", "enter", time.Now(), nil, "fingerprint")
 
@@ -236,7 +236,7 @@ func TestHandleZoneEvent_ZoneFull(t *testing.T) {
 		},
 	}
 
-	service := NewZoneService(mockRepo, NewHub("*"))
+	service := NewZoneService(mockRepo, NewHub("*", NewTicketStore()))
 
 	err := service.HandleZoneEvent(1, 1, "user", "enter", time.Now(), nil, "fingerprint")
 
@@ -261,7 +261,7 @@ func TestHandleZoneEvent_ExitAccepted(t *testing.T) {
 		},
 	}
 
-	service := NewZoneService(mockRepo, NewHub("*"))
+	service := NewZoneService(mockRepo, NewHub("*", NewTicketStore()))
 
 	err := service.HandleZoneEvent(1, 1, "user", "exit", time.Now(), nil, "fingerprint")
 
@@ -286,7 +286,7 @@ func TestHandleZoneEvent_ExitDeniedWhenNotInZone(t *testing.T) {
 		},
 	}
 
-	service := NewZoneService(mockRepo, NewHub("*"))
+	service := NewZoneService(mockRepo, NewHub("*", NewTicketStore()))
 
 	err := service.HandleZoneEvent(1, 1, "user", "exit", time.Now(), nil, "fingerprint")
 
@@ -334,7 +334,7 @@ func TestHandleZoneEvent_AutoExitOnZoneSwap(t *testing.T) {
 		},
 	}
 
-	service := NewZoneService(mockRepo, NewHub("*"))
+	service := NewZoneService(mockRepo, NewHub("*", NewTicketStore()))
 
 	// user enters zone 2 while still active in zone 1
 	err := service.HandleZoneEvent(99, 2, "user", "enter", time.Now(), nil, "fingerprint")
@@ -391,7 +391,7 @@ func TestHandleZoneEvent_NoAutoExitWhenEnteringSameZone(t *testing.T) {
 		},
 	}
 
-	service := NewZoneService(mockRepo, NewHub("*"))
+	service := NewZoneService(mockRepo, NewHub("*", NewTicketStore()))
 
 	err := service.HandleZoneEvent(1, 1, "user", "enter", time.Now(), nil, "fingerprint")
 
@@ -411,7 +411,7 @@ func TestBroadcastZoneStateExcludesActiveUsers(t *testing.T) {
 			return 2, nil
 		},
 	}
-	hub := NewHub("*")
+	hub := NewHub("*", NewTicketStore())
 	service := NewZoneService(mockRepo, hub)
 
 	service.broadcastZoneState(1)
@@ -454,7 +454,7 @@ func TestHandleZoneEvent_AutoExitBlockedWhenRequiresExitScan(t *testing.T) {
 		},
 	}
 
-	service := NewZoneService(mockRepo, NewHub("*"))
+	service := NewZoneService(mockRepo, NewHub("*", NewTicketStore()))
 
 	// user in zone 1 (requires exit scan) tries to enter zone 2
 	err := service.HandleZoneEvent(99, 2, "user", "enter", time.Now(), nil, "fingerprint")
@@ -504,7 +504,7 @@ func TestHandleZoneEvent_NormalAutoExitWhenNoRequireExitScan(t *testing.T) {
 		},
 	}
 
-	service := NewZoneService(mockRepo, NewHub("*"))
+	service := NewZoneService(mockRepo, NewHub("*", NewTicketStore()))
 
 	// user in zone 1 (no requires exit scan) tries to enter zone 2
 	err := service.HandleZoneEvent(99, 2, "user", "enter", time.Now(), nil, "fingerprint")
