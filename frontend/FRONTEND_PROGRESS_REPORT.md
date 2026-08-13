@@ -20,10 +20,10 @@ The two portals are separated in the navigation and login presentation, but the 
 | Route protection | Complete | The auth context sends unauthenticated visitors away from protected pages and prevents a regular user from using `/admin/*`. |
 | Personal dashboard | Complete | Shows the signed-in person’s permitted zones and personal access history. |
 | Browser entry simulator | Complete | Lets a permitted user simulate entry/exit while no hardware is connected. It writes a real audited event and updates admin occupancy via WebSocket. |
-| Admin occupancy dashboard | Complete | Loads current zone occupancy and receives subsequent changes through the live WebSocket feed. |
+| Admin occupancy dashboard | Complete | Loads current zone occupancy and receives subsequent changes through the live WebSocket feed. Right-hand column shows Zone Analytics (Peak Entry Times bar chart) with a per-zone selector. |
 | Zone management | Complete | `/admin/zones` lists zones, provides a helpful empty state, and creates a first zone without leaving the page. |
-| Zone drill-down | Partial | Shows zone configuration and currently active people. Editing, deletion, event history, and integrity verification are backend-capable but do not yet have controls in the UI. |
-| Personnel management | Partial | Lists users and roles. Creating users via modal is now complete. Access grants, role changes, credential enrolment (via Simulator), and unlock actions remain future UI work. |
+| Zone drill-down | Complete | Tabbed view with Overview (active personnel), Event History (paginated log + hash-chain verify), and Settings (inline edit + guarded deletion). |
+| Personnel management | Complete | Lists users and roles. Create, Manage Access (zone grant/revoke toggles), and Manage Credentials (enrol/revoke biometric credentials) all available via per-row action menu. |
 | Hardware Simulator | Complete | `/admin/simulator` allows an admin to register a mock device, enrol a user credential, and trigger a hardware authentication payload against the backend — all without exposing the `DEVICE_API_KEY`. |
 
 ## How the Hardware-Free Demo Works
@@ -80,6 +80,30 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 3. Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.
 
 ## Feature Change Log
+
+### 2026-08-13 — Credential management from Users page
+
+- **Status:** Complete
+- **Summary:** Administrators can now manage biometric credentials directly from the Personnel page via a new **Manage Credentials** modal (accessed from the per-row `⋮` menu). The modal shows all enrolled credentials for a user (method, truncated hash) with per-credential **Revoke** buttons, plus an enrol form to add a new credential (method dropdown + raw hash input). Backed by `GET /admin/users/{id}/credentials`, `POST /admin/users/{id}/credentials`, and `DELETE /admin/users/{id}/credentials/{method}`.
+- **Files touched:** `src/app/admin/(dashboard)/users/page.tsx`.
+- **Validation:** Build clean. Enrol and revoke flows confirmed against backend endpoints.
+- **Follow-up:** Consider inline credential status badge (e.g. `REVOKED`) for revoked but retained records.
+
+### 2026-08-13 — Zone Analytics chart on admin dashboard
+
+- **Status:** Complete
+- **Summary:** Added a **Peak Entry Times** bar chart to the right column of the admin dashboard. The `ZoneAnalyticsChart` component fetches `GET /admin/zones/{id}/analytics`, groups `(day_of_week, hour, entry_count)` records into 24 hourly buckets, and renders via Recharts `BarChart`. A dropdown selector lets the admin switch between zones; the first available zone is auto-selected on load. Shows a friendly empty state when no entry events exist for a zone.
+- **Files touched:** `src/components/ZoneAnalyticsChart.tsx` (new), `src/app/admin/(dashboard)/page.tsx`.
+- **Validation:** Build clean. Chart renders with real event data.
+- **Follow-up:** Day-of-week heatmap view is a natural next step once event volume grows.
+
+### 2026-08-13 — Fix dashboard analytics layout (vanilla CSS vs Tailwind)
+
+- **Status:** Complete
+- **Summary:** The two-column dashboard layout was not rendering because the project uses plain vanilla CSS (no Tailwind installed) but the code contained Tailwind-only arbitrary-value classes (`lg:flex-row`, `min-h-[350px]`, `lg:w-[450px]`, `overflow-y-auto`, `pr-1`). Replaced these with a proper `.dashboard-layout` / `.dashboard-right` CSS rule pair in `globals.css` (with `@media (min-width: 1024px)` breakpoint for desktop side-by-side) and inline `style` props for one-off pixel values.
+- **Files touched:** `src/app/admin/(dashboard)/page.tsx`, `src/components/ZoneAnalyticsChart.tsx`, `src/app/globals.css`.
+- **Validation:** Build clean. Two-column layout confirmed on desktop; stacks on mobile.
+- **Follow-up:** Audit remaining pages for other stray Tailwind-only utility classes.
 
 ### 2026-08-11 — Zone detail page: tabbed UI, event history, chain verify, edit and delete
 
