@@ -564,24 +564,31 @@ export default function UsersPage() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {userCredentials.map(cred => (
-                        <div key={cred.id} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border-color)] bg-[rgba(255,255,255,0.02)]">
+                      {userCredentials.map((cred: {id: number; entry_method: string; credential_hash: string; revoked: boolean; enrolled_at: string}) => (
+                        <div key={cred.id} className={`flex items-center justify-between p-3 rounded-lg border ${cred.revoked ? 'border-[rgba(255,77,106,0.2)] bg-[rgba(255,77,106,0.03)] opacity-60' : 'border-[var(--border-color)] bg-[rgba(255,255,255,0.02)]'}`}>
                           <div className="flex items-center gap-3">
-                            <Fingerprint size={16} className="text-secondary" />
+                            <Fingerprint size={16} className={cred.revoked ? 'text-danger' : 'text-secondary'} />
                             <div>
-                              <div className="text-sm font-semibold capitalize">{cred.entry_method}</div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold capitalize">{cred.entry_method}</span>
+                                {cred.revoked && (
+                                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[rgba(255,77,106,0.15)] text-danger border border-[rgba(255,77,106,0.3)]">REVOKED</span>
+                                )}
+                              </div>
                               <div className="text-xs text-secondary mono" title={cred.credential_hash}>
                                 Hash: {cred.credential_hash.slice(0, 12)}…
                               </div>
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleRevokeCredential(cred.entry_method)}
-                            className="p-1.5 text-danger hover:bg-[rgba(255,77,106,0.1)] rounded transition-colors"
-                            title="Revoke Credential"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          {!cred.revoked && (
+                            <button
+                              onClick={() => handleRevokeCredential(cred.entry_method)}
+                              className="p-1.5 text-danger hover:bg-[rgba(255,77,106,0.1)] rounded transition-colors"
+                              title="Revoke Credential"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>

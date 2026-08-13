@@ -171,3 +171,26 @@ There is no public password-reset endpoint. A deployment operator with direct se
 - [ ] Consider 2FA for admin accounts
 - [ ] Enable WebSocket over WSS (WebSocket Secure) in production
 - [ ] Test graceful shutdown (30 sec drain) with in-flight requests
+
+---
+
+## 16. Known Limitation — System Timeout Exits on Strict Zones
+
+When the backend starts up (or on the periodic stale session sweep), `CleanupStaleSessions` force-closes any `active_sessions` older than the configured threshold. For each stale session it writes an `exit / allowed` event with `reason: system_timeout` directly to the hash chain — **bypassing the `requires_exit_scan` check**.
+
+**Why this is a concern:**
+- A `system_timeout` exit on a zone with `requires_exit_scan = true` (e.g. Server Room) means the system lost track of the session without a physical exit scan.
+- This could mean the person is **still physically inside** the zone — the backend simply cleaned up a stale record.
+- The audit log will show an `exit / allowed / system_timeout` entry, which could be misread as a legitimate scan-out.
+
+**Current behaviour:**
+- The session is removed and zone occupancy is updated as if the person left.
+- No alert is raised, no zone is locked.
+
+**Planned hardening (not yet implemented):**
+1. For `requires_exit_scan` zones, log `system_timeout` exits with `status: "flagged"` rather than `"allowed"` to distinguish them from legitimate scan-outs.
+2. Notify admins (via WebSocket push or a dedicated alert endpoint) when a flagged timeout occurs on a strict zone.
+3. Optionally lock the zone for new entry until an admin acknowledges the anomaly.
+
+Until this is implemented, administrators should treat any `system_timeout` exit on a strict zone as a **security anomaly requiring manual verification**.
+
