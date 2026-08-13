@@ -266,9 +266,10 @@ func (s *ZoneService) CleanupStaleSessions(threshold time.Duration) (int, error)
 	now := time.Now()
 	for _, session := range stale {
 		// log a system_timeout exit event in the hash chain and cleanly remove session
+		reason := "system_timeout"
 		if err := s.repo.CreateChainedEvent(
 			session.UserID, session.ZoneID,
-			"exit", "allowed", nil, now, nil, "system_timeout", true,
+			"exit", "allowed", &reason, now, nil, "api", true,
 		); err != nil {
 			log.Printf("stale session cleanup: failed to log exit event user=%d zone=%d: %v",
 				session.UserID, session.ZoneID, err)
