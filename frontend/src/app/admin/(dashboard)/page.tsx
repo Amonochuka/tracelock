@@ -98,9 +98,9 @@ export default function AdminDashboard() {
         <div className="p-4 mb-6 bg-red-500/10 border border-red-500 rounded-lg text-red-500">{error}</div>
       )}
 
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="dashboard-layout">
         {/* Left Column: Live Grid */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1" style={{ minWidth: 0 }}>
           {/* Search */}
           <div className="relative mb-4">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
@@ -119,8 +119,8 @@ export default function AdminDashboard() {
 
           {/* Scrollable zone grid */}
           <div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 overflow-y-auto pr-1"
-            style={{ maxHeight: 'calc(100vh - 260px)' }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
+            style={{ maxHeight: 'calc(100vh - 260px)', overflowY: 'auto', paddingRight: '0.25rem' }}
           >
             {filtered.map((occ) => {
               const isAtCapacity = occ.zone.max_capacity > 0 && occ.active_count >= occ.zone.max_capacity;
@@ -168,7 +168,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Right Column: Analytics */}
-        <div className="w-full lg:w-[450px] flex-shrink-0 flex flex-col gap-4">
+        <div className="dashboard-right">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold flex items-center gap-2 m-0">
               <BarChart2 size={18} className="text-accent" />
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
             )}
           </div>
           
-          <div className="flex-1 min-h-[350px]">
+          <div className="flex-1" style={{ minHeight: '350px' }}>
             {analyticsZoneId ? (
               <ZoneAnalyticsChart zoneId={analyticsZoneId} />
             ) : (

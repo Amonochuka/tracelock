@@ -64,7 +64,7 @@ export default function ZoneAnalyticsChart({ zoneId }: { zoneId: number }) {
   }
 
   return (
-    <div className="card w-full h-full min-h-[300px] flex flex-col">
+    <div className="card w-full h-full flex flex-col" style={{ minHeight: '300px' }}>
       <div className="flex items-center gap-2 mb-6">
         <Activity size={18} className="text-accent" />
         <h3 className="m-0 text-sm font-semibold">Peak Entry Times</h3>
