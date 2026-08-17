@@ -450,6 +450,9 @@ export default function ZoneDetailPage() {
                     value={editName}
                     onChange={e => setEditName(e.target.value)}
                     required
+                    disabled={editLoading}
+                    pattern=".*\S+.*"
+                    title="Zone name cannot be empty"
                   />
                 </div>
                 <div className="form-group">
@@ -461,6 +464,7 @@ export default function ZoneDetailPage() {
                     className="input mono"
                     value={editMaxCapacity}
                     onChange={e => setEditMaxCapacity(e.target.value)}
+                    disabled={editLoading}
                   />
                 </div>
               </div>
@@ -471,12 +475,12 @@ export default function ZoneDetailPage() {
                   className="input"
                   value={editDescription}
                   onChange={e => setEditDescription(e.target.value)}
+                  disabled={editLoading}
                 />
               </div>
               <div className="pt-2">
                 <button type="submit" className="btn btn-primary" disabled={editLoading}>
-                  <Save size={15} className="mr-2" />
-                  {editLoading ? 'Saving...' : 'Save Changes'}
+                  {editLoading ? <><span className="spinner"></span> Saving...</> : <><Save size={15} className="mr-2" /> Save Changes</>}
                 </button>
               </div>
             </form>

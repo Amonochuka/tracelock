@@ -250,18 +250,18 @@ export default function SimulatorPage() {
             <form onSubmit={handleCreateDevice} className="space-y-4">
               <div className="form-group">
                 <label className="form-label">Zone</label>
-                <select className="input" value={devZoneId} onChange={e => setDevZoneId(e.target.value)} required>
+                <select className="input" value={devZoneId} onChange={e => setDevZoneId(e.target.value)} required disabled={devLoading}>
                   <option value="">Select a zone...</option>
                   {zones.map(z => <option key={z.id} value={z.id}>{z.name} (ID: {z.id})</option>)}
                 </select>
               </div>
               <div className="form-group">
                 <label className="form-label">Device Name</label>
-                <input className="input" value={devName} onChange={e => setDevName(e.target.value)} placeholder="Main Entrance Scanner" required />
+                <input className="input" value={devName} onChange={e => setDevName(e.target.value)} placeholder="Main Entrance Scanner" required disabled={devLoading} pattern=".*\S+.*" title="Device name cannot be empty" />
               </div>
               <div className="form-group">
                 <label className="form-label">Device Type</label>
-                <select className="input" value={devType} onChange={e => setDevType(e.target.value)}>
+                <select className="input" value={devType} onChange={e => setDevType(e.target.value)} disabled={devLoading}>
                   <option value="fingerprint">Fingerprint</option>
                   <option value="face">Face Recognition</option>
                   <option value="iris">Iris Scanner</option>
@@ -271,10 +271,10 @@ export default function SimulatorPage() {
               </div>
               <div className="form-group">
                 <label className="form-label">Serial Number</label>
-                <input className="input mono" value={devSerial} onChange={e => setDevSerial(e.target.value)} placeholder="SN-12345" required />
+                <input className="input mono" value={devSerial} onChange={e => setDevSerial(e.target.value)} placeholder="SN-12345" required disabled={devLoading} />
               </div>
               <button type="submit" className="btn btn-primary w-full" disabled={devLoading}>
-                <Plus size={16} className="mr-2" />{devLoading ? 'Registering...' : 'Register Device'}
+                {devLoading ? <><span className="spinner"></span> Registering...</> : <><Plus size={16} className="mr-2" />Register Device</>}
               </button>
             </form>
           </div>
@@ -289,14 +289,14 @@ export default function SimulatorPage() {
             <form onSubmit={handleEnrolCredential} className="space-y-4">
               <div className="form-group">
                 <label className="form-label">Personnel</label>
-                <select className="input" value={credUserId} onChange={e => setCredUserId(e.target.value)} required>
+                <select className="input" value={credUserId} onChange={e => setCredUserId(e.target.value)} required disabled={credLoading}>
                   <option value="">Select a user...</option>
                   {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
                 </select>
               </div>
               <div className="form-group">
                 <label className="form-label">Entry Method</label>
-                <select className="input" value={credMethod} onChange={e => setCredMethod(e.target.value)}>
+                <select className="input" value={credMethod} onChange={e => setCredMethod(e.target.value)} disabled={credLoading}>
                   <option value="fingerprint">Fingerprint</option>
                   <option value="face">Face Recognition</option>
                   <option value="iris">Iris Scanner</option>
@@ -306,11 +306,11 @@ export default function SimulatorPage() {
               </div>
               <div className="form-group">
                 <label className="form-label">Raw Credential Value</label>
-                <input className="input mono" value={credHash} onChange={e => setCredHash(e.target.value)} placeholder="test_fingerprint_001" required />
+                <input className="input mono" value={credHash} onChange={e => setCredHash(e.target.value)} placeholder="test_fingerprint_001" required disabled={credLoading} pattern=".*\S+.*" title="Credential value cannot be empty" />
               </div>
               <div className="text-secondary text-xs mb-2">Backend hashes this before storing.</div>
               <button type="submit" className="btn btn-primary w-full" disabled={credLoading}>
-                <Save size={16} className="mr-2" />{credLoading ? 'Enrolling...' : 'Enrol Credential'}
+                {credLoading ? <><span className="spinner"></span> Enrolling...</> : <><Save size={16} className="mr-2" />Enrol Credential</>}
               </button>
             </form>
           </div>
@@ -327,20 +327,20 @@ export default function SimulatorPage() {
           <form onSubmit={handleGrantAccess} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div className="form-group">
               <label className="form-label">Personnel</label>
-              <select className="input" value={accessUserId} onChange={e => setAccessUserId(e.target.value)} required>
+              <select className="input" value={accessUserId} onChange={e => setAccessUserId(e.target.value)} required disabled={accessLoading}>
                 <option value="">Select a user...</option>
                 {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
             <div className="form-group">
               <label className="form-label">Zone</label>
-              <select className="input" value={accessZoneId} onChange={e => setAccessZoneId(e.target.value)} required>
+              <select className="input" value={accessZoneId} onChange={e => setAccessZoneId(e.target.value)} required disabled={accessLoading}>
                 <option value="">Select a zone...</option>
                 {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
               </select>
             </div>
             <button type="submit" className="btn btn-primary h-11" disabled={accessLoading}>
-              <ShieldCheck size={16} className="mr-2" />{accessLoading ? 'Granting...' : 'Grant Access'}
+              {accessLoading ? <><span className="spinner"></span> Granting...</> : <><ShieldCheck size={16} className="mr-2" />Grant Access</>}
             </button>
           </form>
         </div>
@@ -357,21 +357,21 @@ export default function SimulatorPage() {
           <form onSubmit={handleSimulate} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-6">
             <div className="form-group">
               <label className="form-label">Device ID</label>
-              <input type="number" className="input mono" value={activeDeviceId} onChange={e => setActiveDeviceId(e.target.value)} required />
+              <input type="number" className="input mono" value={activeDeviceId} onChange={e => setActiveDeviceId(e.target.value)} required disabled={simLoading} />
             </div>
             <div className="form-group">
               <label className="form-label">Credential Hash</label>
-              <input type="text" className="input mono" value={activeCredentialHash} onChange={e => setActiveCredentialHash(e.target.value)} required />
+              <input type="text" className="input mono" value={activeCredentialHash} onChange={e => setActiveCredentialHash(e.target.value)} required disabled={simLoading} />
             </div>
             <div className="form-group">
               <label className="form-label">Action</label>
-              <select className="input" value={simAction} onChange={e => setSimAction(e.target.value)}>
+              <select className="input" value={simAction} onChange={e => setSimAction(e.target.value)} disabled={simLoading}>
                 <option value="enter">Enter Zone</option>
                 <option value="exit">Exit Zone</option>
               </select>
             </div>
             <button type="submit" className="btn btn-primary h-11" disabled={simLoading || !activeDeviceId || !activeCredentialHash}>
-              <TerminalSquare size={16} className="mr-2" />Simulate Scan
+              {simLoading ? <><span className="spinner"></span> Scanning...</> : <><TerminalSquare size={16} className="mr-2" />Simulate Scan</>}
             </button>
           </form>
           <div className="bg-black border border-[rgba(255,255,255,0.1)] rounded-lg p-4 font-mono text-sm overflow-x-auto min-h-[100px]">

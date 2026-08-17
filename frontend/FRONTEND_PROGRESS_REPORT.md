@@ -76,10 +76,18 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 ## Known Limitations and Next Frontend Priorities
 
 1. ~Replace WebSocket query-string JWTs with a safer production authentication mechanism.~ (Complete)
-2. Add form-level validation, loading/error polish, and automated frontend tests.
+2. ~Add form-level validation, loading/error polish, and automated frontend tests.~ (Form polish complete; automated tests still pending)
 3. Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.
 
 ## Feature Change Log
+
+### 2026-08-17 — Form Validation and Loading State Polish
+
+- **Status:** Complete
+- **Summary:** Applied consistent form validation, loading states, and error handling across all administration portal forms. (1) Added a `.spinner` CSS keyframe animation and `.btn:disabled` / `.input:disabled` styles to `globals.css`. (2) All form inputs and selects are now disabled while their request is in-flight, preventing double submissions. (3) All submit buttons swap their icon for a spinning indicator during loading, giving immediate visual feedback. (4) `pattern=".*\S+.*"` validation added to free-text name fields (zone name, user name, device name, credential hash) to block whitespace-only submissions before they reach the backend.
+- **Files touched:** `src/app/globals.css`, `src/components/SignInForm.tsx`, `src/app/bootstrap/page.tsx`, `src/app/admin/(dashboard)/zones/page.tsx`, `src/app/admin/(dashboard)/zones/[id]/page.tsx`, `src/app/admin/(dashboard)/users/page.tsx`, `src/app/admin/(dashboard)/simulator/page.tsx`.
+- **Validation:** `npm run build` exit code 0, TypeScript clean, all 12 routes generated.
+- **Follow-up:** Add automated frontend tests and day-of-week heatmap analytics view.
 
 ### 2026-08-13 — Secure WebSocket Ticket Authentication
 

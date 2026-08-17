@@ -99,23 +99,23 @@ export default function ZonesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="form-group">
                 <label className="form-label" htmlFor="zone-name">Name</label>
-                <input id="zone-name" className="input" value={name} onChange={e => setName(e.target.value)} required />
+                <input id="zone-name" className="input" value={name} onChange={e => setName(e.target.value)} required disabled={saving} pattern=".*\S+.*" title="Zone name cannot be empty" />
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="zone-capacity">Max Capacity (0 = unlimited)</label>
-                <input id="zone-capacity" className="input" type="number" min="0" value={maxCapacity} onChange={e => setMaxCapacity(e.target.value)} />
+                <input id="zone-capacity" className="input" type="number" min="0" value={maxCapacity} onChange={e => setMaxCapacity(e.target.value)} disabled={saving} />
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="zone-description">Description</label>
-                <input id="zone-description" className="input" value={description} onChange={e => setDescription(e.target.value)} />
+                <input id="zone-description" className="input" value={description} onChange={e => setDescription(e.target.value)} disabled={saving} />
               </div>
-              <label className="flex items-center gap-2 text-sm text-secondary self-center">
-                <input type="checkbox" checked={requiresExitScan} onChange={e => setRequiresExitScan(e.target.checked)} />
+              <label className="flex items-center gap-2 text-sm text-secondary self-center" style={saving ? { opacity: 0.6, pointerEvents: 'none' } : {}}>
+                <input type="checkbox" checked={requiresExitScan} onChange={e => setRequiresExitScan(e.target.checked)} disabled={saving} />
                 Require explicit exit scan
               </label>
             </div>
             <button className="btn btn-primary" type="submit" disabled={saving}>
-              {saving ? 'Creating...' : 'Create Zone'}
+              {saving ? <><span className="spinner"></span> Creating...</> : 'Create Zone'}
             </button>
           </form>
         </div>

@@ -77,15 +77,18 @@ export default function SignInForm({ portal }: SignInFormProps) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="form-group">
             <label className="form-label" htmlFor="email">Email</label>
-            <input id="email" type="email" className="input mono" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="operator@tracelock.local" required />
+            <input id="email" type="email" className="input mono" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="operator@tracelock.local" required disabled={loading} />
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="password">Password</label>
-            <input id="password" type="password" className="input" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" required />
+            <input id="password" type="password" className="input" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" required disabled={loading} />
           </div>
           <button type="submit" className="btn btn-primary mt-4" disabled={loading} style={{ width: '100%' }}>
-            <LogIn size={18} style={{ marginRight: '8px' }} />
-            {loading ? 'Authenticating...' : 'Secure Login'}
+            {loading ? (
+              <><span className="spinner"></span> Authenticating...</>
+            ) : (
+              <><LogIn size={18} style={{ marginRight: '8px' }} /> Secure Login</>
+            )}
           </button>
         </form>
       </div>

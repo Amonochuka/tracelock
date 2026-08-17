@@ -115,6 +115,9 @@ export default function BootstrapPage() {
               onChange={(e) => setName(e.target.value)}
               placeholder="System Administrator"
               required
+              disabled={loading}
+              pattern=".*\S+.*"
+              title="Name cannot be empty or just whitespace"
             />
           </div>
 
@@ -128,6 +131,7 @@ export default function BootstrapPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@tracelock.local"
               required
+              disabled={loading}
             />
           </div>
 
@@ -142,6 +146,7 @@ export default function BootstrapPage() {
               placeholder="••••••••"
               required
               minLength={8}
+              disabled={loading}
             />
           </div>
 
@@ -151,8 +156,11 @@ export default function BootstrapPage() {
             disabled={loading}
             style={{ width: '100%' }}
           >
-            <UserPlus size={18} style={{ marginRight: '8px' }} />
-            {loading ? 'Initializing...' : 'Initialize System'}
+            {loading ? (
+              <><span className="spinner"></span> Initializing...</>
+            ) : (
+              <><UserPlus size={18} style={{ marginRight: '8px' }} /> Initialize System</>
+            )}
           </button>
         </form>
 

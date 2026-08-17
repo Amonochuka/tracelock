@@ -383,6 +383,9 @@ export default function UsersPage() {
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Jane Doe"
                   required
+                  disabled={createLoading}
+                  pattern=".*\S+.*"
+                  title="Name cannot be empty or just whitespace"
                 />
               </div>
 
@@ -396,6 +399,7 @@ export default function UsersPage() {
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="jane.doe@tracelock.local"
                   required
+                  disabled={createLoading}
                 />
               </div>
 
@@ -410,6 +414,7 @@ export default function UsersPage() {
                   placeholder="••••••••"
                   required
                   minLength={8}
+                  disabled={createLoading}
                 />
               </div>
 
@@ -418,6 +423,7 @@ export default function UsersPage() {
                   type="button" 
                   onClick={() => setShowCreateModal(false)}
                   className="btn bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-white"
+                  disabled={createLoading}
                 >
                   Cancel
                 </button>
@@ -426,7 +432,7 @@ export default function UsersPage() {
                   className="btn btn-primary"
                   disabled={createLoading}
                 >
-                  {createLoading ? 'Creating...' : 'Create Account'}
+                  {createLoading ? <><span className="spinner"></span> Creating...</> : 'Create Account'}
                 </button>
               </div>
             </form>
@@ -604,7 +610,7 @@ export default function UsersPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="form-group mb-0">
                         <label className="form-label text-xs">Method</label>
-                        <select className="input h-9 text-sm" value={newCredMethod} onChange={e => setNewCredMethod(e.target.value)}>
+                        <select className="input h-9 text-sm" value={newCredMethod} onChange={e => setNewCredMethod(e.target.value)} disabled={enrollingCred}>
                           <option value="fingerprint">Fingerprint</option>
                           <option value="face">Face Recognition</option>
                           <option value="iris">Iris Scanner</option>
@@ -614,12 +620,12 @@ export default function UsersPage() {
                       </div>
                       <div className="form-group mb-0">
                         <label className="form-label text-xs">Raw Value / Hash</label>
-                        <input className="input h-9 text-sm mono" value={newCredHash} onChange={e => setNewCredHash(e.target.value)} required placeholder="e.g. hash_123" />
+                        <input className="input h-9 text-sm mono" value={newCredHash} onChange={e => setNewCredHash(e.target.value)} required disabled={enrollingCred} pattern=".*\S+.*" title="Hash cannot be empty" placeholder="e.g. hash_123" />
                       </div>
                     </div>
                     <div className="flex justify-end pt-1">
                       <button type="submit" className="btn btn-primary text-sm px-4 h-9" disabled={enrollingCred}>
-                        {enrollingCred ? 'Enrolling...' : 'Enroll Credential'}
+                        {enrollingCred ? <><span className="spinner"></span> Enrolling...</> : 'Enroll Credential'}
                       </button>
                     </div>
                   </form>
