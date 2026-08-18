@@ -14,4 +14,5 @@ var (
 	ErrTokenRevoked       = errors.New("refresh token has been revoked")
 	ErrTokenExpired       = errors.New("refresh token has expired")
 	ErrAccountLocked      = errors.New("account is temporarily locked")
+	ErrCannotDeleteAdmin  = errors.New("admin accounts cannot be deleted")
 )

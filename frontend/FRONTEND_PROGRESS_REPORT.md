@@ -81,6 +81,13 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 
 ## Feature Change Log
 
+### 2026-08-18 — Delete User and Analytics Timezone Fix
+
+- **Status:** Complete
+- **Summary:** (1) Implemented full-stack user deletion. Backend: added `DeleteUser` to `UserRepository` interface, `UserAuth` repo, `UserService` (with admin guard), `ErrCannotDeleteAdmin` error, `DeleteUserHandler`, and `DELETE /admin/users/{id}` route. Frontend: added **Delete User** button in the Users page action dropdown — hidden for admin accounts. (2) Fixed the Peak Entry Times bar chart showing UTC hours instead of local hours by applying the browser's timezone offset (`new Date().getTimezoneOffset()`) when mapping backend records to chart buckets.
+- **Files touched:** `backend/internal/auth/interfaces.go`, `backend/internal/auth/user_auth.go`, `backend/internal/auth/user_service.go`, `backend/internal/auth/errors.go`, `backend/internal/httpdir/auth_handlers.go`, `backend/internal/httpdir/router.go`, `src/app/admin/(dashboard)/users/page.tsx`, `src/components/ZoneAnalyticsChart.tsx`.
+- **Validation:** `go build ./...` clean, `npm run build` exit code 0, all 12 routes generated.
+
 ### 2026-08-18 — Simulator: Forward Biometric Mismatch to Backend and Refresh Events
 
 - **Status:** Complete

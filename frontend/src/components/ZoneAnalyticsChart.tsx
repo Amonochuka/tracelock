@@ -31,16 +31,19 @@ export default function ZoneAnalyticsChart({ zoneId }: { zoneId: number }) {
         if (!res.ok) throw new Error('Failed to fetch analytics');
         const rawData: ZoneAnalytics[] = await res.json();
         
-        // Group by hour (0-23)
+        // The backend returns hours in UTC (extracted from the DB timestamp).
+        // Shift each UTC hour to the browser's local hour using the timezone offset.
+        const tzOffsetHours = -new Date().getTimezoneOffset() / 60; // e.g. +3 for EAT
+
+        // Group by local hour (0-23)
         const hourlyData = new Array(24).fill(0).map((_, i) => ({
           hour: `${i}:00`,
           entries: 0
         }));
 
         (rawData || []).forEach(record => {
-          if (record.hour >= 0 && record.hour < 24) {
-            hourlyData[record.hour].entries += record.entry_count;
-          }
+          const localHour = ((record.hour + tzOffsetHours) % 24 + 24) % 24;
+          hourlyData[localHour].entries += record.entry_count;
         });
 
         setData(hourlyData);

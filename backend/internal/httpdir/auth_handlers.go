@@ -345,3 +345,30 @@ func UnlockAccountHandler(s *auth.UserService) http.HandlerFunc {
 		})
 	}
 }
+
+// DELETE /admin/users/{id} ; admin permanently deletes a user account
+func DeleteUserHandler(s *auth.UserService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid user id")
+			return
+		}
+
+		if err := s.DeleteUser(userID); err != nil {
+			switch {
+			case errors.Is(err, auth.ErrUserNotFound):
+				WriteError(w, http.StatusNotFound, "user not found")
+			case errors.Is(err, auth.ErrCannotDeleteAdmin):
+				WriteError(w, http.StatusForbidden, "admin accounts cannot be deleted")
+			default:
+				WriteError(w, http.StatusInternalServerError, "could not delete user")
+			}
+			return
+		}
+
+		WriteJSON(w, http.StatusOK, map[string]string{
+			"message": "user deleted successfully",
+		})
+	}
+}

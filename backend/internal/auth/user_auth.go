@@ -309,3 +309,16 @@ func (u *UserAuth) UnlockAccount(userID int) error {
 	}
 	return nil
 }
+
+// DeleteUser permanently removes a user and all their associated data.
+func (u *UserAuth) DeleteUser(userID int) error {
+	res, err := u.db.Exec(`DELETE FROM users WHERE id = $1`, userID)
+	if err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}

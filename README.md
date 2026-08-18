@@ -2,6 +2,8 @@
 
 A full-stack **physical access control system** — a biometric security platform for managing zone access, tracking personnel movement, and maintaining tamper-evident audit trails in real time.
 
+🌐 **Live Demo:** [https://tracelock-fe.onrender.com](https://tracelock-fe.onrender.com)
+
 ---
 
 ## What It Is

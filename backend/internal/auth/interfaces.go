@@ -23,4 +23,5 @@ type UserRepository interface {
 	ResetFailedAttempts(email string) error
 	IsAccountLocked(email string) (bool, error)
 	UnlockAccount(userID int) error
+	DeleteUser(userID int) error
 }

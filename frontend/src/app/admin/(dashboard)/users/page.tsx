@@ -237,6 +237,24 @@ export default function UsersPage() {
     }
   };
 
+  const handleDeleteUser = async (user: UserObj) => {
+    if (!token) return;
+    if (!confirm(`Permanently delete ${user.name}? This cannot be undone.`)) return;
+    setDropdownOpenId(null);
+    try {
+      const res = await fetch(`${API_URL}/admin/users/${user.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete user');
+      await fetchUsers();
+    } catch (e: unknown) {
+      if (e instanceof Error) setError(e.message);
+      else setError('Error deleting user');
+    }
+  };
+
   if (loading) return <div className="text-secondary">Loading personnel data...</div>;
 
   return (
@@ -332,6 +350,18 @@ export default function UsersPage() {
                         <Fingerprint size={14} className="text-accent" />
                         Manage Credentials
                       </button>
+                      {u.role !== 'admin' && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteUser(u);
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-[rgba(255,77,106,0.08)] flex items-center gap-2 border-t border-[rgba(255,255,255,0.05)] text-danger"
+                        >
+                          <Trash2 size={14} />
+                          Delete User
+                        </button>
+                      )}
                     </div>
                   )}
                 </td>

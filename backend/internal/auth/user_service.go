@@ -109,3 +109,16 @@ func (s *UserService) DeleteExpiredTokens() error {
 func (s *UserService) UnlockAccount(userID int) error {
 	return s.auth.UnlockAccount(userID)
 }
+
+// DeleteUser permanently removes a user — admin action.
+// Blocks deletion of admin accounts for safety.
+func (s *UserService) DeleteUser(userID int) error {
+	user, err := s.auth.VerifyUser(userID)
+	if err != nil {
+		return err
+	}
+	if user.Role == "admin" {
+		return ErrCannotDeleteAdmin
+	}
+	return s.auth.DeleteUser(userID)
+}
