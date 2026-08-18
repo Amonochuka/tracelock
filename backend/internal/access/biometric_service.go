@@ -50,11 +50,13 @@ func (s *BiometricService) AuthenticateBiometric(deviceID int, credentialHash st
 		return "", err
 	}
 	if credential.Revoked {
+		s.zones.logDeniedEvent(credential.UserID, device.ZoneID, action, time.Now(), "credential_revoked", &deviceID, credential.EntryMethod)
 		return "", ErrCredentialRevoked
 	}
 
 	// validate device type matches credential entry method
 	if device.Type != credential.EntryMethod {
+		s.zones.logDeniedEvent(credential.UserID, device.ZoneID, action, time.Now(), "device_type_mismatch", &deviceID, credential.EntryMethod)
 		return "", ErrTypeMismatch
 	}
 
