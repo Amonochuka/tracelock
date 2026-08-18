@@ -81,6 +81,13 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 
 ## Feature Change Log
 
+### 2026-08-18 — Default Route Redirect to Admin Login
+
+- **Status:** Complete
+- **Summary:** Updated the root page redirect (`/`) to point to `/admin/login` instead of `/login` as the primary features are currently focused on the administrative portal.
+- **Files touched:** `src/app/page.tsx`, `FRONTEND_PROGRESS_REPORT.md`.
+- **Validation:** Navigating to the base route successfully redirects to the admin login page.
+
 ### 2026-08-18 — Delete User and Analytics Timezone Fix
 
 - **Status:** Complete

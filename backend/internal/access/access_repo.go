@@ -293,7 +293,7 @@ func (z *ZoneRepo) ListUserZoneAccess(userID int) ([]*models.Zone, error) {
 func (z *ZoneRepo) ListZoneUsers(zoneID int) ([]*models.User, error) {
 	rows, err := z.db.Query(`SELECT u.id, u.name, u.email, u.role, u.created_at
 							FROM users u INNER JOIN user_zone_access uza ON uza.user_id = u.id
-							WHERE uza.zone_id = $1 ORDER BY u.name`, zoneID)
+							WHERE uza.zone_id = $1 AND u.deleted_at IS NULL ORDER BY u.name`, zoneID)
 	if err != nil {
 		return nil, fmt.Errorf("list zone users: %w", err)
 	}
@@ -384,7 +384,7 @@ func (z *ZoneRepo) ListZoneEvents(zoneID, limit, offset int) ([]*models.AccessEv
 		return nil, 0, fmt.Errorf("count zone events: %w", err)
 	}
 
-	rows, err := z.db.Query(`SELECT id, user_id, zone_id, action, status, reason, timestamp, hash,
+	rows, err := z.db.Query(`SELECT id, COALESCE(user_id, 0), zone_id, action, status, reason, timestamp, hash,
 		previous_hash, device_id, entry_method
 		FROM access_events WHERE zone_id = $1
 		ORDER BY timestamp DESC LIMIT $2 OFFSET $3`, zoneID, limit, offset)
@@ -404,7 +404,7 @@ func (z *ZoneRepo) ListUserEvents(userID, limit, offset int) ([]*models.AccessEv
 		return nil, 0, fmt.Errorf("count user events: %w", err)
 	}
 
-	rows, err := z.db.Query(`SELECT id, user_id, zone_id, action, status, reason, timestamp,
+	rows, err := z.db.Query(`SELECT id, COALESCE(user_id, 0), zone_id, action, status, reason, timestamp,
 		hash, previous_hash, device_id, entry_method
 		FROM access_events WHERE user_id = $1
 		ORDER BY timestamp DESC LIMIT $2 OFFSET $3`, userID, limit, offset)

@@ -55,7 +55,7 @@ func (u *UserAuth) Authenticate(email, password string) (*models.User, error) {
 	user := &models.User{}
 	err = u.db.QueryRow(
 		`SELECT id, name, email, password_hash, role, failed_attempts, locked_until, created_at 
-			FROM users WHERE email=$1`, email).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash,
+			FROM users WHERE email=$1 AND deleted_at IS NULL`, email).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash,
 		&user.Role, &user.FailedAttempts,
 		&user.LockedUntil, &user.CreatedAt)
 	if err != nil {
@@ -85,7 +85,7 @@ func (u *UserAuth) Authenticate(email, password string) (*models.User, error) {
 func (u *UserAuth) VerifyUser(id int) (*models.User, error) {
 	user := &models.User{}
 	err := u.db.QueryRow(
-		"SELECT id, name, email, role, failed_attempts, locked_until, created_at FROM users WHERE id=$1", id,
+		"SELECT id, name, email, role, failed_attempts, locked_until, created_at FROM users WHERE id=$1 AND deleted_at IS NULL", id,
 	).Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.FailedAttempts, &user.LockedUntil, &user.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -99,7 +99,7 @@ func (u *UserAuth) VerifyUser(id int) (*models.User, error) {
 // register admin account, but first check if an admin exists
 func (u *UserAuth) AdminExists() (bool, error) {
 	var exists bool
-	err := u.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE role = 'admin')").Scan(&exists)
+	err := u.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE role = 'admin' AND deleted_at IS NULL)").Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("checking admin exists: %w", err)
 	}
@@ -135,7 +135,7 @@ func (u *UserAuth) ResetAdminPassword(email, password string) error {
 	err = u.db.QueryRow(`
 		UPDATE users
 		SET password_hash = $1, failed_attempts = 0, locked_until = NULL
-		WHERE email = $2 AND role = 'admin'
+		WHERE email = $2 AND role = 'admin' AND deleted_at IS NULL
 		RETURNING id`, string(hash), email).Scan(&userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -166,7 +166,7 @@ func (u *UserAuth) UpdateRole(userID int, role string) error {
 
 // admin duty:list all users
 func (u *UserAuth) ListUsers() ([]*models.User, error) {
-	rows, err := u.db.Query("SELECT id, name, email, role, created_at FROM users ORDER BY id")
+	rows, err := u.db.Query("SELECT id, name, email, role, created_at FROM users WHERE deleted_at IS NULL ORDER BY id")
 	if err != nil {
 		return nil, fmt.Errorf("listing users:%w", err)
 	}
@@ -282,7 +282,7 @@ func (u *UserAuth) ResetFailedAttempts(email string) error {
 func (u *UserAuth) IsAccountLocked(email string) (bool, error) {
 	var lockedUntil *time.Time
 	err := u.db.QueryRow(`
-		SELECT locked_until FROM users WHERE email = $1`, email).Scan(&lockedUntil)
+		SELECT locked_until FROM users WHERE email = $1 AND deleted_at IS NULL`, email).Scan(&lockedUntil)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, ErrUserNotFound
@@ -310,9 +310,9 @@ func (u *UserAuth) UnlockAccount(userID int) error {
 	return nil
 }
 
-// DeleteUser permanently removes a user and all their associated data.
+// DeleteUser permanently removes a user and all their associated data (now soft deletes).
 func (u *UserAuth) DeleteUser(userID int) error {
-	res, err := u.db.Exec(`DELETE FROM users WHERE id = $1`, userID)
+	res, err := u.db.Exec(`UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL`, userID)
 	if err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
@@ -320,5 +320,6 @@ func (u *UserAuth) DeleteUser(userID int) error {
 	if rows == 0 {
 		return ErrUserNotFound
 	}
+	_, _ = u.db.Exec("UPDATE refresh_tokens SET revoked = true WHERE user_id = $1", userID)
 	return nil
 }
