@@ -170,10 +170,6 @@ export default function SimulatorPage() {
   const handleSimulate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSimLoading(true);
-    if (activeDeviceType && activeCredentialMethod && activeDeviceType !== activeCredentialMethod) {
-      setSimOutput(`ERROR: Type Mismatch\n\nDevice is '${activeDeviceType}' but credential is '${activeCredentialMethod}'.`);
-      setSimLoading(false); return;
-    }
     setSimOutput('Sending request...');
     try {
       const payload = { device_id: parseInt(activeDeviceId, 10), credential_hash: activeCredentialHash, action: simAction };
@@ -188,7 +184,7 @@ export default function SimulatorPage() {
         setSimLoading(false); return;
       }
       setSimOutput(`STATUS: ${res.status} ${res.statusText}\n\nPAYLOAD:\n${JSON.stringify(payload, null, 2)}\n\nRESPONSE:\n${JSON.stringify(data, null, 2)}`);
-      if (res.ok && eventsZoneId) setTimeout(() => fetchEvents(eventsZoneId), 800);
+      if (eventsZoneId) setTimeout(() => fetchEvents(eventsZoneId), 800);
     } catch (err: any) { setSimOutput(`ERROR:\n${err.message}`); }
     finally { setSimLoading(false); }
   };

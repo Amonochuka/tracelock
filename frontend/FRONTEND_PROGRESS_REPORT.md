@@ -81,6 +81,14 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 
 ## Feature Change Log
 
+### 2026-08-18 — Simulator: Forward Biometric Mismatch to Backend and Refresh Events
+
+- **Status:** Complete
+- **Summary:** Previously, the Hardware Simulator silently blocked mismatch scan tests on the client side and only refreshed the Hash Chain Events log on successful responses. This meant denied events (e.g. `device_type_mismatch`) were invisible in the UI even though the backend was correctly logging them. Fixed by: (1) removing the client-side `activeDeviceType !== activeCredentialMethod` guard so every scan is sent to the server, and (2) triggering the hash chain events refresh after every simulation response, not just successful ones.
+- **Files touched:** `src/app/admin/(dashboard)/simulator/page.tsx`.
+- **Validation:** `npm run build` exit code 0, TypeScript clean, all 12 routes generated. Mismatched scans now appear correctly in the Hash Chain Events panel with reason `device_type_mismatch`.
+- **Follow-up:** None.
+
 ### 2026-08-17 — Form Validation and Loading State Polish
 
 - **Status:** Complete
