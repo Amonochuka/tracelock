@@ -21,8 +21,9 @@ type mockZoneRepo struct {
 	getLastHashFunc             func(zoneID int) (string, error)
 	createEventFunc             func(userID, zoneID int, action, status string, reason *string, hash, previousHash string, deviceID *int, entryMethod string) error
 	createChainedEventFunc      func(userID, zoneID int, action, status string, reason *string, timestamp time.Time, deviceID *int, entryMethod string, updateSession bool) error
-	getActiveSessionForUserFunc func(userID int) (int, error)
-	getRequiresExitScanFunc     func(zoneID int) (bool, error)
+	getActiveSessionForUserFunc   func(userID int) (int, error)
+	getRequiresExitScanFunc       func(zoneID int) (bool, error)
+	getLastAllowedEntryMethodFunc func(userID, zoneID int) (string, error)
 }
 
 func (m *mockZoneRepo) HasZoneAccess(userID, zoneID int, role string) (bool, error) {
@@ -106,6 +107,13 @@ func (m *mockZoneRepo) GetActiveSessionForUser(userID int) (int, error) {
 		return m.getActiveSessionForUserFunc(userID)
 	}
 	return 0, ErrNoActiveSession
+}
+
+func (m *mockZoneRepo) GetLastAllowedEntryMethod(userID, zoneID int) (string, error) {
+	if m.getLastAllowedEntryMethodFunc != nil {
+		return m.getLastAllowedEntryMethodFunc(userID, zoneID)
+	}
+	return "", ErrNoActiveSession
 }
 
 func (m *mockZoneRepo) GetRequiresExitScan(zoneID int) (bool, error) {
@@ -250,6 +258,12 @@ func TestHandleZoneEvent_ExitAccepted(t *testing.T) {
 	// (exits are intentionally unconditional for physical safety reasons)
 	// so we only mock what the exit branch actually calls
 	mockRepo := &mockZoneRepo{
+		getActiveSessionForUserFunc: func(userID int) (int, error) {
+			return 1, nil // active in zone 1
+		},
+		getLastAllowedEntryMethodFunc: func(userID, zoneID int) (string, error) {
+			return "fingerprint", nil // matches fingerprint exit method
+		},
 		deleteSessionFunc: func(userID, zoneID int) error {
 			return nil // session removed cleanly
 		},
@@ -275,8 +289,8 @@ func TestHandleZoneEvent_ExitDeniedWhenNotInZone(t *testing.T) {
 	// should log a denied event and return ErrNoActiveSession, not
 	// fail silently
 	mockRepo := &mockZoneRepo{
-		deleteSessionFunc: func(userID, zoneID int) error {
-			return ErrNoActiveSession // user was never in this zone
+		getActiveSessionForUserFunc: func(userID int) (int, error) {
+			return 0, ErrNoActiveSession // user is not in any zone
 		},
 		getLastHashFunc: func(zoneID int) (string, error) {
 			return "", ErrNoHashFound
@@ -519,3 +533,59 @@ func TestHandleZoneEvent_NormalAutoExitWhenNoRequireExitScan(t *testing.T) {
 		t.Fatalf("expected 2 events (auto-exit + entry), got %d", len(createdEventZones))
 	}
 }
+
+func TestHandleZoneEvent_ExitDeniedOnMethodMismatch(t *testing.T) {
+	mockRepo := &mockZoneRepo{
+		getActiveSessionForUserFunc: func(userID int) (int, error) {
+			return 1, nil // active in zone 1
+		},
+		getLastAllowedEntryMethodFunc: func(u, z int) (string, error) {
+			return "fingerprint", nil // entered using fingerprint
+		},
+		createEventFunc: func(u, z int, act, stat string, reason *string, h, ph string, d *int, em string) error {
+			return nil
+		},
+	}
+	service := NewZoneService(mockRepo, NewHub("*", NewTicketStore()))
+
+	// user tries to exit using iris, which mismatches entry fingerprint
+	err := service.HandleZoneEvent(1, 1, "user", "exit", time.Now(), nil, "iris")
+
+	if !errors.Is(err, ErrExitMethodMismatch) {
+		t.Errorf("expected ErrExitMethodMismatch error, got: %v", err)
+	}
+}
+
+func TestHandleZoneEvent_ExitAllowedOnMethodMatch(t *testing.T) {
+	deleteSessionCalled := false
+	mockRepo := &mockZoneRepo{
+		getActiveSessionForUserFunc: func(userID int) (int, error) {
+			return 1, nil // active in zone 1
+		},
+		getLastAllowedEntryMethodFunc: func(u, z int) (string, error) {
+			return "fingerprint", nil // entered using fingerprint
+		},
+		deleteSessionFunc: func(userID, zoneID int) error {
+			deleteSessionCalled = true
+			return nil
+		},
+		getLastHashFunc: func(zoneID int) (string, error) {
+			return "", ErrNoHashFound
+		},
+		createEventFunc: func(u, z int, act, stat string, reason *string, h, ph string, d *int, em string) error {
+			return nil
+		},
+	}
+	service := NewZoneService(mockRepo, NewHub("*", NewTicketStore()))
+
+	// user exits using fingerprint
+	err := service.HandleZoneEvent(1, 1, "user", "exit", time.Now(), nil, "fingerprint")
+
+	if err != nil {
+		t.Fatalf("expected successful exit, got error: %v", err)
+	}
+	if !deleteSessionCalled {
+		t.Error("expected deleteSession to have been called")
+	}
+}
+

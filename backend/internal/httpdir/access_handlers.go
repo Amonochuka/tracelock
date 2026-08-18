@@ -112,6 +112,8 @@ func ExitZoneHandler(service *access.ZoneService) http.HandlerFunc {
 				WriteError(w, http.StatusNotFound, "no active session found")
 			case errors.Is(err, access.ErrZoneNotFound):
 				WriteError(w, http.StatusNotFound, "zone not found")
+			case errors.Is(err, access.ErrExitMethodMismatch):
+				WriteError(w, http.StatusForbidden, "exit method does not match entry method")
 			default:
 				WriteError(w, http.StatusInternalServerError, "internal server error")
 			}

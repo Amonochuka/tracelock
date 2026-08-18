@@ -101,6 +101,34 @@ func (s *ZoneService) HandleZoneEvent(userID, zoneID int, role, action string, t
 	// becomes unreachable by the time we need to broadcast its updated state
 	var activeZoneID int
 
+	if action == "exit" {
+		activeZone, err := s.repo.GetActiveSessionForUser(userID)
+		if err != nil {
+			if errors.Is(err, ErrNoActiveSession) {
+				s.logDeniedEvent(userID, zoneID, action, timestamp, "not_in_zone", deviceID, entryMethod)
+				return ErrNoActiveSession
+			}
+			return err
+		}
+		if activeZone != zoneID {
+			s.logDeniedEvent(userID, zoneID, action, timestamp, "not_in_zone", deviceID, entryMethod)
+			return ErrNoActiveSession
+		}
+
+		lastEntryMethod, err := s.repo.GetLastAllowedEntryMethod(userID, zoneID)
+		if err != nil {
+			if errors.Is(err, ErrNoActiveSession) {
+				s.logDeniedEvent(userID, zoneID, action, timestamp, "not_in_zone", deviceID, entryMethod)
+				return ErrNoActiveSession
+			}
+			return err
+		}
+		if lastEntryMethod != entryMethod {
+			s.logDeniedEvent(userID, zoneID, action, timestamp, "exit_method_mismatch", deviceID, entryMethod)
+			return ErrExitMethodMismatch
+		}
+	}
+
 	if action == "enter" {
 		// 1. Check permission
 		allowed, err := s.repo.HasZoneAccess(userID, zoneID, role)

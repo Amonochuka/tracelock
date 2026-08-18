@@ -585,3 +585,19 @@ func (z *ZoneRepo) GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error)
 	}
 	return analytics, nil
 }
+
+func (z *ZoneRepo) GetLastAllowedEntryMethod(userID, zoneID int) (string, error) {
+	var entryMethod string
+	err := z.db.QueryRow(`
+		SELECT entry_method FROM access_events 
+		WHERE user_id = $1 AND zone_id = $2 AND action = 'enter' AND status = 'allowed' 
+		ORDER BY timestamp DESC, id DESC LIMIT 1
+	`, userID, zoneID).Scan(&entryMethod)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrNoActiveSession
+		}
+		return "", fmt.Errorf("get last allowed entry method: %w", err)
+	}
+	return entryMethod, nil
+}

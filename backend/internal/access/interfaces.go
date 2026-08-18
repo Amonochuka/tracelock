@@ -36,6 +36,7 @@ type ZoneRepository interface {
 	ListUserEvents(userID, limit, offset int) ([]*models.AccessEvent, int, error)
 	VerifyChain(zoneID int) (bool, int, error)
 	GetActiveSessionForUser(userID int) (int, error)
+	GetLastAllowedEntryMethod(userID, zoneID int) (string, error)
 	GetStaleSessions(threshold time.Time) ([]StaleSession, error)
 	ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error)
 	GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error)

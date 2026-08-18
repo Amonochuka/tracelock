@@ -20,4 +20,5 @@ var (
 	ErrCredentialRevoked  = errors.New("credentials have been revoked")
 	ErrRequiresExitScan   = errors.New("must explicitly exit current zone first")
 	ErrTypeMismatch       = errors.New("device type does not match credential method")
+	ErrExitMethodMismatch = errors.New("exit method does not match entry method")
 )
