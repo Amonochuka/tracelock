@@ -18,7 +18,7 @@ type UserRepository interface {
 	ValidateAndGetUserIDFromRefreshToken(tokenHash string) (int, error)
 	RevokeRefreshToken(token string) error
 	DeleteExpiredTokens() error
-	IncrementFailedAttempts(email string) error
+	IncrementFailedAttempts(email string) (int, error)
 	LockAccount(email string) error
 	ResetFailedAttempts(email string) error
 	IsAccountLocked(email string) (bool, error)

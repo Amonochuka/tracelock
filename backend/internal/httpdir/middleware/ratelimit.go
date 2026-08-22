@@ -3,6 +3,7 @@ package middleware
 import (
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -90,9 +91,16 @@ func (r1 *RateLimiter) Middleware(next http.Handler) http.Handler {
 // One thing to note — r.RemoteAddr on Render will return the proxy IP,
 // not the real client IP. Fix that by checking the X-Forwarded-For header
 func getIP(r *http.Request) string {
-	ip := r.Header.Get("X-Forwarded-For")
-	if ip != "" {
-		return ip
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// XFF can chain "client, proxy1, proxy2" — key on the client IP only,
+		// otherwise every visitor behind the proxy shares one bucket
+		// and all of them get rate limited together.
+		if i := strings.Index(xff, ","); i != -1 {
+			xff = xff[:i]
+		}
+		if ip := strings.TrimSpace(xff); ip != "" {
+			return ip
+		}
 	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {

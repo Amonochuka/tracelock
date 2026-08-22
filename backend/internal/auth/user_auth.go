@@ -17,6 +17,13 @@ type UserAuth struct {
 	db *sql.DB
 }
 
+const (
+	// MaxFailedAttempts is the number of wrong passwords before an account locks.
+	MaxFailedAttempts = 5
+	// AccountLockDuration is how long an account stays locked.
+	AccountLockDuration = 15 * time.Minute
+)
+
 func NewUserAuth(db *sql.DB) UserRepository {
 	return &UserAuth{db: db}
 }
@@ -43,19 +50,10 @@ func (u *UserAuth) Register(name, email, password string) error {
 }
 
 func (u *UserAuth) Authenticate(email, password string) (*models.User, error) {
-	// check if account is locked first
-	locked, err := u.IsAccountLocked(email)
-	if err != nil && !errors.Is(err, ErrUserNotFound) {
-		return nil, fmt.Errorf("checking account lock: %w", err)
-	}
-	if locked {
-		return nil, ErrAccountLocked
-	}
-
 	user := &models.User{}
-	err = u.db.QueryRow(
+	err := u.db.QueryRow(
 		`SELECT id, name, email, password_hash, role, failed_attempts, locked_until, created_at 
-			FROM users WHERE email=$1 AND deleted_at IS NULL`, email).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash,
+		 FROM users WHERE email=$1 AND deleted_at IS NULL`, email).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash,
 		&user.Role, &user.FailedAttempts,
 		&user.LockedUntil, &user.CreatedAt)
 	if err != nil {
@@ -65,12 +63,26 @@ func (u *UserAuth) Authenticate(email, password string) (*models.User, error) {
 		return nil, fmt.Errorf("querying user by email: %w", err)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		// wrong password;increment failed attempts
-		_ = u.IncrementFailedAttempts(email)
+	// check if account is locked; compare in UTC so a naive/aware
+	// timestamp mismatch can never extend the lock window
+	if user.LockedUntil != nil {
+		if time.Now().UTC().Before(user.LockedUntil.UTC()) {
+			return nil, ErrAccountLocked
+		}
+		// lock expired; clear it and give the user a fresh attempt budget,
+		// otherwise a single wrong password would instantly re-lock
+		_ = u.ResetFailedAttempts(email)
+	}
 
-		// lock after 5 failed attempts
-		if user.FailedAttempts+1 >= 5 {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		// wrong password; increment atomically and read back the real count
+		attempts, err := u.IncrementFailedAttempts(email)
+		if err != nil {
+			return nil, fmt.Errorf("incrementing failed attempts: %w", err)
+		}
+
+		// lock after too many failed attempts
+		if attempts >= MaxFailedAttempts {
 			_ = u.LockAccount(email)
 			return nil, ErrAccountLocked
 		}
@@ -245,22 +257,28 @@ func (u *UserAuth) DeleteExpiredTokens() error {
 	return nil
 }
 
-// IncrementFailedAttempts increments the failed login counter for a user.
-func (u *UserAuth) IncrementFailedAttempts(email string) error {
-	_, err := u.db.Exec(`
+// IncrementFailedAttempts increments the failed login counter for a user
+// and returns the updated count (atomic — safe under concurrent logins).
+func (u *UserAuth) IncrementFailedAttempts(email string) (int, error) {
+	var attempts int
+	err := u.db.QueryRow(`
 		UPDATE users SET failed_attempts = failed_attempts + 1
-		WHERE email = $1`, email)
+		WHERE email = $1
+		RETURNING failed_attempts`, email).Scan(&attempts)
 	if err != nil {
-		return fmt.Errorf("increment failed attempts: %w", err)
+		return 0, fmt.Errorf("increment failed attempts: %w", err)
 	}
-	return nil
+	return attempts, nil
 }
 
-// LockAccount locks a user account for 15 minutes.
+// LockAccount locks a user account for AccountLockDuration.
+// The expiry is computed in the app (UTC) instead of NOW() so the
+// database session timezone can never skew the lock window.
 func (u *UserAuth) LockAccount(email string) error {
+	lockedUntil := time.Now().UTC().Add(AccountLockDuration)
 	_, err := u.db.Exec(`
-		UPDATE users SET locked_until = NOW() + INTERVAL '15 minutes'
-		WHERE email = $1`, email)
+		UPDATE users SET locked_until = $1
+		WHERE email = $2`, lockedUntil, email)
 	if err != nil {
 		return fmt.Errorf("lock account: %w", err)
 	}
@@ -289,7 +307,7 @@ func (u *UserAuth) IsAccountLocked(email string) (bool, error) {
 		}
 		return false, fmt.Errorf("check account lock: %w", err)
 	}
-	if lockedUntil != nil && time.Now().Before(*lockedUntil) {
+	if lockedUntil != nil && time.Now().UTC().Before(lockedUntil.UTC()) {
 		return true, nil
 	}
 	return false, nil
