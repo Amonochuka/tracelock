@@ -6,6 +6,21 @@ A full-stack **physical access control system** — a biometric security platfor
 
 ---
 
+## Demo Login
+
+This is a public demo — sign in with the shared administrator account:
+
+> **Admin portal:** [tracelock-fe.onrender.com/admin/login](https://tracelock-fe.onrender.com/admin/login)
+>
+> - **Email:** `admin@tracelock.io`
+> - **Password:** `admin123`
+
+These credentials grant full admin access to the demo instance only (zones, users, devices, audit logs). They are intentionally published for evaluation — never use them outside the demo.
+
+The backend runs a **demo guardian** job that automatically restores this account (role, lock state, password) within ~30 seconds if a visitor changes or locks it, so the demo can't be taken over permanently.
+
+---
+
 ## What It Is
 
 TraceLock lets a security operations team:

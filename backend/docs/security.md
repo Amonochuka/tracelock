@@ -194,3 +194,26 @@ When the backend starts up (or on the periodic stale session sweep), `CleanupSta
 
 Until this is implemented, administrators should treat any `system_timeout` exit on a strict zone as a **security anomaly requiring manual verification**.
 
+---
+
+## 17. Administrator Lockout Protection
+
+Three layers guarantee the deployment can never lose its last administrator:
+
+1. **No self role change** — an admin cannot change their own role (`400 Bad Request`). Demoting yourself was the simplest way to fall off the admin list.
+2. **Last-admin guard** — `PUT /admin/users/{id}/role` refuses to demote an admin when no other live admin exists (`409 Conflict`, sentinel `ErrLastAdmin`).
+3. **Demo guardian (opt-in)** — for public demos with published credentials, set:
+
+   ```
+   DEMO_ADMIN_EMAIL=admin@tracelock.io
+   DEMO_ADMIN_PASSWORD=...
+   DEMO_ADMIN_INTERVAL_SECONDS=30   # optional, default 30
+   ```
+
+   A background job then re-asserts every interval that the account exists, holds the `admin` role, is unlocked, has zero failed attempts, and matches the configured password — restoring it automatically if a demo visitor demotes, locks, or re-passwords it. The job is completely inert when the env vars are unset, so real deployments are unaffected. Log lines `demo guardian created/corrected account ...` indicate restoration events.
+
+Additional notes:
+- Admin accounts cannot be deleted (`ErrCannotDeleteAdmin`) and there is no API endpoint that changes an email, so email/lockout tampering requires direct database access.
+- Outside demo mode, an operator can always regain access with `go run ./cmd/reset-admin-password`.
+
+

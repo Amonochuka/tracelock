@@ -37,6 +37,7 @@ Built incrementally with professional backend practices: small features, clear c
 - Runtime biometric authentication — device scan resolves user, verifies access, creates session and issues JWT
 - Live zone occupancy via WebSocket feed (`GET /ws/zones`)
 - IP-based rate limiting on login, bootstrap, and admin user creation (token bucket algorithm, 5 req/min per IP)
+- Administrator lockout protection: self role changes blocked, last-admin demotion rejected, optional demo guardian that auto-restores a published demo account (`DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD`)
 - Chi request logging with request ID middleware
 - HTTP server timeouts (5s read header, 15s read, 30s write, 60s idle)
 - Automatic expired token cleanup on startup and every 24 hours
@@ -155,6 +156,8 @@ godotenv loads `.env` automatically on startup — no need to source it manually
 
 `DEVICE_API_KEY` is required for `/devices/authenticate`.  
 `ALLOWED_ORIGIN` must be set to the exact frontend origin in production (e.g. `https://app.example.com`). Local development also accepts `localhost` and private `192.168.x.x:3000` frontend origins. A wildcard (`*`) is not valid alongside `Authorization` headers and will cause browser CORS rejections.
+
+**Optional demo mode:** set `DEMO_ADMIN_EMAIL` + `DEMO_ADMIN_PASSWORD` to enable the guardian job that keeps that account existent, admin-roled, unlocked, and password-matched every `DEMO_ADMIN_INTERVAL_SECONDS` (default 30). Leave both unset outside public demos.
 
 ---
 
