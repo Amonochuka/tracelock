@@ -81,6 +81,14 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 
 ## Feature Change Log
 
+### 2026-08-23 — Fix Admin Logout Redirect Race
+
+- **Status:** Complete
+- **Summary:** The earlier logout fix was incomplete. `logout()` pushed `/admin/login`, but the route-guard effect re-ran the moment `token` became null — *before* the pathname updated — saw "no token on an admin route", and queued a competing `push('/login')` that won the race. Fixed properly by making the unauthenticated branch of the guard portal-aware: no-token visitors on `/admin/*` are sent to `/admin/login`, no-token visitors on `/dashboard/*` to `/login`. Both the logout flow and manual URL entry now agree, and the redirect can no longer be reordered out from under itself.
+- **Files touched:** `src/context/AuthContext.tsx`, `FRONTEND_PROGRESS_REPORT.md`.
+- **Validation:** `npm run build` exit code 0, TypeScript clean, all 12 routes generated.
+- **Follow-up:** None.
+
 ### 2026-08-23 — Zone Activity Heatmap with Peak Hours / Heatmap toggle
 
 - **Status:** Complete

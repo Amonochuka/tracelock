@@ -57,8 +57,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isDashboardRoute = pathname.startsWith('/dashboard');
 
       if (!token) {
-        // Not logged in — redirect to login if trying to access protected pages
-        if ((isAdminRoute && !isAdminLogin) || isDashboardRoute) {
+        // Not logged in — return each portal to its own door so that
+        // signing out from /admin/* (or typing an admin URL while logged
+        // out) lands on the admin sign-in, never the personnel one.
+        if (isAdminRoute && !isAdminLogin) {
+          router.push('/admin/login');
+        } else if (isDashboardRoute) {
           router.push('/login');
         }
       } else {
