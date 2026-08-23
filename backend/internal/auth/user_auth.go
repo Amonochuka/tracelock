@@ -178,7 +178,7 @@ func (u *UserAuth) UpdateRole(userID int, role string) error {
 
 // admin duty:list all users
 func (u *UserAuth) ListUsers() ([]*models.User, error) {
-	rows, err := u.db.Query("SELECT id, name, email, role, created_at FROM users WHERE deleted_at IS NULL ORDER BY id")
+	rows, err := u.db.Query("SELECT id, name, email, role, locked_until, created_at FROM users WHERE deleted_at IS NULL ORDER BY id")
 	if err != nil {
 		return nil, fmt.Errorf("listing users:%w", err)
 	}
@@ -186,7 +186,7 @@ func (u *UserAuth) ListUsers() ([]*models.User, error) {
 	var users []*models.User
 	for rows.Next() {
 		usr := &models.User{}
-		if err := rows.Scan(&usr.ID, &usr.Name, &usr.Email, &usr.Role, &usr.CreatedAt); err != nil {
+		if err := rows.Scan(&usr.ID, &usr.Name, &usr.Email, &usr.Role, &usr.LockedUntil, &usr.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scanning users :%w", err)
 		}
 		users = append(users, usr) // ← was missing; caused empty list
