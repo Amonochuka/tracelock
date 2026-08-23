@@ -207,11 +207,12 @@ func ListUsersHandler(s *auth.UserService) http.HandlerFunc {
 		resp := make([]UserResponse, 0, len(users))
 		for _, u := range users {
 			resp = append(resp, UserResponse{
-				ID:        u.ID,
-				Name:      u.Name,
-				Email:     u.Email,
-				Role:      u.Role,
-				CreatedAt: u.CreatedAt,
+				ID:          u.ID,
+				Name:        u.Name,
+				Email:       u.Email,
+				Role:        u.Role,
+				LockedUntil: u.LockedUntil,
+				CreatedAt:   u.CreatedAt,
 			})
 		}
 		WriteJSON(w, http.StatusOK, resp)
@@ -227,6 +228,14 @@ func UpdateRoleHandler(s *auth.UserService) http.HandlerFunc {
 			WriteError(w, http.StatusBadRequest, "invalid user id")
 			return
 		}
+
+		// An admin must never change their own role — demoting yourself
+		// could permanently remove the last administrator from the system.
+		if claims := auth.GetUserClaims(r); claims != nil && claims.UserID == targetID {
+			WriteError(w, http.StatusBadRequest, "cannot change your own role")
+			return
+		}
+
 		var req struct {
 			Role string `json:"role"`
 		}
@@ -238,6 +247,8 @@ func UpdateRoleHandler(s *auth.UserService) http.HandlerFunc {
 			switch {
 			case errors.Is(err, auth.ErrUserNotFound):
 				WriteError(w, http.StatusNotFound, "user not found")
+			case errors.Is(err, auth.ErrLastAdmin):
+				WriteError(w, http.StatusConflict, "cannot demote the last administrator")
 			case errors.Is(err, auth.ErrInvalidRole):
 				WriteError(w, http.StatusNotFound, "role must be 'admin' or 'user'")
 			default:

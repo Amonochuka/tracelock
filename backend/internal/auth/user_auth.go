@@ -341,3 +341,17 @@ func (u *UserAuth) DeleteUser(userID int) error {
 	_, _ = u.db.Exec("UPDATE refresh_tokens SET revoked = true WHERE user_id = $1", userID)
 	return nil
 }
+
+// CountOtherActiveAdmins counts live admin accounts other than excludeUserID.
+// Used to guarantee at least one administrator always remains.
+func (u *UserAuth) CountOtherActiveAdmins(excludeUserID int) (int, error) {
+	var count int
+	err := u.db.QueryRow(
+		`SELECT COUNT(*) FROM users WHERE role = 'admin' AND deleted_at IS NULL AND id <> $1`,
+		excludeUserID,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("counting other admins: %w", err)
+	}
+	return count, nil
+}

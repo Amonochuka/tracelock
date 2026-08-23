@@ -73,6 +73,23 @@ func (s *UserService) UpdateRole(userID int, role string) error {
 	if role != "admin" && role != "user" {
 		return ErrInvalidRole
 	}
+	// Demoting an admin is only allowed while another live admin remains,
+	// so the system can never lose its last administrator.
+	if role == "user" {
+		target, err := s.auth.VerifyUser(userID)
+		if err != nil {
+			return err
+		}
+		if target.Role == "admin" {
+			others, err := s.auth.CountOtherActiveAdmins(userID)
+			if err != nil {
+				return fmt.Errorf("counting other admins: %w", err)
+			}
+			if others == 0 {
+				return ErrLastAdmin
+			}
+		}
+	}
 	return s.auth.UpdateRole(userID, role)
 }
 

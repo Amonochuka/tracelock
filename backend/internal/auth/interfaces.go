@@ -24,4 +24,5 @@ type UserRepository interface {
 	IsAccountLocked(email string) (bool, error)
 	UnlockAccount(userID int) error
 	DeleteUser(userID int) error
+	CountOtherActiveAdmins(excludeUserID int) (int, error)
 }

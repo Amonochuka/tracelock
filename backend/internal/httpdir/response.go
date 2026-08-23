@@ -33,11 +33,12 @@ func WriteError(w http.ResponseWriter, status int, message string) {
 }
 
 type UserResponse struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          int        `json:"id"`
+	Name        string     `json:"name"`
+	Email       string     `json:"email"`
+	Role        string     `json:"role"`
+	LockedUntil *time.Time `json:"locked_until,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 type ZoneResponse struct {
