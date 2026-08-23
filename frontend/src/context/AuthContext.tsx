@@ -87,7 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    router.push('/login');
+    // Sign out returns the user to the portal they were using, so admin
+    // sessions land on /admin/login instead of the personnel login.
+    router.push(pathname.startsWith('/admin') ? '/admin/login' : '/login');
   };
 
   return (

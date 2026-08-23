@@ -81,6 +81,14 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 
 ## Feature Change Log
 
+### 2026-08-23 — Logout Returns to the Portal You Signed Out From
+
+- **Status:** Complete
+- **Summary:** Fixed the logout redirect. Previously every sign-out — including from the admin dashboard shell — landed on `/login`, the personnel portal, even though the demo's primary experience is the admin portal. `logout()` in `AuthContext` now checks the active path: signing out from any `/admin/*` page routes to `/admin/login`, all other sign-outs keep routing to `/login`. No call-site changes required; both portals return to their own door.
+- **Files touched:** `src/context/AuthContext.tsx`, `FRONTEND_PROGRESS_REPORT.md`.
+- **Validation:** `npm run build` exit code 0, all 12 routes generated.
+- **Follow-up:** None.
+
 ### 2026-08-23 — Role Change, Account Unlock, and Demo Lockout Protection
 
 - **Status:** Complete
