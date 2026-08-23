@@ -20,7 +20,7 @@ The two portals are separated in the navigation and login presentation, but the 
 | Route protection | Complete | The auth context sends unauthenticated visitors away from protected pages and prevents a regular user from using `/admin/*`. |
 | Personal dashboard | Complete | Shows the signed-in person’s permitted zones and personal access history. |
 | Browser entry simulator | Complete | Lets a permitted user simulate entry/exit while no hardware is connected. It writes a real audited event and updates admin occupancy via WebSocket. |
-| Admin occupancy dashboard | Complete | Loads current zone occupancy and receives subsequent changes through the live WebSocket feed. Right-hand column shows Zone Analytics (Peak Entry Times bar chart) with a per-zone selector. |
+| Admin occupancy dashboard | Complete | Loads current zone occupancy and receives subsequent changes through the live WebSocket feed. Right-hand column shows Zone Activity with a per-zone selector and a Peak Hours / Heatmap toggle — the heatmap is a 7-day × 24-hour grid of entry density in the browser's local timezone. |
 | Zone management | Complete | `/admin/zones` lists zones, provides a helpful empty state, and creates a first zone without leaving the page. |
 | Zone drill-down | Complete | Tabbed view with Overview (active personnel), Event History (paginated log + hash-chain verify), and Settings (inline edit + guarded deletion). |
 | Personnel management | Complete | Lists users and roles. Per-row action menu: Change Role (admin/user with confirmation warning), Manage Access (zone grant/revoke toggles), Manage Credentials (enrol/revoke biometric credentials), Unlock Account (shown only while the account is locked), and Delete User. Locked accounts show a `LOCKED` badge in the clearance column. |
@@ -77,9 +77,17 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 
 1. ~Replace WebSocket query-string JWTs with a safer production authentication mechanism.~ (Complete)
 2. ~Add form-level validation, loading/error polish, and automated frontend tests.~ (Form polish complete; automated tests still pending)
-3. Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.
+3. ~Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.~ (Day-of-week × hour heatmap complete; deeper analytics such as per-user history views still open)
 
 ## Feature Change Log
+
+### 2026-08-23 — Zone Activity Heatmap with Peak Hours / Heatmap toggle
+
+- **Status:** Complete
+- **Summary:** Delivered the day-of-week × hour heatmap that has been the standing follow-up since the analytics chart first shipped. `ZoneAnalyticsChart` now keeps the raw `(day_of_week, hour, entry_count)` records and offers a small toggle in the card header: **Peak Hours** (the original bar chart, unchanged) and **Heatmap** — a Monday-first 7×24 CSS grid where each cell's colour intensity encodes entry count, with hover tooltips (`Tue 14:00 — 5 entries`) and a quiet→busy legend showing the peak value. Also fixed a latent timezone bug: the previous conversion shifted hours into local time but never carried entries across midnight to the correct local *day* (e.g. 23:00 UTC Sunday → 02:00 Monday for UTC+3); both views now share a corrected `toLocalDayHour` conversion.
+- **Files touched:** `src/components/ZoneAnalyticsChart.tsx`, `src/app/globals.css` (`.chart-toggle`, `.heatmap-*` rules), `FRONTEND_PROGRESS_REPORT.md`.
+- **Validation:** `npm run build` exit code 0, TypeScript clean, all 12 routes generated. Bars view output unchanged apart from the corrected day carry-over.
+- **Follow-up:** Automated frontend tests remain the last open priority.
 
 ### 2026-08-23 — Logout Returns to the Portal You Signed Out From
 
