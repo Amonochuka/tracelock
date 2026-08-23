@@ -67,6 +67,25 @@ func main() {
 		log.Printf("initial token cleanup failed: %v", err)
 	}
 
+	// demo guardian: keeps the published demo account usable no matter what
+	// demo visitors do to it (demotion, lockout, password change). Enabled
+	// only when both DEMO_ADMIN_EMAIL and DEMO_ADMIN_PASSWORD are set.
+	if cfg.DemoAdminEmail != "" && cfg.DemoAdminPassword != "" {
+		interval := time.Duration(cfg.DemoAdminIntervalSeconds) * time.Second
+		log.Printf("demo guardian enabled for %s (every %s)", cfg.DemoAdminEmail, interval)
+		go func() {
+			for {
+				action, err := userService.EnsureDemoAdmin(cfg.DemoAdminEmail, cfg.DemoAdminPassword)
+				if err != nil {
+					log.Printf("demo guardian failed: %v", err)
+				} else if action != "ok" {
+					log.Printf("demo guardian %s account %s", action, cfg.DemoAdminEmail)
+				}
+				time.Sleep(interval)
+			}
+		}()
+	}
+
 	// access
 	zoneRepo := access.NewZoneRepo(database)
 

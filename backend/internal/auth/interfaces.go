@@ -25,4 +25,5 @@ type UserRepository interface {
 	UnlockAccount(userID int) error
 	DeleteUser(userID int) error
 	CountOtherActiveAdmins(excludeUserID int) (int, error)
+	EnsureDemoAdmin(email, name, password string) (string, error)
 }

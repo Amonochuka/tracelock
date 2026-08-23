@@ -355,3 +355,53 @@ func (u *UserAuth) CountOtherActiveAdmins(excludeUserID int) (int, error) {
 	}
 	return count, nil
 }
+
+// EnsureDemoAdmin guarantees the public demo account exists as an unlocked
+// admin with the configured password. Returns one of:
+//
+//	"created"   – account did not exist and was provisioned
+//	"corrected" – account existed but had been demoted/locked/re-passworded and was restored
+//	"ok"        – account already in the desired state (no write performed)
+//
+// Intended for demo deployments with published credentials; enable via env.
+func (u *UserAuth) EnsureDemoAdmin(email, name, password string) (string, error) {
+	var (
+		id             int
+		role           string
+		passwordHash   string
+		lockExists     bool
+		failedAttempts int
+	)
+	err := u.db.QueryRow(
+		`SELECT id, role, password_hash, locked_until IS NOT NULL, failed_attempts
+		 FROM users WHERE email = $1 AND deleted_at IS NULL`, email,
+	).Scan(&id, &role, &passwordHash, &lockExists, &failedAttempts)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		if err := u.RegisterAdmin(name, email, password); err != nil {
+			return "", fmt.Errorf("demo guardian creating account: %w", err)
+		}
+		return "created", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("demo guardian querying account: %w", err)
+	}
+
+	passwordOk := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)) == nil
+	if role == "admin" && passwordOk && !lockExists && failedAttempts == 0 {
+		return "ok", nil
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("demo guardian hashing password: %w", err)
+	}
+	_, err = u.db.Exec(
+		`UPDATE users SET role = 'admin', password_hash = $1, locked_until = NULL, failed_attempts = 0
+		 WHERE id = $2`, string(hash), id,
+	)
+	if err != nil {
+		return "", fmt.Errorf("demo guardian restoring account: %w", err)
+	}
+	return "corrected", nil
+}

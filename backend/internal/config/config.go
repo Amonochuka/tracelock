@@ -16,25 +16,36 @@ type Config struct {
 	DBName     string
 	DBSSLMode  string
 
-	JWTSecret     string
+	JWTSecret           string
 	DeviceAPIKey        string
-	AllowedOrigin      string
+	AllowedOrigin       string
 	SessionTimeoutHours int
+
+	// Demo guardian (optional): when both are set, the backend continuously
+	// restores this account as an unlocked admin with the given password.
+	// Intended for public demos with published credentials.
+	DemoAdminEmail           string
+	DemoAdminPassword        string
+	DemoAdminIntervalSeconds int
 }
 
 func Load() *Config {
 	cfg := &Config{
-		Port:          getEnv("PORT", "8080"),
-		DBHost:        mustEnv("DB_HOST"),
-		DBPort:        mustEnv("DB_PORT"),
-		DBUser:        mustEnv("DB_USER"),
-		DBPassword:    mustEnv("DB_PASSWORD"),
-		DBName:        mustEnv("DB_NAME"),
-		DBSSLMode:     getEnv("DB_SSLMODE", "disable"),
-		JWTSecret:     mustEnv("JWT_SECRET"),
+		Port:                getEnv("PORT", "8080"),
+		DBHost:              mustEnv("DB_HOST"),
+		DBPort:              mustEnv("DB_PORT"),
+		DBUser:              mustEnv("DB_USER"),
+		DBPassword:          mustEnv("DB_PASSWORD"),
+		DBName:              mustEnv("DB_NAME"),
+		DBSSLMode:           getEnv("DB_SSLMODE", "disable"),
+		JWTSecret:           mustEnv("JWT_SECRET"),
 		DeviceAPIKey:        mustEnv("DEVICE_API_KEY"),
-		AllowedOrigin:      getEnv("ALLOWED_ORIGIN", "*"),
+		AllowedOrigin:       getEnv("ALLOWED_ORIGIN", "*"),
 		SessionTimeoutHours: getEnvInt("SESSION_TIMEOUT_HOURS", 12),
+
+		DemoAdminEmail:           os.Getenv("DEMO_ADMIN_EMAIL"),
+		DemoAdminPassword:        os.Getenv("DEMO_ADMIN_PASSWORD"),
+		DemoAdminIntervalSeconds: getEnvInt("DEMO_ADMIN_INTERVAL_SECONDS", 30),
 	}
 	return cfg
 }

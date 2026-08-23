@@ -93,6 +93,11 @@ func (s *UserService) UpdateRole(userID int, role string) error {
 	return s.auth.UpdateRole(userID, role)
 }
 
+// EnsureDemoAdmin keeps the public demo account usable; see UserAuth.EnsureDemoAdmin.
+func (s *UserService) EnsureDemoAdmin(email, password string) (string, error) {
+	return s.auth.EnsureDemoAdmin(email, "Demo Admin", password)
+}
+
 func (s *UserService) ListUsers() ([]*models.User, error) {
 	return s.auth.ListUsers()
 }
