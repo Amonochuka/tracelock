@@ -23,7 +23,7 @@ The two portals are separated in the navigation and login presentation, but the 
 | Admin occupancy dashboard | Complete | Loads current zone occupancy and receives subsequent changes through the live WebSocket feed. Right-hand column shows Zone Analytics (Peak Entry Times bar chart) with a per-zone selector. |
 | Zone management | Complete | `/admin/zones` lists zones, provides a helpful empty state, and creates a first zone without leaving the page. |
 | Zone drill-down | Complete | Tabbed view with Overview (active personnel), Event History (paginated log + hash-chain verify), and Settings (inline edit + guarded deletion). |
-| Personnel management | Complete | Lists users and roles. Create, Manage Access (zone grant/revoke toggles), and Manage Credentials (enrol/revoke biometric credentials) all available via per-row action menu. |
+| Personnel management | Complete | Lists users and roles. Per-row action menu: Change Role (admin/user with confirmation warning), Manage Access (zone grant/revoke toggles), Manage Credentials (enrol/revoke biometric credentials), Unlock Account (shown only while the account is locked), and Delete User. Locked accounts show a `LOCKED` badge in the clearance column. |
 | Hardware Simulator | Complete | `/admin/simulator` allows an admin to register a mock device, enrol a user credential, and trigger a hardware authentication payload against the backend — all without exposing the `DEVICE_API_KEY`. |
 
 ## How the Hardware-Free Demo Works
@@ -80,6 +80,14 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 3. Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.
 
 ## Feature Change Log
+
+### 2026-08-23 — Role Change, Account Unlock, and Demo Lockout Protection
+
+- **Status:** Complete
+- **Summary:** Completed the last outstanding user-management actions in the row menu. (1) **Change Role** modal — admins can promote/demote any other account via `PUT /admin/users/{id}/role`; the action is hidden on your own row and the backend now rejects self role changes outright. A warning panel appears when promoting to admin. (2) **Unlock Account** — appears in the row menu only while the target account is locked; calls `PUT /admin/users/{id}/unlock` with an inline spinner. (3) **LOCKED badge** — the clearance column now shows a danger badge for accounts whose `locked_until` is in the future, powered by new `locked_until` data in `GET /admin/users`. Backend hardening shipped alongside: demoting the *last* remaining administrator is rejected (`409 Conflict`, `ErrLastAdmin`), and a new opt-in **demo guardian** background job (`DEMO_ADMIN_EMAIL` + `DEMO_ADMIN_PASSWORD` env vars) re-asserts every 30s that the public demo account exists, holds the `admin` role, is unlocked, and matches the published password — so demo visitors can never permanently lock the owner out.
+- **Files touched:** `src/app/admin/(dashboard)/users/page.tsx`, `backend/internal/httpdir/response.go`, `backend/internal/httpdir/auth_handlers.go`, `backend/internal/auth/interfaces.go`, `backend/internal/auth/errors.go`, `backend/internal/auth/user_auth.go`, `backend/internal/auth/user_service.go`, `backend/internal/auth/user_service_test.go` (new), `backend/internal/config/config.go`, `backend/cmd/api/main.go`, `README.md`.
+- **Validation:** `go build ./...`, `go vet ./...`, `go test ./...` all clean including 4 new service-layer tests for the last-admin guard. Live end-to-end test against the Render demo DB: reset password via CLI → login as `admin@tracelock.io` returned an admin JWT; account demoted to `user` via SQL → guardian restored it to `admin` within 2s of server start. `npm run build` exit code 0, all 12 routes generated.
+- **Follow-up:** Set `DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` in the Render dashboard so the guardian runs in production.
 
 ### 2026-08-18 — Default Route Redirect to Admin Login
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Shield, User, MoreVertical, Plus, UserPlus, X, Key, Map, Fingerprint, Trash2, PlusCircle } from 'lucide-react';
+import { Shield, User, MoreVertical, Plus, UserPlus, X, Key, Map, Fingerprint, Trash2, PlusCircle, UserCog, LockOpen } from 'lucide-react';
 import { API_URL } from '@/lib/api';
 
 interface UserObj {
@@ -10,6 +10,7 @@ interface UserObj {
   name: string;
   email: string;
   role: string;
+  locked_until?: string | null;
   created_at: string;
 }
 
@@ -21,7 +22,7 @@ interface ZoneObj {
 }
 
 export default function UsersPage() {
-  const { token } = useAuth();
+  const { token, user: currentUser } = useAuth();
   const [users, setUsers] = useState<UserObj[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,6 +54,17 @@ export default function UsersPage() {
   const [newCredMethod, setNewCredMethod] = useState('fingerprint');
   const [newCredHash, setNewCredHash] = useState('');
   const [enrollingCred, setEnrollingCred] = useState(false);
+
+  // Role Change Modal State
+  const [roleModalUser, setRoleModalUser] = useState<UserObj | null>(null);
+  const [newRole, setNewRole] = useState('user');
+  const [roleLoading, setRoleLoading] = useState(false);
+  const [roleError, setRoleError] = useState('');
+
+  // Unlock in-flight state
+  const [unlockingId, setUnlockingId] = useState<number | null>(null);
+
+  const isLocked = (u: UserObj) => !!u.locked_until && new Date(u.locked_until).getTime() > Date.now();
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -255,6 +267,57 @@ export default function UsersPage() {
     }
   };
 
+  const handleOpenRoleModal = (user: UserObj) => {
+    setDropdownOpenId(null);
+    setRoleError('');
+    setNewRole(user.role);
+    setRoleModalUser(user);
+  };
+
+  const handleChangeRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roleModalUser || !token) return;
+    setRoleLoading(true);
+    setRoleError('');
+    try {
+      const res = await fetch(`${API_URL}/admin/users/${roleModalUser.id}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ role: newRole })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update role');
+      setRoleModalUser(null);
+      await fetchUsers();
+    } catch (e: unknown) {
+      if (e instanceof Error) setRoleError(e.message);
+      else setRoleError('Error updating role');
+    } finally {
+      setRoleLoading(false);
+    }
+  };
+
+  const handleUnlockUser = async (user: UserObj) => {
+    if (!token) return;
+    setDropdownOpenId(null);
+    setUnlockingId(user.id);
+    setError('');
+    try {
+      const res = await fetch(`${API_URL}/admin/users/${user.id}/unlock`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to unlock account');
+      await fetchUsers();
+    } catch (e: unknown) {
+      if (e instanceof Error) setError(e.message);
+      else setError('Error unlocking account');
+    } finally {
+      setUnlockingId(null);
+    }
+  };
+
   if (loading) return <div className="text-secondary">Loading personnel data...</div>;
 
   return (
@@ -305,14 +368,21 @@ export default function UsersPage() {
                 </td>
                 <td className="text-secondary">{u.email}</td>
                 <td>
-                  <span className={`px-2 py-1 rounded text-xs font-medium uppercase tracking-wider ${
-                    u.role === 'admin' 
-                      ? 'bg-[rgba(0,212,170,0.1)] text-accent border border-[rgba(0,212,170,0.2)]'
-                      : 'bg-[rgba(255,255,255,0.05)] text-secondary'
-                  }`}>
-                    {u.role === 'admin' && <Shield size={10} className="inline mr-1" />}
-                    {u.role}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded text-xs font-medium uppercase tracking-wider ${
+                      u.role === 'admin'
+                        ? 'bg-[rgba(0,212,170,0.1)] text-accent border border-[rgba(0,212,170,0.2)]'
+                        : 'bg-[rgba(255,255,255,0.05)] text-secondary'
+                    }`}>
+                      {u.role === 'admin' && <Shield size={10} className="inline mr-1" />}
+                      {u.role}
+                    </span>
+                    {isLocked(u) && (
+                      <span className="px-2 py-1 rounded text-xs font-bold uppercase tracking-wider bg-[rgba(255,77,106,0.15)] text-danger border border-[rgba(255,77,106,0.3)]">
+                        Locked
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="text-sm text-secondary mono">
                   {new Date(u.created_at).toLocaleDateString()}
@@ -330,12 +400,24 @@ export default function UsersPage() {
 
                   {dropdownOpenId === u.id && (
                     <div className="absolute right-8 top-1/2 -translate-y-1/2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-xl z-10 overflow-hidden">
-                      <button 
+                      {(!currentUser || currentUser.id !== u.id) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenRoleModal(u);
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-[rgba(255,255,255,0.05)] flex items-center gap-2"
+                        >
+                          <UserCog size={14} className="text-accent" />
+                          Change Role
+                        </button>
+                      )}
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleManageAccess(u);
                         }}
-                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-[rgba(255,255,255,0.05)] flex items-center gap-2"
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-[rgba(255,255,255,0.05)] flex items-center gap-2 border-t border-[rgba(255,255,255,0.05)]"
                       >
                         <Key size={14} className="text-accent" />
                         Manage Access
@@ -350,6 +432,19 @@ export default function UsersPage() {
                         <Fingerprint size={14} className="text-accent" />
                         Manage Credentials
                       </button>
+                      {isLocked(u) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUnlockUser(u);
+                          }}
+                          disabled={unlockingId === u.id}
+                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-[rgba(255,255,255,0.05)] flex items-center gap-2 border-t border-[rgba(255,255,255,0.05)] disabled:opacity-50"
+                        >
+                          {unlockingId === u.id ? <span className="spinner"></span> : <LockOpen size={14} className="text-accent" />}
+                          Unlock Account
+                        </button>
+                      )}
                       {u.role !== 'admin' && (
                         <button 
                           onClick={(e) => {
@@ -672,6 +767,82 @@ export default function UsersPage() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Role Change Modal */}
+      {roleModalUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="card w-full max-w-md relative">
+            <button 
+              onClick={() => setRoleModalUser(null)}
+              className="absolute top-4 right-4 text-secondary hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-lg bg-[rgba(0,212,170,0.1)] flex items-center justify-center border border-[rgba(0,212,170,0.3)]">
+                <UserCog size={20} className="text-accent" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Change Role</h2>
+                <p className="text-sm text-secondary">Operator: <span className="text-white">{roleModalUser.name}</span></p>
+              </div>
+            </div>
+
+            {roleError && (
+              <div className="p-3 mb-4 text-sm bg-[rgba(255,77,106,0.1)] border border-[var(--danger-primary)] rounded text-danger">
+                {roleError}
+              </div>
+            )}
+
+            {newRole !== roleModalUser.role && newRole === 'admin' && (
+              <div className="p-4 mb-4 bg-[rgba(255,179,71,0.08)] border border-[rgba(255,179,71,0.35)] rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Shield size={16} className="text-warning mt-0.5" style={{ color: '#ffb347' }} />
+                  <div>
+                    <div className="font-semibold text-sm mb-1">Grant Administrator Clearance?</div>
+                    <div className="text-xs text-secondary">Administrators can manage all zones, personnel, credentials, and audit data. The new role takes effect on their next sign-in.</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleChangeRole} className="space-y-4">
+              <div className="form-group">
+                <label className="form-label" htmlFor="role">Clearance Level</label>
+                <select
+                  id="role"
+                  className="input"
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  disabled={roleLoading}
+                >
+                  <option value="user">User — standard zone access only</option>
+                  <option value="admin">Admin — full administrative control</option>
+                </select>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setRoleModalUser(null)}
+                  className="btn bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-white"
+                  disabled={roleLoading}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={roleLoading || newRole === roleModalUser.role}
+                >
+                  {roleLoading ? <><span className="spinner"></span> Updating...</> : 'Update Role'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
