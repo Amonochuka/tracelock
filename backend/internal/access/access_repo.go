@@ -586,6 +586,64 @@ func (z *ZoneRepo) GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error)
 	return analytics, nil
 }
 
+// GetUserAnalytics aggregates all access events recorded against one user:
+// entry/exit/denied totals, distinct zones visited, last activity time,
+// plus a per-zone breakdown ordered by entry volume.
+func (z *ZoneRepo) GetUserAnalytics(userID int) (*models.UserAnalytics, error) {
+	result := &models.UserAnalytics{Zones: make([]*models.UserZoneBreakdown, 0)}
+
+	err := z.db.QueryRow(`
+		SELECT
+			COUNT(*)::int AS total_events,
+			COUNT(*) FILTER (WHERE action = 'enter' AND status = 'allowed')::int AS entries,
+			COUNT(*) FILTER (WHERE action = 'exit')::int AS exits,
+			COUNT(*) FILTER (WHERE status = 'denied')::int AS denied,
+			COUNT(DISTINCT zone_id)::int AS zones_visited,
+			MAX(timestamp) AS last_event_at
+		FROM access_events
+		WHERE user_id = $1`, userID).Scan(
+		&result.TotalEvents, &result.Entries, &result.Exits,
+		&result.Denied, &result.ZonesVisited, &result.LastEventAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get user analytics: %w", err)
+	}
+
+	if result.TotalEvents == 0 {
+		return result, nil
+	}
+
+	rows, err := z.db.Query(`
+		SELECT
+			e.zone_id,
+			COALESCE(zn.name, 'Removed zone') AS zone_name,
+			COUNT(*) FILTER (WHERE e.action = 'enter' AND e.status = 'allowed')::int AS entries,
+			COUNT(*) FILTER (WHERE e.status = 'denied')::int AS denied,
+			MAX(e.timestamp) AS last_seen
+		FROM access_events e
+		LEFT JOIN zones zn ON zn.id = e.zone_id
+		WHERE e.user_id = $1
+		GROUP BY e.zone_id, zn.name
+		ORDER BY entries DESC, e.zone_id ASC`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user zone breakdown: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		b := &models.UserZoneBreakdown{}
+		if err := rows.Scan(&b.ZoneID, &b.ZoneName, &b.Entries, &b.Denied, &b.LastSeen); err != nil {
+			return nil, fmt.Errorf("scan user zone breakdown: %w", err)
+		}
+		result.Zones = append(result.Zones, b)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating user zone breakdown: %w", err)
+	}
+
+	return result, nil
+}
+
 func (z *ZoneRepo) GetLastAllowedEntryMethod(userID, zoneID int) (string, error) {
 	var entryMethod string
 	err := z.db.QueryRow(`

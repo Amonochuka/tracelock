@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Shield, User, MoreVertical, Plus, UserPlus, X, Key, Map, Fingerprint, Trash2, PlusCircle, UserCog, LockOpen } from 'lucide-react';
+import { Shield, User, MoreVertical, Plus, UserPlus, X, Key, Map, Fingerprint, Trash2, PlusCircle, UserCog, LockOpen, History } from 'lucide-react';
+import Link from 'next/link';
 import { API_URL } from '@/lib/api';
 
 interface UserObj {
@@ -363,7 +364,9 @@ export default function UsersPage() {
                     <div className="w-8 h-8 rounded-full bg-[var(--bg-main)] border border-[var(--border-color)] flex items-center justify-center">
                       <User size={14} className="text-secondary" />
                     </div>
-                    <span className="font-medium">{u.name}</span>
+                    <Link href={`/admin/users/${u.id}`} className="font-medium hover:text-accent transition-colors">
+                      {u.name}
+                    </Link>
                   </div>
                 </td>
                 <td className="text-secondary">{u.email}</td>
@@ -400,13 +403,21 @@ export default function UsersPage() {
 
                   {dropdownOpenId === u.id && (
                     <div className="absolute right-8 top-1/2 -translate-y-1/2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-xl z-10 overflow-hidden">
+                      <Link
+                        href={`/admin/users/${u.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-[rgba(255,255,255,0.05)] flex items-center gap-2"
+                      >
+                        <History size={14} className="text-accent" />
+                        View Activity
+                      </Link>
                       {(!currentUser || currentUser.id !== u.id) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenRoleModal(u);
                           }}
-                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-[rgba(255,255,255,0.05)] flex items-center gap-2"
+                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-[rgba(255,255,255,0.05)] flex items-center gap-2 border-t border-[rgba(255,255,255,0.05)]"
                         >
                           <UserCog size={14} className="text-accent" />
                           Change Role

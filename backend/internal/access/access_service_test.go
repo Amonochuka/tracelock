@@ -152,6 +152,7 @@ func (m *mockZoneRepo) ListUserEvents(userID, limit, offset int) ([]*models.Acce
 func (m *mockZoneRepo) VerifyChain(zoneID int) (bool, int, error)                    { return true, 0, nil }
 func (m *mockZoneRepo) ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error)  { return nil, nil }
 func (m *mockZoneRepo) GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error) { return nil, nil }
+func (m *mockZoneRepo) GetUserAnalytics(userID int) (*models.UserAnalytics, error)  { return nil, nil }
 func (m *mockZoneRepo) GetStaleSessions(threshold time.Time) ([]StaleSession, error) { return nil, nil }
 
 // ============================================================

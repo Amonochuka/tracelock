@@ -273,6 +273,10 @@ func (s *ZoneService) GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, err
 	return s.repo.GetZoneAnalytics(zoneID)
 }
 
+func (s *ZoneService) GetUserAnalytics(userID int) (*models.UserAnalytics, error) {
+	return s.repo.GetUserAnalytics(userID)
+}
+
 func (s *ZoneService) GetActiveUsersInZone(zoneID int) ([]*models.User, error) {
 	if _, err := s.repo.GetZone(zoneID); err != nil {
 		return nil, err

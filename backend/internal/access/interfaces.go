@@ -40,6 +40,7 @@ type ZoneRepository interface {
 	GetStaleSessions(threshold time.Time) ([]StaleSession, error)
 	ListZoneOccupancy() ([]*models.ZoneOccupancySnapshot, error)
 	GetZoneAnalytics(zoneID int) ([]*models.ZoneAnalytics, error)
+	GetUserAnalytics(userID int) (*models.UserAnalytics, error)
 }
 
 // DeviceRepository defines device data operations.

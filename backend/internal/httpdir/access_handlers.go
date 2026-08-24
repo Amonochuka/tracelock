@@ -444,6 +444,23 @@ func GetZoneAnalyticsHandler(service *access.ZoneService) http.HandlerFunc {
 	}
 }
 
+func GetUserAnalyticsHandler(service *access.ZoneService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := parseIDParam(r, "id")
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, "invalid user id")
+			return
+		}
+
+		analytics, err := service.GetUserAnalytics(userID)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not fetch user analytics")
+			return
+		}
+		WriteJSON(w, http.StatusOK, analytics)
+	}
+}
+
 func GetActiveZoneUsersHandler(service *access.ZoneService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		zoneID, err := parseIDParam(r, "id")

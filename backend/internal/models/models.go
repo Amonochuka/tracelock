@@ -68,6 +68,26 @@ type ZoneAnalytics struct {
 	EntryCount int `json:"entry_count"`
 }
 
+// UserZoneBreakdown summarises one zone's share of a user's audited activity.
+type UserZoneBreakdown struct {
+	ZoneID   int       `json:"zone_id"`
+	ZoneName string    `json:"zone_name"`
+	Entries  int       `json:"entries"`
+	Denied   int       `json:"denied"`
+	LastSeen time.Time `json:"last_seen"`
+}
+
+// UserAnalytics aggregates every access event recorded against one user.
+type UserAnalytics struct {
+	TotalEvents  int                  `json:"total_events"`
+	Entries      int                  `json:"entries"`
+	Exits        int                  `json:"exits"`
+	Denied       int                  `json:"denied"`
+	ZonesVisited int                  `json:"zones_visited"`
+	LastEventAt  *time.Time           `json:"last_event_at,omitempty"`
+	Zones        []*UserZoneBreakdown `json:"zones"`
+}
+
 type ZoneOccupancySnapshot struct {
 	Zone
 	ActiveCount      int     `json:"active_count"`

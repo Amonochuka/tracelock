@@ -23,7 +23,7 @@ The two portals are separated in the navigation and login presentation, but the 
 | Admin occupancy dashboard | Complete | Loads current zone occupancy and receives subsequent changes through the live WebSocket feed. Right-hand column shows Zone Activity with a per-zone selector and a Peak Hours / Heatmap toggle — the heatmap is a 7-day × 24-hour grid of entry density in the browser's local timezone. |
 | Zone management | Complete | `/admin/zones` lists zones, provides a helpful empty state, and creates a first zone without leaving the page. |
 | Zone drill-down | Complete | Tabbed view with Overview (active personnel), Event History (paginated log + hash-chain verify), and Settings (inline edit + guarded deletion). |
-| Personnel management | Complete | Lists users and roles. Per-row action menu: Change Role (admin/user with confirmation warning), Manage Access (zone grant/revoke toggles), Manage Credentials (enrol/revoke biometric credentials), Unlock Account (shown only while the account is locked), and Delete User. Locked accounts show a `LOCKED` badge in the clearance column. |
+| Personnel management | Complete | Lists users and roles. Per-row action menu: View Activity (operator drill-down), Change Role (admin/user with confirmation warning), Manage Access (zone grant/revoke toggles), Manage Credentials (enrol/revoke biometric credentials), Unlock Account (shown only while the account is locked), and Delete User. Locked accounts show a `LOCKED` badge in the clearance column; clicking an operator name opens their activity record. |
 | Hardware Simulator | Complete | `/admin/simulator` allows an admin to register a mock device, enrol a user credential, and trigger a hardware authentication payload against the backend — all without exposing the `DEVICE_API_KEY`. |
 
 ## How the Hardware-Free Demo Works
@@ -66,7 +66,8 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 - `src/app/admin/(dashboard)/page.tsx` — Occupancy dashboard. Fetches an initial snapshot from `/zones/occupancy`, then merges WebSocket occupancy updates for responsive live cards and capacity warnings.
 - `src/app/admin/(dashboard)/zones/page.tsx` — Zone index. Shows zone cards, a meaningful no-zones state, and a create-zone form backed by `POST /admin/zones`.
 - `src/app/admin/(dashboard)/zones/[id]/page.tsx` — Operational detail view for a single zone. Loads configuration and the active people list.
-- `src/app/admin/(dashboard)/users/page.tsx` — Personnel list with **Create User** modal. Submits to `POST /admin/users` and instantly refreshes the table on success.
+- `src/app/admin/(dashboard)/users/page.tsx` — Personnel list with **Create User** modal. Submits to `POST /admin/users` and instantly refreshes the table on success. Operator names link to their activity drill-down.
+- `src/app/admin/(dashboard)/users/[id]/page.tsx` — **[NEW]** Per-operator activity record. Aggregates from `GET /admin/users/{id}/analytics`, a Recharts zone-breakdown chart, and paginated history via `GET /admin/users/{id}/events`.
 - `src/app/admin/(dashboard)/simulator/page.tsx` — **[NEW]** Three-step hardware simulator: (1) register a device in a zone, (2) enrol a user credential hash, (3) trigger a device authentication payload via a secure admin JWT proxy endpoint (`POST /admin/simulate-device`). Displays raw backend JSON output in a terminal-style console.
 
 ### Visual system
@@ -77,9 +78,17 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 
 1. ~Replace WebSocket query-string JWTs with a safer production authentication mechanism.~ (Complete)
 2. ~Add form-level validation, loading/error polish, and automated frontend tests.~ (Form polish complete; automated tests still pending)
-3. ~Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.~ (Day-of-week × hour heatmap complete; deeper analytics such as per-user history views still open)
+3. ~Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.~ (Day-of-week × hour heatmap and per-user activity drill-down complete)
 
 ## Feature Change Log
+
+### 2026-08-24 — Per-User Activity Analytics Drill-Down
+
+- **Status:** Complete
+- **Summary:** Delivered the last open analytics item: per-user history views. New admin route `/admin/users/[id]` mirrors the zone drill-down pattern. It shows six aggregate stat cards (Total Events, Entries, Exits, Denied, Zones Visited, Last Seen), a horizontal **Zone Activity Breakdown** bar chart of entries per zone (Recharts, reusing the existing dark tooltip styling), and a paginated **Access History** table (15 events/page with prev/next) listing time, zone, action, entry method, status, reason, and truncated hash. Backed by a new full-stack endpoint `GET /admin/users/{id}/analytics` that aggregates the hash-chained audit trail in SQL (`COUNT(*) FILTER` totals plus a per-zone breakdown joined through zones; deleted zones render as "Removed zone" instead of dropping history). Reachable two ways from Personnel Access: every operator name is now a link, and each row menu leads with a new **View Activity** item. Deleted operators still show their historical record under an "operator no longer exists" subtitle.
+- **Files touched:** `backend/internal/models/models.go`, `backend/internal/access/interfaces.go`, `backend/internal/access/access_service.go`, `backend/internal/access/access_repo.go`, `backend/internal/access/access_service_test.go`, `backend/internal/httpdir/access_handlers.go`, `backend/internal/httpdir/router.go`, `src/app/admin/(dashboard)/users/[id]/page.tsx` (new), `src/app/admin/(dashboard)/users/page.tsx`, `FRONTEND_PROGRESS_REPORT.md`.
+- **Validation:** `go build ./...`, `go vet ./...`, `go test ./...` all clean. `npm run build` exit code 0, TypeScript clean, 13 routes generated including `/admin/users/[id]`. Focused ESLint on the new page passes; remaining lint errors in `users/page.tsx` are pre-existing and unchanged.
+- **Follow-up:** Automated frontend tests remain the last open priority.
 
 ### 2026-08-23 — Fix Admin Logout Redirect Race
 
