@@ -49,7 +49,7 @@ export default function SignInForm({ portal }: SignInFormProps) {
         throw new Error('This account does not have access to this portal');
       }
 
-      login(data.token, user);
+      login(data.token, data.refresh_token, user);
     } catch (caughtError: unknown) {
       setError(caughtError instanceof Error ? caughtError.message : 'Unable to sign in');
     } finally {

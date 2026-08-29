@@ -61,7 +61,7 @@ export default function BootstrapPage() {
       }
 
       const user = await meRes.json();
-      login(jwt, user);
+      login(jwt, loginData.refresh_token, user);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
