@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Shield, User, MoreVertical, Plus, UserPlus, X, Key, Map, Fingerprint, Trash2, PlusCircle, UserCog, LockOpen, History } from 'lucide-react';
+import { Shield, User, MoreVertical, Plus, UserPlus, X, Key, Map, Fingerprint, Trash2, PlusCircle, UserCog, LockOpen, History, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { API_URL } from '@/lib/api';
 
@@ -21,6 +21,20 @@ interface ZoneObj {
   description: string;
   max_capacity: number;
 }
+
+interface AccessEvent {
+  id: number;
+  user_id: number;
+  zone_id: number;
+  action: string;
+  status: string;
+  reason?: string;
+  timestamp: string;
+  entry_method: string;
+  hash: string;
+}
+
+const HISTORY_PAGE_SIZE = 12;
 
 export default function UsersPage() {
   const { token, user: currentUser } = useAuth();
@@ -64,6 +78,16 @@ export default function UsersPage() {
 
   // Unlock in-flight state
   const [unlockingId, setUnlockingId] = useState<number | null>(null);
+
+  // Access History Modal State
+  const [historyModalUser, setHistoryModalUser] = useState<UserObj | null>(null);
+  const [historyZones, setHistoryZones] = useState<ZoneObj[]>([]);
+  const [historyEvents, setHistoryEvents] = useState<AccessEvent[]>([]);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyPage, setHistoryPage] = useState(0);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [historyZoneNames, setHistoryZoneNames] = useState<Record<number, string>>({});
 
   const isLocked = (u: UserObj) => !!u.locked_until && new Date(u.locked_until).getTime() > Date.now();
 
@@ -319,6 +343,72 @@ export default function UsersPage() {
     }
   };
 
+  const fetchUserEventsPage = async (userId: number, page: number) => {
+    if (!token) return;
+    const offset = page * HISTORY_PAGE_SIZE;
+    const res = await fetch(`${API_URL}/users/${userId}/events?limit=${HISTORY_PAGE_SIZE}&offset=${offset}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to fetch access history');
+    const data = await res.json();
+    setHistoryEvents(data.events || []);
+    setHistoryTotal(data.total || 0);
+    setHistoryPage(page);
+  };
+
+  const handleOpenHistory = async (user: UserObj) => {
+    setDropdownOpenId(null);
+    setHistoryModalUser(user);
+    setHistoryPage(0);
+    setHistoryEvents([]);
+    setHistoryTotal(0);
+    setHistoryZones([]);
+    setHistoryLoading(true);
+    setHistoryError('');
+    try {
+      // Build a zone-id → name map from the full zone list plus the user's
+      // current grants, so revoked permissions still resolve to a readable name.
+      const [zonesRes, accessRes] = await Promise.all([
+        fetch(`${API_URL}/zones`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/users/${user.id}/access`, { headers: { 'Authorization': `Bearer ${token}` } }),
+      ]);
+      const names: Record<number, string> = {};
+      if (zonesRes.ok) {
+        (await zonesRes.json()).forEach((z: ZoneObj) => { names[z.id] = z.name; });
+      }
+      const granted: ZoneObj[] = [];
+      if (accessRes.ok) {
+        granted.push(...((await accessRes.json()) || []));
+      }
+      setHistoryZones(granted);
+      granted.forEach((z: ZoneObj) => { names[z.id] = z.name; });
+      setHistoryZoneNames(names);
+      await fetchUserEventsPage(user.id, 0);
+    } catch (e: unknown) {
+      if (e instanceof Error) setHistoryError(e.message);
+      else setHistoryError('Error loading access history');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const changeHistoryPage = async (page: number) => {
+    if (!historyModalUser || !token || page === historyPage) return;
+    setHistoryLoading(true);
+    setHistoryError('');
+    try {
+      await fetchUserEventsPage(historyModalUser.id, page);
+    } catch (e: unknown) {
+      if (e instanceof Error) setHistoryError(e.message);
+      else setHistoryError('Error loading access history');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const historyTotalPages = Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE));
+  const historyZoneName = (zoneId: number) => historyZoneNames[zoneId] || `Zone ${zoneId}`;
+
   if (loading) return <div className="text-secondary">Loading personnel data...</div>;
 
   return (
@@ -442,6 +532,16 @@ export default function UsersPage() {
                       >
                         <Fingerprint size={14} className="text-accent" />
                         Manage Credentials
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenHistory(u);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-[rgba(255,255,255,0.05)] flex items-center gap-2 border-t border-[rgba(255,255,255,0.05)]"
+                      >
+                        <History size={14} className="text-accent" />
+                        View Access History
                       </button>
                       {isLocked(u) && (
                         <button
@@ -854,6 +954,154 @@ export default function UsersPage() {
                 </button>
               </div>
             </form>
+          </div>
+          </div>
+        )}
+
+        {/* Access History Modal */}
+      {historyModalUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="card w-full max-w-3xl relative max-h-[90vh] flex flex-col">
+            <button 
+              onClick={() => setHistoryModalUser(null)}
+              className="absolute top-4 right-4 text-secondary hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-6 flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-[rgba(0,212,170,0.1)] flex items-center justify-center border border-[rgba(0,212,170,0.3)]">
+                <History size={20} className="text-accent" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Access History</h2>
+                <p className="text-sm text-secondary">Operator: <span className="text-white">{historyModalUser.name}</span> <span className="mono">· {historyModalUser.email}</span></p>
+              </div>
+            </div>
+
+            {historyError && (
+              <div className="p-3 mb-4 text-sm bg-[rgba(255,77,106,0.1)] border border-[var(--danger-primary)] rounded text-danger flex-shrink-0">
+                {historyError}
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+              {/* Currently granted zones */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Map size={15} className="text-accent" />
+                  Authorized Zones
+                </h3>
+                {historyZones.length === 0 ? (
+                  <div className="text-center text-secondary py-4 text-sm border border-dashed border-[var(--border-color)] rounded-lg">
+                    No zones currently granted to this operator.
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {historyZones.map(z => (
+                      <span key={z.id} className="px-2.5 py-1 rounded text-xs font-medium bg-[rgba(0,212,170,0.08)] text-accent border border-[rgba(0,212,170,0.25)]">
+                        {z.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Paginated access events */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Clock size={15} className="text-accent" />
+                    Audit Trail
+                  </h3>
+                  <span className="text-xs text-secondary">{historyTotal} events</span>
+                </div>
+
+                {historyLoading ? (
+                  <div className="text-secondary text-sm py-8 text-center">Loading events...</div>
+                ) : historyEvents.length === 0 ? (
+                  <div className="text-center text-secondary py-8 text-sm border border-dashed border-[var(--border-color)] rounded-lg">
+                    No access events recorded for this operator yet.
+                  </div>
+                ) : (
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>TIME</th>
+                          <th>ZONE</th>
+                          <th>ACTION</th>
+                          <th>METHOD</th>
+                          <th>STATUS</th>
+                          <th>REASON</th>
+                          <th>HASH</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {historyEvents.map(ev => (
+                          <tr key={ev.id}>
+                            <td className="text-xs text-secondary whitespace-nowrap mono">
+                              {new Date(ev.timestamp).toLocaleString()}
+                            </td>
+                            <td className="text-sm font-medium">{historyZoneName(ev.zone_id)}</td>
+                            <td>
+                              <span className={`text-xs uppercase font-semibold tracking-wider ${ev.action === 'enter' ? 'text-accent' : 'text-secondary'}`}>
+                                {ev.action}
+                              </span>
+                            </td>
+                            <td className="text-xs text-secondary">{ev.entry_method || '—'}</td>
+                            <td>
+                              <span className={`text-xs font-medium uppercase ${ev.status === 'allowed' ? 'text-accent' : 'text-danger'}`}>
+                                {ev.status}
+                              </span>
+                            </td>
+                            <td className="text-xs text-secondary">{ev.reason || '—'}</td>
+                            <td className="mono text-xs text-secondary" title={ev.hash}>
+                              {ev.hash?.slice(0, 10)}…
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {historyTotalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--border-color)]">
+                    <span className="text-xs text-secondary">
+                      Page {historyPage + 1} of {historyTotalPages}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => changeHistoryPage(historyPage - 1)}
+                        disabled={historyPage === 0 || historyLoading}
+                        className="btn text-xs px-3 py-1.5 h-auto disabled:opacity-40"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => changeHistoryPage(historyPage + 1)}
+                        disabled={historyPage >= historyTotalPages - 1 || historyLoading}
+                        className="btn text-xs px-3 py-1.5 h-auto disabled:opacity-40"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-6 flex justify-end flex-shrink-0">
+              <button 
+                type="button" 
+                onClick={() => setHistoryModalUser(null)}
+                className="btn bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-white"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
