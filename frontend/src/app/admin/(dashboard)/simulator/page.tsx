@@ -11,6 +11,8 @@ type Device = { id: number; zone_id: number; name: string; type: string; serial:
 type Credential = { id: number; user_id: number; entry_method: string; credential_hash: string; enrolled_at: string; revoked: boolean };
 type AccessEvent = { id: number; user_id: number; zone_id: number; action: string; status: string; reason?: string; timestamp: string; entry_method: string; hash: string };
 
+const EVENTS_PAGE_SIZE = 15;
+
 export default function SimulatorPage() {
   const { token } = useAuth();
 
@@ -49,6 +51,8 @@ export default function SimulatorPage() {
   const [simOutput, setSimOutput] = useState('');
 
   const [eventsZoneId, setEventsZoneId] = useState('');
+  const [eventsPage, setEventsPage] = useState(0);
+  const [eventsTotal, setEventsTotal] = useState(0);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -76,12 +80,14 @@ export default function SimulatorPage() {
     setAllCredentials(results.flat());
   }, [token]);
 
-  const fetchEvents = useCallback(async (zoneId: string) => {
+  const fetchEvents = useCallback(async (zoneId: string, page = 0) => {
     if (!token || !zoneId) return;
-    const res = await fetch(`${API_URL}/zones/${zoneId}/events`, { headers: { Authorization: `Bearer ${token}` } });
+    const offset = page * EVENTS_PAGE_SIZE;
+    const res = await fetch(`${API_URL}/zones/${zoneId}/events?limit=${EVENTS_PAGE_SIZE}&offset=${offset}`, { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) {
       const data = await res.json();
-      setRecentEvents((data.events || []).slice(0, 15));
+      setRecentEvents(data.events || []);
+      setEventsTotal(data.total || 0);
     }
   }, [token]);
 
@@ -99,13 +105,12 @@ export default function SimulatorPage() {
       fetchCredentials(ul);
       if (zl.length > 0) {
         setEventsZoneId(zl[0].id.toString());
-        fetchEvents(zl[0].id.toString());
       }
     });
   }, [token]);
 
   useEffect(() => {
-    if (eventsZoneId) fetchEvents(eventsZoneId);
+    if (eventsZoneId) fetchEvents(eventsZoneId, 0);
   }, [eventsZoneId]);
 
   const feedback = (type: string, msg: string) => ({ type, msg });
@@ -184,7 +189,7 @@ export default function SimulatorPage() {
         setSimLoading(false); return;
       }
       setSimOutput(`STATUS: ${res.status} ${res.statusText}\n\nPAYLOAD:\n${JSON.stringify(payload, null, 2)}\n\nRESPONSE:\n${JSON.stringify(data, null, 2)}`);
-      if (eventsZoneId) setTimeout(() => fetchEvents(eventsZoneId), 800);
+      if (eventsZoneId) setTimeout(() => fetchEvents(eventsZoneId, eventsPage), 800);
     } catch (err: any) { setSimOutput(`ERROR:\n${err.message}`); }
     finally { setSimLoading(false); }
   };
@@ -497,10 +502,10 @@ export default function SimulatorPage() {
               <h3 className="m-0">Hash Chain Events</h3>
             </div>
             <div className="flex items-center gap-3">
-              <select className="input text-sm h-9 py-0" value={eventsZoneId} onChange={e => setEventsZoneId(e.target.value)}>
+              <select className="input text-sm h-9 py-0" value={eventsZoneId} onChange={e => { setEventsPage(0); setEventsZoneId(e.target.value); }}>
                 {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
               </select>
-              <button onClick={() => fetchEvents(eventsZoneId)} className="btn text-xs px-3 py-1.5 h-auto">
+              <button onClick={() => fetchEvents(eventsZoneId, eventsPage)} className="btn text-xs px-3 py-1.5 h-auto">
                 <RefreshCw size={13} className="mr-1" />Refresh
               </button>
             </div>
@@ -535,6 +540,29 @@ export default function SimulatorPage() {
               </table>
             </div>
           )}
+          {(() => {
+            const totalPages = Math.max(1, Math.ceil(eventsTotal / EVENTS_PAGE_SIZE));
+            if (totalPages <= 1) return null;
+            return (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--border-color)]">
+                <span className="text-xs text-secondary">
+                  Page {eventsPage + 1} of {totalPages} · {eventsTotal} events
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { const p = Math.max(0, eventsPage - 1); setEventsPage(p); fetchEvents(eventsZoneId, p); }}
+                    disabled={eventsPage === 0}
+                    className="btn text-xs px-3 py-1.5 h-auto disabled:opacity-40"
+                  >Previous</button>
+                  <button
+                    onClick={() => { const p = Math.min(totalPages - 1, eventsPage + 1); setEventsPage(p); fetchEvents(eventsZoneId, p); }}
+                    disabled={eventsPage >= totalPages - 1}
+                    className="btn text-xs px-3 py-1.5 h-auto disabled:opacity-40"
+                  >Next</button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </> /* end records tab */}
     </div>
