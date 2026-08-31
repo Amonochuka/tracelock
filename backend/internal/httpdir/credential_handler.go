@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"tracelock/internal/access"
+	"tracelock/internal/auth"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -105,6 +106,23 @@ func ListUserCredentialsHandler(service *access.CredentialService) http.HandlerF
 		}
 
 		credentials, err := service.ListUserCredentials(userID)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "could not fetch credentials")
+			return
+		}
+		WriteJSON(w, http.StatusOK, credentials)
+	}
+}
+
+func MeCredentialsHandler(service *access.CredentialService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		claims := auth.GetUserClaims(r)
+		if claims == nil {
+			WriteError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		credentials, err := service.ListUserCredentials(claims.UserID)
 		if err != nil {
 			WriteError(w, http.StatusInternalServerError, "could not fetch credentials")
 			return

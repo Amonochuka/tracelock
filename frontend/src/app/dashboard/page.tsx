@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { LogOut, Shield, Clock, CheckCircle, XCircle, MapPin, LogIn, LogOut as Exit } from 'lucide-react';
+import { LogOut, Shield, Clock, CheckCircle, XCircle, MapPin, LogIn, LogOut as Exit, ChevronLeft, ChevronRight, Fingerprint } from 'lucide-react';
 import { API_URL } from '@/lib/api';
 
 interface AccessEvent {
@@ -21,37 +21,57 @@ interface ZoneAccess {
   zone_name: string;
 }
 
+interface Credential {
+  id: number;
+  entry_method: string;
+  credential_hash: string;
+  enrolled_at: string;
+  revoked: boolean;
+}
+
 interface EventResponse {
   events: AccessEvent[];
+  total?: number;
 }
+
+const PAGE_SIZE = 15;
 
 export default function UserDashboard() {
   const { user, token, logout } = useAuth();
   const [events, setEvents] = useState<AccessEvent[]>([]);
   const [access, setAccess] = useState<ZoneAccess[]>([]);
+  const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [simulationMessage, setSimulationMessage] = useState('');
   const [simulatingZoneId, setSimulatingZoneId] = useState<number | null>(null);
+  const [eventsPage, setEventsPage] = useState(0);
+  const [eventsTotal, setEventsTotal] = useState(0);
 
   const loadAccessData = useCallback(async () => {
     if (!token) return;
 
     const headers = { Authorization: `Bearer ${token}` };
-    const [eventsResponse, accessResponse] = await Promise.all([
-      fetch(`${API_URL}/me/events`, { headers }),
+    const [eventsResponse, accessResponse, credResponse] = await Promise.all([
+      fetch(`${API_URL}/me/events?limit=${PAGE_SIZE}&offset=${eventsPage * PAGE_SIZE}`, { headers }),
       fetch(`${API_URL}/me/access`, { headers }),
+      fetch(`${API_URL}/me/credentials`, { headers }),
     ]);
 
-    const eventsData: EventResponse = eventsResponse.ok ? await eventsResponse.json() : { events: [] };
+    const eventsData: EventResponse = eventsResponse.ok ? await eventsResponse.json() : { events: [], total: 0 };
     const accessData: ZoneAccess[] = accessResponse.ok ? await accessResponse.json() : [];
+    const credData: Credential[] = credResponse.ok ? await credResponse.json() : [];
     setEvents(eventsData.events || []);
+    setEventsTotal(eventsData.total || 0);
     setAccess(accessData || []);
-  }, [token]);
+    setCredentials(credData || []);
+  }, [token, eventsPage]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAccessData().finally(() => setLoading(false));
   }, [loadAccessData]);
+
+  const totalPages = Math.ceil(eventsTotal / PAGE_SIZE);
 
   const activeZoneIds = useMemo(() => {
     const latestEvents = new Map<number, AccessEvent>();
@@ -146,6 +166,29 @@ export default function UserDashboard() {
                   ))
                 )}
               </div>
+
+              <h3 className="mb-4 mt-10 flex items-center gap-2">
+                <Fingerprint size={18} className="text-accent" />
+                My Credentials
+              </h3>
+              <p className="text-secondary text-sm" style={{ marginBottom: '1rem' }}>Biometric and card credentials currently enrolled against your account.</p>
+              {credentials.length === 0 ? (
+                <div className="card text-secondary text-sm">No credentials enrolled yet. Ask an administrator to add one.</div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {credentials.map(c => (
+                    <div key={c.id} className={`card !p-3 ${c.revoked ? 'opacity-60' : ''}`}>
+                      <div className="flex items-center gap-3">
+                        <Fingerprint size={16} className={c.revoked ? 'text-danger' : 'text-accent'} />
+                        <span className="text-sm font-semibold capitalize">{c.entry_method}</span>
+                        {c.revoked && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[rgba(255,77,106,0.15)] text-danger border border-[rgba(255,77,106,0.3)] ml-auto">REVOKED</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="md:col-span-2">
@@ -165,7 +208,7 @@ export default function UserDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {events.slice(0, 20).map(e => (
+                    {events.map(e => (
                       <tr key={e.id}>
                         <td className="font-medium">{e.zone_name || `Zone ${e.zone_id}`}</td>
                         <td className="mono text-xs uppercase tracking-wider">{e.action}</td>
@@ -194,6 +237,31 @@ export default function UserDashboard() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--border-color)]">
+                  <span className="text-xs text-secondary">
+                    Page {eventsPage + 1} of {totalPages} · {eventsTotal} events
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setEventsPage(p => Math.max(0, p - 1))}
+                      disabled={eventsPage === 0}
+                      className="btn text-xs px-3 py-1.5 h-auto disabled:opacity-40"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <button
+                      onClick={() => setEventsPage(p => Math.min(totalPages - 1, p + 1))}
+                      disabled={eventsPage >= totalPages - 1}
+                      className="btn text-xs px-3 py-1.5 h-auto disabled:opacity-40"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

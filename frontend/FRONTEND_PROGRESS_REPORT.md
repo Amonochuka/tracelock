@@ -18,7 +18,7 @@ The two portals are separated in the navigation and login presentation, but the 
 | Personnel sign-in | Complete | `/login` accepts only regular-user accounts for the personnel portal. It has no visible administrator or bootstrap link. |
 | Admin sign-in | Complete | `/admin/login` is a direct, separate administration entry point and accepts only admin accounts. |
 | Route protection | Complete | The auth context sends unauthenticated visitors away from protected pages and prevents a regular user from using `/admin/*`. |
-| Personal dashboard | Complete | Shows the signed-in person’s permitted zones and personal access history. |
+| Personal dashboard | Complete | Shows the signed-in person’s permitted zones, personal access history (now paginated 15/page with prev/next instead of a hard 20-row cap), and the biometric/card credentials enrolled against their own account via a new `GET /me/credentials` self-service endpoint. Uses the browser entry/exit simulator. |
 | Browser entry simulator | Complete | Lets a permitted user simulate entry/exit while no hardware is connected. It writes a real audited event and updates admin occupancy via WebSocket. |
 | Admin occupancy dashboard | Complete | Loads current zone occupancy and receives subsequent changes through the live WebSocket feed. Right-hand column shows Zone Activity with a per-zone selector and a Peak Hours / Heatmap toggle — the heatmap is a 7-day × 24-hour grid of entry density in the browser's local timezone. |
 | Zone management | Complete | `/admin/zones` lists zones, provides a helpful empty state, and creates a first zone without leaving the page. |
@@ -58,7 +58,12 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 
 ### Personnel experience
 
-- `src/app/dashboard/page.tsx` — Fetches the authenticated user’s `/me/events` and `/me/access` data, correctly unwraps the paginated event response, and derives the displayed in-zone state from the latest allowed event. The simulator posts an auditable `web_simulator` entry/exit event, then refreshes the user’s view.
+- `src/app/dashboard/page.tsx` — Fetches the authenticated user’s `/me/events`, `/me/access`, and `/me/credentials` data, correctly unwraps the paginated event response, and derives the displayed in-zone state from the latest allowed event. The access-history table is server-paginated (15 events/page with prev/next controls, matching the admin drill-down pattern) rather than truncated client-side at 20. The simulator posts an auditable `web_simulator` entry/exit event, then refreshes the user’s view.
+
+### Personnel credentials self-service
+
+- `backend/internal/httpdir/credential_handler.go` — Added `MeCredentialsHandler`, which resolves the caller’s user id from the JWT claims and lists only their own enrolled credentials. This is the self-service counterpart to the admin `GET /admin/users/{id}/credentials` route; a user cannot list anyone else’s credentials.
+- `backend/internal/httpdir/router.go` — Registers `GET /me/credentials` inside the authenticated `/me` group.
 
 ### Admin experience
 
@@ -81,6 +86,14 @@ Both paths exercise the real access rules and audit trail. The hardware simulato
 3. ~Build analytic views, beginning with zone activity history and then heat maps once enough real/simulated event data exists.~ (Day-of-week × hour heatmap and per-user activity drill-down complete)
 
 ## Feature Change Log
+
+### 2026-08-31 — Personnel portal polish: paginated access history and self-service credentials view
+
+- **Status:** Complete
+- **Summary:** Fleshed out the previously-thin personnel portal. (1) **Paginated access history**: the personal dashboard hit `GET /me/events` with default pagination and truncated the rendered table to 20 rows client-side; it now passes `limit=15&offset=N`, reads the returned `total`, and renders the same prev/next pagination controls as the admin zone drill-down (Page X of Y · Z events). (2) **Self-service credentials**: a signed-in user can now see the biometric/card credentials enrolled against their own account. New backend endpoint `GET /me/credentials` (`MeCredentialsHandler`) resolves the caller via JWT claims and lists only their own credentials — the self-service counterpart to the admin-only `GET /admin/users/{id}/credentials`. The dashboard left column gains a **My Credentials** card listing each method, with a `REVOKED` badge on revoked credentials. Empty states handled for no-credentials and no-history.
+- **Files touched:** `src/app/dashboard/page.tsx`, `backend/internal/httpdir/credential_handler.go`, `backend/internal/httpdir/router.go`, `FRONTEND_PROGRESS_REPORT.md`.
+- **Validation:** `go build ./...` clean. `npm run build` exit code 0, TypeScript clean, all 12 routes generated. `npx eslint src/app/dashboard/page.tsx` reports no problems.
+- **Follow-up:** Automated frontend tests remain the only open frontend priority.
 
 ### 2026-08-24 — Per-User Activity Analytics Drill-Down
 
